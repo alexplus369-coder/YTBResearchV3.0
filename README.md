@@ -47,7 +47,7 @@ Impresiones, CTR real, % de retención exacto, RPM, ingresos reales, retornos de
 
 ### Transcripciones
 
-YouTube bloquea CORS, así que las transcripciones se descargan a través de un proxy configurable en **Opciones avanzadas** (por defecto `https://api.allorigins.win/raw?url={url}`). Puedes poner tu propio proxy; solo se aceptan hosts públicos http(s) (se rechazan localhost, IPs privadas y rangos reservados). Si no hay proxy disponible, la IA trabaja con títulos, descripciones y etiquetas.
+YouTube bloquea CORS desde el navegador, así que las transcripciones se obtienen con una cascada de fuentes: **1)** API pública de Piped (CORS directo), **2)** API de Invidious (CORS directo), **3)** la página del video a través de una cadena de proxies CORS públicos y **4)** el endpoint `timedtext` de YouTube vía proxies. Se elige la pista en español, luego inglés. En **Opciones avanzadas** puedes definir tu propio proxy (se prueba primero; debe contener `{url}` y apuntar a un host público http(s) — se rechazan localhost, IPs privadas y rangos reservados). Si ninguna fuente está disponible, la IA trabaja con títulos, descripciones y etiquetas.
 
 ## Resto de módulos
 
