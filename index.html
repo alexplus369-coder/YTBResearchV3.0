@@ -130,7 +130,7 @@
             <!-- ... Las mantenemos exactamente iguales estructuralmente para enfocarnos en las nuevas funciones ... -->
             <div id="tab-overview" class="tab-content space-y-6">
                 <!-- TOP METRICS -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="glass-card p-5 rounded-xl">
                         <div class="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">Vistas Promedio</div>
                         <div id="avg-views" class="text-2xl font-black text-slate-800">0</div>
@@ -146,6 +146,25 @@
                     <div class="glass-card p-5 rounded-xl bg-slate-900 text-white">
                         <div class="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">Dificultad</div>
                         <div id="difficulty-score" class="text-2xl font-black text-white">--</div>
+                        <div id="difficulty-detail" class="text-xs text-slate-400 mt-1"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="glass-card p-5 rounded-xl border-l-4 border-blue-400">
+                        <div class="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">👍 Likes Promedio</div>
+                        <div id="avg-likes" class="text-2xl font-black text-slate-800">0</div>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl border-l-4 border-amber-400">
+                        <div class="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">💬 Comentarios Prom.</div>
+                        <div id="avg-comments" class="text-2xl font-black text-slate-800">0</div>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl border-l-4 border-emerald-400">
+                        <div class="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">📊 Engagement Rate</div>
+                        <div id="engagement-rate" class="text-2xl font-black text-slate-800">0%</div>
+                    </div>
+                    <div class="glass-card p-5 rounded-xl border-l-4 border-purple-400">
+                        <div class="text-slate-400 text-xs font-black uppercase tracking-widest mb-1">📈 Tendencia</div>
+                        <div id="trend-momentum" class="text-2xl font-black text-slate-800">--</div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -167,6 +186,31 @@
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                         <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">Etiquetas Top</h3>
                         <div id="tags-cloud" class="flex flex-wrap gap-1"></div>
+                        <div class="mt-4 pt-4 border-t border-slate-100">
+                            <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Clusters Semánticos</h4>
+                            <div id="tag-clusters" class="space-y-2 text-xs"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Duración Óptima, Mejor Horario, Canales Dominantes -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-3">
+                            <i class="fa-solid fa-clock text-blue-500 mr-2"></i>Duración Óptima
+                        </h3>
+                        <div id="duration-analysis" class="space-y-2 text-sm"></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-3">
+                            <i class="fa-solid fa-calendar-check text-green-500 mr-2"></i>Mejor Horario
+                        </h3>
+                        <div id="publish-time-analysis" class="text-sm space-y-2"></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-3">
+                            <i class="fa-solid fa-users text-purple-500 mr-2"></i>Canales Dominantes
+                        </h3>
+                        <div id="channel-analysis" class="space-y-2 text-sm"></div>
                     </div>
                 </div>
             </div>
@@ -178,7 +222,12 @@
                             <tr class="bg-slate-50">
                                 <th class="p-3 text-xs font-bold text-slate-500 uppercase border-b">Video</th>
                                 <th class="p-3 text-xs font-bold text-slate-500 uppercase border-b">Canal</th>
+                                <th class="p-3 text-xs font-bold text-slate-500 uppercase border-b">Subs</th>
                                 <th class="p-3 text-xs font-bold text-slate-500 uppercase border-b">Vistas</th>
+                                <th class="p-3 text-xs font-bold text-slate-500 uppercase border-b">👍</th>
+                                <th class="p-3 text-xs font-bold text-slate-500 uppercase border-b">💬</th>
+                                <th class="p-3 text-xs font-bold text-slate-500 uppercase border-b">Eng.%</th>
+                                <th class="p-3 text-xs font-bold text-slate-500 uppercase border-b">Duración</th>
                                 <th class="p-3 text-xs font-bold text-slate-500 uppercase border-b">VPH</th>
                             </tr>
                         </thead>
@@ -519,6 +568,95 @@
             reader.onerror = error => reject(error);
         });
 
+        // --- FUNCIONES DE ANÁLISIS AVANZADO ---
+        function calculateDifficultyScore(videos, channelMap) {
+            const len = videos.length || 1;
+            const avgViews = videos.reduce((s, v) => s + parseInt(v.statistics.viewCount || 0), 0) / len;
+            const viewScore = Math.min(avgViews / 500000, 1) * 25;
+            let totalSubs = 0, subCount = 0;
+            videos.forEach(v => { const ch = channelMap[v.snippet.channelId]; if (ch) { totalSubs += ch.subs; subCount++; } });
+            const avgSubs = subCount > 0 ? totalSubs / subCount : 0;
+            const subScore = Math.min(avgSubs / 1000000, 1) * 30;
+            const avgAgeDays = videos.reduce((s, v) => s + (Date.now() - new Date(v.snippet.publishedAt)) / 86400000, 0) / len;
+            const ageScore = avgAgeDays < 30 ? 15 : avgAgeDays < 180 ? 10 : 5;
+            const uniqueChannels = new Set(videos.map(v => v.snippet.channelId)).size;
+            const concentrationScore = (1 - uniqueChannels / len) * 15;
+            const avgEng = videos.reduce((s, v) => {
+                const lk = parseInt(v.statistics.likeCount || 0), cm = parseInt(v.statistics.commentCount || 0);
+                return s + (lk + cm) / Math.max(parseInt(v.statistics.viewCount || 1), 1);
+            }, 0) / len;
+            const engScore = Math.min(avgEng / 0.05, 1) * 15;
+            const total = Math.round(viewScore + subScore + ageScore + concentrationScore + engScore);
+            return { score: Math.min(total, 100), avgSubs, uniqueChannels, avgAgeDays: Math.round(avgAgeDays) };
+        }
+
+        function analyzeDurationPerformance(videos) {
+            const buckets = {
+                'Shorts (<60s)': { views: 0, count: 0, emoji: '⚡' },
+                'Corto (1-5min)': { views: 0, count: 0, emoji: '🎯' },
+                'Medio (5-15min)': { views: 0, count: 0, emoji: '📺' },
+                'Largo (15-30min)': { views: 0, count: 0, emoji: '🎬' },
+                'Extra (30min+)': { views: 0, count: 0, emoji: '🎥' }
+            };
+            videos.forEach(v => {
+                const secs = parseISO8601Duration(v.contentDetails.duration);
+                const views = parseInt(v.statistics.viewCount || 0);
+                if (secs < 60) { buckets['Shorts (<60s)'].views += views; buckets['Shorts (<60s)'].count++; }
+                else if (secs < 300) { buckets['Corto (1-5min)'].views += views; buckets['Corto (1-5min)'].count++; }
+                else if (secs < 900) { buckets['Medio (5-15min)'].views += views; buckets['Medio (5-15min)'].count++; }
+                else if (secs < 1800) { buckets['Largo (15-30min)'].views += views; buckets['Largo (15-30min)'].count++; }
+                else { buckets['Extra (30min+)'].views += views; buckets['Extra (30min+)'].count++; }
+            });
+            return Object.entries(buckets).filter(([_, b]) => b.count > 0)
+                .map(([name, b]) => ({ name, avgViews: Math.round(b.views / b.count), count: b.count, emoji: b.emoji }))
+                .sort((a, b) => b.avgViews - a.avgViews);
+        }
+
+        function analyzeBestPublishTimes(videos) {
+            const dayMap = {0:'Dom',1:'Lun',2:'Mar',3:'Mié',4:'Jue',5:'Vie',6:'Sáb'};
+            const dayPerf = {}, hourPerf = {};
+            videos.forEach(v => {
+                const date = new Date(v.snippet.publishedAt);
+                const day = dayMap[date.getUTCDay()], hour = date.getUTCHours();
+                const vph = parseInt(v.statistics.viewCount || 0) / calculateHoursPassed(v.snippet.publishedAt);
+                dayPerf[day] = dayPerf[day] || { totalVph: 0, count: 0 };
+                dayPerf[day].totalVph += vph; dayPerf[day].count++;
+                hourPerf[hour] = hourPerf[hour] || { totalVph: 0, count: 0 };
+                hourPerf[hour].totalVph += vph; hourPerf[hour].count++;
+            });
+            const bestDay = Object.entries(dayPerf).sort((a,b) => (b[1].totalVph/b[1].count) - (a[1].totalVph/a[1].count))[0];
+            const bestHour = Object.entries(hourPerf).sort((a,b) => (b[1].totalVph/b[1].count) - (a[1].totalVph/a[1].count))[0];
+            return {
+                bestDay: bestDay ? bestDay[0] : 'N/A',
+                bestHour: bestHour ? `${bestHour[0]}:00 UTC` : 'N/A',
+                allDays: Object.entries(dayPerf).map(([d, v]) => ({ day: d, avgVph: Math.round(v.totalVph / v.count) })).sort((a,b) => b.avgVph - a.avgVph)
+            };
+        }
+
+        function calculateTrendMomentum(videos) {
+            const now = Date.now();
+            const recent = videos.filter(v => (now - new Date(v.snippet.publishedAt)) < 30 * 86400000);
+            const older = videos.filter(v => (now - new Date(v.snippet.publishedAt)) >= 30 * 86400000);
+            const avgVph = (arr) => arr.length > 0 ? arr.reduce((s, v) => s + parseInt(v.statistics.viewCount || 0) / calculateHoursPassed(v.snippet.publishedAt), 0) / arr.length : 0;
+            const recentVph = avgVph(recent), olderVph = avgVph(older);
+            if (olderVph === 0 && recentVph === 0) return { label: 'Sin datos', emoji: '❓', color: 'text-slate-400' };
+            if (olderVph === 0) return { label: 'Nuevo', emoji: '🆕', color: 'text-blue-500' };
+            const ratio = recentVph / olderVph;
+            if (ratio > 1.5) return { label: 'En alza', emoji: '🚀', color: 'text-emerald-500', ratio };
+            if (ratio > 0.8) return { label: 'Estable', emoji: '↔️', color: 'text-amber-500', ratio };
+            return { label: 'En caída', emoji: '📉', color: 'text-red-500', ratio };
+        }
+
+        function analyzeTagClusters(allTags, mainKeyword, videoCount) {
+            const entries = Object.entries(allTags).sort((a, b) => b[1] - a[1]);
+            return {
+                directMatch: entries.filter(([t]) => t.includes(mainKeyword)).slice(0, 5),
+                universal: entries.filter(([_, c]) => c >= Math.floor(videoCount * 0.5)).slice(0, 5),
+                longTail: entries.filter(([_, c]) => c === 1).slice(0, 8),
+                semantic: entries.filter(([t]) => !t.includes(mainKeyword)).slice(0, 8)
+            };
+        }
+
         // --- SISTEMA DE PESTAÑAS ---
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -596,73 +734,261 @@
                 // Fetch YouTube Top Videos
                 const searchRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=15&q=${encodeURIComponent(currentKeyword)}&type=video&key=${ytKey}`);
                 const searchData = await searchRes.json();
-                const videoIds = searchData.items.map(i => i.id.videoId).join(',');
+                if (!searchData.items || searchData.items.length === 0) throw new Error("No se encontraron videos para esta búsqueda.");
+                const videoIds = searchData.items.map(i => i.id?.videoId).filter(Boolean).join(',');
                 
                 const detailsRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${videoIds}&key=${ytKey}`);
                 const detailsData = await detailsRes.json();
-                const videos = detailsData.items;
+                const videos = detailsData.items || [];
+                if (videos.length === 0) throw new Error("No se obtuvieron detalles de los videos.");
 
-                let totalViews = 0, totalSeconds = 0, totalVph = 0, allTags = {};
+                // Obtener datos de los canales únicos para calcular dificultad multivariable y subs
+                const uniqueChannelIds = [...new Set(videos.map(v => v.snippet.channelId))];
+                let channelMap = {};
+                if (uniqueChannelIds.length > 0) {
+                    try {
+                        const channelsRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${uniqueChannelIds.join(',')}&key=${ytKey}`);
+                        const channelsData = await channelsRes.json();
+                        (channelsData.items || []).forEach(ch => {
+                            channelMap[ch.id] = {
+                                name: ch.snippet.title,
+                                subs: parseInt(ch.statistics?.subscriberCount || 0),
+                                totalVideos: parseInt(ch.statistics?.videoCount || 0)
+                            };
+                        });
+                    } catch (e) {
+                        console.warn("No se pudieron cargar datos de canales:", e);
+                    }
+                }
+
+                let totalViews = 0, totalSeconds = 0, totalVph = 0, totalLikes = 0, totalComments = 0;
+                let allTags = {};
                 let competitorsHTML = '';
 
                 videos.forEach(v => {
-                    const views = parseInt(v.statistics.viewCount || 0);
-                    const seconds = parseISO8601Duration(v.contentDetails.duration);
-                    const vph = Math.floor(views / calculateHoursPassed(v.snippet.publishedAt));
-                    totalViews += views; totalSeconds += seconds; totalVph += vph;
+                    const views = parseInt(v.statistics?.viewCount || 0);
+                    const likes = parseInt(v.statistics?.likeCount || 0);
+                    const comments = parseInt(v.statistics?.commentCount || 0);
+                    const seconds = parseISO8601Duration(v.contentDetails?.duration || '');
+                    const hoursPassed = calculateHoursPassed(v.snippet.publishedAt);
+                    const vph = Math.floor(views / hoursPassed);
+                    const engagement = views > 0 ? ((likes + comments) / views * 100).toFixed(2) : '0.00';
+                    const chInfo = channelMap[v.snippet.channelId];
+                    const subsText = chInfo && chInfo.subs ? formatNumber(chInfo.subs) : 'Oculto';
+
+                    totalViews += views;
+                    totalSeconds += seconds;
+                    totalVph += vph;
+                    totalLikes += likes;
+                    totalComments += comments;
+
                     (v.snippet.tags || []).forEach(t => allTags[t.toLowerCase()] = (allTags[t.toLowerCase()] || 0) + 1);
 
                     competitorsHTML += `
-                        <tr class="hover:bg-slate-50">
-                            <td class="p-3 border-b border-slate-100 max-w-[200px] truncate"><a href="https://youtube.com/watch?v=${v.id}" target="_blank" class="text-indigo-600 hover:underline font-medium text-xs">${v.snippet.title}</a></td>
-                            <td class="p-3 border-b text-xs text-slate-600">${v.snippet.channelTitle}</td>
-                            <td class="p-3 border-b font-bold text-slate-800">${formatNumber(views)}</td>
-                            <td class="p-3 border-b font-bold text-orange-600">${formatNumber(vph)}/h</td>
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-3 border-b border-slate-100 max-w-[220px] truncate">
+                                <a href="https://youtube.com/watch?v=${v.id}" target="_blank" class="text-indigo-600 hover:underline font-medium text-xs" title="${v.snippet.title}">${v.snippet.title}</a>
+                            </td>
+                            <td class="p-3 border-b text-xs text-slate-600 max-w-[130px] truncate" title="${v.snippet.channelTitle}">${v.snippet.channelTitle}</td>
+                            <td class="p-3 border-b text-xs font-semibold text-slate-600">${subsText}</td>
+                            <td class="p-3 border-b font-bold text-slate-800 text-xs">${formatNumber(views)}</td>
+                            <td class="p-3 border-b text-xs text-slate-600">${formatNumber(likes)}</td>
+                            <td class="p-3 border-b text-xs text-slate-600">${formatNumber(comments)}</td>
+                            <td class="p-3 border-b font-bold text-emerald-600 text-xs">${engagement}%</td>
+                            <td class="p-3 border-b text-xs text-slate-600">${formatSeconds(seconds)}</td>
+                            <td class="p-3 border-b font-bold text-orange-600 text-xs">${formatNumber(vph)}/h</td>
                         </tr>`;
                 });
 
-                const avgViewsVal = Math.floor(totalViews / videos.length);
-                const avgDurationVal = Math.floor(totalSeconds / videos.length);
-                const avgVphVal = Math.floor(totalVph / videos.length);
+                const len = videos.length || 1;
+                const avgViewsVal = Math.floor(totalViews / len);
+                const avgDurationVal = Math.floor(totalSeconds / len);
+                const avgVphVal = Math.floor(totalVph / len);
+                const avgLikesVal = Math.floor(totalLikes / len);
+                const avgCommentsVal = Math.floor(totalComments / len);
+                const avgEngagementRate = totalViews > 0 ? ((totalLikes + totalComments) / totalViews * 100).toFixed(2) + '%' : '0%';
 
+                // Actualizar métricas generales
                 document.getElementById('avg-views').textContent = formatNumber(avgViewsVal);
                 document.getElementById('avg-duration').textContent = formatSeconds(avgDurationVal);
                 document.getElementById('avg-vph').textContent = formatNumber(avgVphVal);
+                document.getElementById('avg-likes').textContent = formatNumber(avgLikesVal);
+                document.getElementById('avg-comments').textContent = formatNumber(avgCommentsVal);
+                document.getElementById('engagement-rate').textContent = avgEngagementRate;
+
+                // Tendencia / Momentum
+                const trend = calculateTrendMomentum(videos);
+                const trendEl = document.getElementById('trend-momentum');
+                if (trendEl) {
+                    trendEl.innerHTML = `${trend.emoji} <span class="${trend.color} text-xl">${trend.label}</span>`;
+                }
+
+                // Tabla de competidores enriquecida
                 document.getElementById('competitors-table').innerHTML = competitorsHTML;
 
-                // Calcular Dificultad real
-                let diffText = "Media";
-                let diffColor = "text-yellow-400";
-                if (avgViewsVal > 250000) { diffText = "Difícil"; diffColor = "text-red-400"; }
-                else if (avgViewsVal < 20000) { diffText = "Fácil"; diffColor = "text-emerald-400"; }
-                
+                // Dificultad multivariable (0-100)
+                const diff = calculateDifficultyScore(videos, channelMap);
+                let diffText = "Fácil";
+                let diffColor = "text-emerald-400";
+                if (diff.score >= 70) { diffText = "Muy Difícil"; diffColor = "text-red-400"; }
+                else if (diff.score >= 50) { diffText = "Difícil"; diffColor = "text-orange-400"; }
+                else if (diff.score >= 30) { diffText = "Moderada"; diffColor = "text-yellow-400"; }
+
                 const diffScoreEl = document.getElementById('difficulty-score');
-                diffScoreEl.textContent = diffText;
+                diffScoreEl.textContent = `${diff.score}/100 (${diffText})`;
                 diffScoreEl.className = `text-2xl font-black ${diffColor}`;
 
+                const diffDetailEl = document.getElementById('difficulty-detail');
+                if (diffDetailEl) {
+                    diffDetailEl.textContent = `Subs prom: ${formatNumber(diff.avgSubs)} | ${diff.uniqueChannels} canales únicos | Antigüedad prom: ${diff.avgAgeDays}d`;
+                }
+
+                // Tags Cloud
                 const topTags = Object.entries(allTags).sort((a, b) => b[1] - a[1]).slice(0, 15);
                 document.getElementById('tags-cloud').innerHTML = topTags.map(t => `<span class="tag-pill">${t[0]}</span>`).join('');
-                
                 const topTagsString = topTags.slice(0, 5).map(t => t[0]).join(', ');
 
-                // Call Gemini for initial analysis using helper con DATOS REALES
-                const prompt = `Actúa como Experto SEO de YouTube. Analiza la keyword: "${currentKeyword}". 
-                Contexto de la competencia actual (DATOS REALES extraídos de YouTube):
+                // Clusters Semánticos de Tags
+                const clusters = analyzeTagClusters(allTags, currentKeyword, videos.length);
+                const tagClustersEl = document.getElementById('tag-clusters');
+                if (tagClustersEl) {
+                    tagClustersEl.innerHTML = `
+                        <div>
+                            <span class="font-bold text-indigo-700">🎯 Match Directo:</span>
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                ${clusters.directMatch.length ? clusters.directMatch.map(([t]) => `<span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[11px] font-medium border border-indigo-100">${t}</span>`).join('') : '<span class="text-slate-400 text-[11px]">Ninguno</span>'}
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="font-bold text-emerald-700">🌟 Universales (Top 50%+):</span>
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                ${clusters.universal.length ? clusters.universal.map(([t, c]) => `<span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-100">${t} (${c})</span>`).join('') : '<span class="text-slate-400 text-[11px]">Ninguno</span>'}
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="font-bold text-purple-700">💡 Expansión Semántica:</span>
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                ${clusters.semantic.slice(0, 6).map(([t]) => `<span class="bg-purple-50 text-purple-700 px-2 py-0.5 rounded text-[11px] font-medium border border-purple-100">${t}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="font-bold text-amber-700">🔍 Long-Tail (Oportunidad):</span>
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                ${clusters.longTail.slice(0, 6).map(([t]) => `<span class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[11px] font-medium border border-amber-100">${t}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Rendimiento por Formato / Duración
+                const durationStats = analyzeDurationPerformance(videos);
+                const durationEl = document.getElementById('duration-analysis');
+                if (durationEl) {
+                    if (durationStats.length > 0) {
+                        const best = durationStats[0];
+                        durationEl.innerHTML = `
+                            <div class="p-3 bg-blue-50 rounded-lg mb-2 border border-blue-100">
+                                <span class="text-[11px] font-bold text-blue-700 uppercase">🏆 Formato con más vistas:</span>
+                                <div class="font-bold text-slate-800 text-sm mt-0.5">${best.emoji} ${best.name}</div>
+                                <div class="text-xs text-slate-500">${formatNumber(best.avgViews)} vistas prom (${best.count} video(s))</div>
+                            </div>
+                            <div class="space-y-1">
+                                ${durationStats.map(d => `
+                                    <div class="flex justify-between items-center text-xs py-1 border-b border-slate-50">
+                                        <span class="text-slate-600">${d.emoji} ${d.name} (${d.count})</span>
+                                        <span class="font-bold text-slate-800">${formatNumber(d.avgViews)} vistas</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    } else {
+                        durationEl.innerHTML = '<span class="text-xs text-slate-400">Sin datos</span>';
+                    }
+                }
+
+                // Mejor Horario de Publicación
+                const publishStats = analyzeBestPublishTimes(videos);
+                const publishEl = document.getElementById('publish-time-analysis');
+                if (publishEl) {
+                    publishEl.innerHTML = `
+                        <div class="p-3 bg-emerald-50 rounded-lg mb-2 border border-emerald-100">
+                            <span class="text-[11px] font-bold text-emerald-700 uppercase">🚀 Ventana con Mayor VPH:</span>
+                            <div class="font-bold text-slate-800 text-sm mt-0.5">Día: <span class="text-emerald-700 font-black">${publishStats.bestDay}</span> | Hora: <span class="text-emerald-700 font-black">${publishStats.bestHour}</span></div>
+                            <div class="text-xs text-slate-500">Momento con mayor aceleración de vistas</div>
+                        </div>
+                        <div class="space-y-1">
+                            ${publishStats.allDays.slice(0, 4).map(d => `
+                                <div class="flex justify-between items-center text-xs py-1 border-b border-slate-50">
+                                    <span class="text-slate-600">${d.day}</span>
+                                    <span class="font-bold text-slate-800">${formatNumber(d.avgVph)} VPH prom</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                // Canales Dominantes
+                const channelCounts = {};
+                videos.forEach(v => {
+                    const chId = v.snippet.channelId;
+                    channelCounts[chId] = channelCounts[chId] || { name: v.snippet.channelTitle, count: 0, views: 0 };
+                    channelCounts[chId].count++;
+                    channelCounts[chId].views += parseInt(v.statistics?.viewCount || 0);
+                });
+                const sortedChannels = Object.entries(channelCounts)
+                    .sort((a, b) => b[1].views - a[1].views)
+                    .slice(0, 4);
+                const channelEl = document.getElementById('channel-analysis');
+                if (channelEl) {
+                    channelEl.innerHTML = `
+                        <div class="space-y-2">
+                            ${sortedChannels.map(([id, ch]) => {
+                                const chData = channelMap[id];
+                                return `
+                                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                                        <div class="truncate max-w-[150px]">
+                                            <div class="font-bold text-slate-800 truncate" title="${ch.name}">${ch.name}</div>
+                                            <div class="text-slate-400 text-[10px]">${chData?.subs ? formatNumber(chData.subs) + ' subs' : 'Canal'} · ${ch.count} video(s)</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="font-black text-slate-800">${formatNumber(ch.views)}</div>
+                                            <div class="text-slate-400 text-[10px]">vistas tot.</div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }
+
+                // Actualizar score SEO si el usuario ya escribió algo en borrador
+                updateSeoScore();
+
+                // Call Gemini for initial analysis using helper con DATOS REALES Y ENRIQUECIDOS
+                const prompt = `Actúa como Experto SEO de YouTube de nivel mundial. Analiza la keyword: "${currentKeyword}". 
+                Contexto cuantitativo de la competencia actual (DATOS REALES extraídos de YouTube):
                 - Vistas promedio del Top 15: ${formatNumber(avgViewsVal)}
                 - VPH (Vistas por hora) promedio: ${formatNumber(avgVphVal)}
+                - Likes promedio: ${formatNumber(avgLikesVal)}
+                - Comentarios promedio: ${formatNumber(avgCommentsVal)}
+                - Engagement Rate promedio: ${avgEngagementRate}
+                - Dificultad multivariable del nicho: ${diff.score}/100 (${diffText})
+                - Tendencia actual del nicho: ${trend.label} (${trend.emoji})
+                - Duración más exitosa en vistas: ${durationStats[0]?.name || 'N/A'} (${formatNumber(durationStats[0]?.avgViews || 0)} vistas)
+                - Mejor horario de publicación: ${publishStats.bestDay} a las ${publishStats.bestHour}
                 - Etiquetas principales usadas por la competencia: ${topTagsString}
-                Contexto de mi canal: ${userChannelContext || "Ninguno proporcionado, asume que es un canal nuevo."}
+                Contexto de mi canal: ${userChannelContext || "Ninguno proporcionado, asume que es un canal nuevo buscando crecer rápido."}
                 
                 Basándote ESTRICTAMENTE en estos datos reales de la competencia y de mi canal, devuelve SOLO un JSON válido con esta estructura: 
-                {"intent": "qué busca el usuario realmente", "business": "evaluación de rentabilidad", "coach": "consejo estratégico justificado con los números proporcionados", "titles":["t1","t2","t3"], "ideas":["i1","i2"], "thumbnails":["th1","th2"]}`;
+                {"intent": "qué busca el usuario realmente", "business": "evaluación de rentabilidad y potencial comercial", "coach": "consejo estratégico justificado con los números proporcionados", "titles":["t1","t2","t3"], "ideas":["i1","i2"], "thumbnails":["th1","th2"]}`;
 
                 const aiJSON = await smartFetchAI(prompt, true);
                 
                 document.getElementById('intent-analysis').textContent = aiJSON.intent || "No disponible";
                 document.getElementById('business-analysis').textContent = aiJSON.business || "No disponible";
                 document.getElementById('ai-coach').innerHTML = `"${aiJSON.coach || "Sigue adelante con tu canal."}"`;
-                document.getElementById('ai-titles').innerHTML = (aiJSON.titles || []).map(t => `<li>✓ ${t}</li>`).join('');
-                document.getElementById('ai-ideas').innerHTML = (aiJSON.ideas || []).map(i => `<li>► ${i}</li>`).join('');
+                document.getElementById('ai-titles').innerHTML = (aiJSON.titles || []).map(t => `<li class="font-medium text-slate-800">✓ ${t}</li>`).join('');
+                document.getElementById('ai-ideas').innerHTML = (aiJSON.ideas || []).map(i => `<li class="text-slate-700">► ${i}</li>`).join('');
                 document.getElementById('ai-thumbnails').innerHTML = (aiJSON.thumbnails || []).map(th => `<li class="italic text-slate-600">■ ${th}</li>`).join('');
 
                 dashboard.classList.remove('hidden');
@@ -776,7 +1102,7 @@
             btn.innerText = "Auditar Guion / Transcripción";
         });
 
-        // --- NEW: CONTENT GAPS ---
+        // --- NEW: CONTENT GAPS (CON DATOS CUANTITATIVOS REALES) ---
         document.getElementById('find-gaps-btn').addEventListener('click', async () => {
             const ytKey = document.getElementById('ytApiKeyInput').value.trim();
             const geminiKey = document.getElementById('geminiApiKeyInput').value.trim();
@@ -797,32 +1123,94 @@
                 if(compInput.startsWith('@')) {
                     const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${compInput.substring(1)}&key=${ytKey}`);
                     const data = await res.json();
-                    if(!data.items) throw new Error("Competidor no encontrado.");
+                    if(!data.items || data.items.length === 0) throw new Error("Canal del competidor no encontrado.");
                     compId = data.items[0].id;
                 }
 
-                // Fetch top 10 videos from User
-                const uRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${userChannelId}&maxResults=10&order=viewCount&type=video&key=${ytKey}`);
-                const uVids = (await uRes.json()).items.map(i => i.snippet.title).join(" | ");
+                // Función auxiliar para obtener videos con estadísticas y métricas completas
+                const fetchChannelVideosWithStats = async (channelId) => {
+                    const searchRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=12&order=viewCount&type=video&key=${ytKey}`);
+                    const searchData = await searchRes.json();
+                    if (!searchData.items || searchData.items.length === 0) return [];
+                    const ids = searchData.items.map(i => i.id?.videoId).filter(Boolean).join(',');
+                    if (!ids) return [];
+                    const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${ytKey}`);
+                    const vData = await vRes.json();
+                    return (vData.items || []).map(v => {
+                        const views = parseInt(v.statistics?.viewCount || 0);
+                        const likes = parseInt(v.statistics?.likeCount || 0);
+                        const comments = parseInt(v.statistics?.commentCount || 0);
+                        const hours = calculateHoursPassed(v.snippet.publishedAt);
+                        const vph = Math.floor(views / hours);
+                        const eng = views > 0 ? ((likes + comments) / views * 100).toFixed(1) : '0';
+                        return {
+                            id: v.id,
+                            title: v.snippet.title,
+                            views,
+                            likes,
+                            comments,
+                            vph,
+                            eng,
+                            duration: formatSeconds(parseISO8601Duration(v.contentDetails?.duration || ''))
+                        };
+                    });
+                };
 
-                // Fetch top 10 videos from Competitor
-                const cRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${compId}&maxResults=10&order=viewCount&type=video&key=${ytKey}`);
-                const cVids = (await cRes.json()).items.map(i => i.snippet.title).join(" | ");
+                const [userVideos, compVideos] = await Promise.all([
+                    fetchChannelVideosWithStats(userChannelId),
+                    fetchChannelVideosWithStats(compId)
+                ]);
 
-                // Prompt Gemini
-                const prompt = `Eres un estratega de contenido. Mi canal tiene estos videos populares: [${uVids}]. Mi competidor tiene estos videos populares: [${cVids}].
-                Encuentra 3 "Content Gaps" (temas exactos que le han funcionado a él muy bien, pero que yo NO he cubierto en absoluto).
-                Devuelve un JSON válido: {"gaps": [ {"topic": "...", "reason": "Por qué hacerlo"} ] }`;
+                if (compVideos.length === 0) throw new Error("No se pudieron obtener videos del competidor.");
+
+                const uContext = userVideos.map(v => `"${v.title}" (${formatNumber(v.views)} vistas)`).join(" | ");
+                const cContext = compVideos.map(v => `"${v.title}" (${formatNumber(v.views)} vistas, ${v.vph} VPH, ${v.eng}% eng)`).join(" | ");
+
+                // Prompt cuantitativo con métricas exactas
+                const prompt = `Eres un estratega de contenido de YouTube de élite. 
+                DATOS REALES de los videos más populares de mi canal:
+                [${uContext || "Sin videos aún / canal nuevo"}]
+                
+                DATOS REALES de los videos más populares del competidor (incluyendo vistas, velocidad VPH y engagement):
+                [${cContext}]
+                
+                Encuentra 3 "Content Gaps" críticos: temas u oportunidades comprobadas con alto rendimiento para el competidor que mi canal NO ha cubierto o puede superar con mejor ángulo.
+                Devuelve un JSON válido: {"gaps": [ {"topic": "...", "reason": "Justificación con datos del competidor", "suggestedAngle": "Cómo superarlo con mejor ángulo"} ] }`;
 
                 const gapsData = await smartFetchAI(prompt, true);
-                
-                outBox.innerHTML = (gapsData.gaps || []).map((g, i) => `
-                    <div class="bg-orange-50 p-5 rounded-xl border border-orange-200">
-                        <div class="w-8 h-8 bg-orange-500 text-white font-black rounded-full flex items-center justify-center mb-3">${i+1}</div>
-                        <h4 class="font-black text-slate-800 mb-2">${g.topic}</h4>
-                        <p class="text-sm text-slate-600">${g.reason}</p>
+
+                outBox.innerHTML = `
+                    <div class="col-span-full mb-2">
+                        <h4 class="text-xs font-black uppercase text-slate-500 tracking-wider mb-2">Top Videos Analizados del Competidor:</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+                            ${compVideos.slice(0, 3).map(v => `
+                                <div class="bg-white p-3 rounded-lg border border-slate-200 text-xs shadow-sm">
+                                    <div class="font-bold text-slate-800 truncate" title="${v.title}">${v.title}</div>
+                                    <div class="flex justify-between items-center mt-2 text-slate-500">
+                                        <span>👁️ ${formatNumber(v.views)}</span>
+                                        <span class="text-orange-600 font-bold">⚡ ${formatNumber(v.vph)}/h</span>
+                                        <span class="text-emerald-600 font-bold">📊 ${v.eng}%</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <h4 class="text-xs font-black uppercase text-slate-500 tracking-wider mb-2">Oportunidades de Contenido Detectadas:</h4>
                     </div>
-                `).join('');
+                    ${(gapsData.gaps || []).map((g, i) => `
+                        <div class="bg-orange-50 p-5 rounded-xl border border-orange-200 flex flex-col justify-between">
+                            <div>
+                                <div class="w-8 h-8 bg-orange-500 text-white font-black rounded-full flex items-center justify-center mb-3">${i+1}</div>
+                                <h4 class="font-black text-slate-800 mb-2">${g.topic}</h4>
+                                <p class="text-sm text-slate-600 mb-3">${g.reason}</p>
+                            </div>
+                            ${g.suggestedAngle ? `
+                                <div class="bg-white/80 p-3 rounded-lg border border-orange-100 text-xs text-orange-950 font-medium">
+                                    <strong class="text-orange-700">Ángulo recomendado:</strong> ${g.suggestedAngle}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                `;
                 outBox.classList.remove('hidden');
 
             } catch(e) { 
@@ -833,61 +1221,145 @@
             finally { loader.classList.add('hidden'); }
         });
 
-        // --- SEO SCORE (Restaurado a Validación Estricta) ---
+        // --- SEO SCORE (VALIDACIÓN AVANZADA MULTIVARIABLE) ---
         const titleInput = document.getElementById('draft-title');
         const descInput = document.getElementById('draft-desc');
         const feedbackContainer = document.getElementById('seo-feedback');
 
         const updateSeoScore = () => {
-            if(!currentKeyword) return;
+            const kw = (currentKeyword || document.getElementById('keyword')?.value || "").trim().toLowerCase();
             let score = 0;
             const checks = [];
-            const tVal = titleInput.value;
-            const dVal = descInput.value || "";
+            const tVal = (titleInput.value || "").trim();
+            const dVal = (descInput.value || "").trim();
             const tLen = tVal.length;
-            const kw = currentKeyword.toLowerCase();
 
-            // Título: Longitud
-            if (tLen > 0 && tLen <= 65) { score += 20; checks.push({ok:true, msg:"Longitud de título excelente (no se cortará en móviles)."}); }
-            else if (tLen > 65) { score += 5; checks.push({ok:false, msg:"El título es muy largo. Intenta mantenerlo bajo 65 caracteres."}); }
-            else { checks.push({ok:false, msg:"El título está vacío."}); }
-
-            // Título: Keyword
-            if (tVal.toLowerCase().includes(kw)) {
-                score += 30;
-                if (tVal.toLowerCase().indexOf(kw) < 15) {
-                    score += 10;
-                    checks.push({ok:true, msg:"¡Perfecto! Palabra clave al inicio del título."});
-                } else {
-                    checks.push({ok:true, msg:"Palabra clave presente en el título."});
+            if (!kw) {
+                if (feedbackContainer) {
+                    feedbackContainer.innerHTML = '<div class="text-slate-400 italic">Ingresa una palabra clave en la búsqueda o realiza un análisis para evaluar el SEO del borrador.</div>';
                 }
-            } else { checks.push({ok:false, msg:`Falta la palabra clave exacta ("${currentKeyword}") en el título.`}); }
+                return;
+            }
 
-            // Descripción: Keyword
+            // 1. Título: Longitud (0-15 pts)
+            if (tLen > 0 && tLen <= 65) {
+                score += 15;
+                checks.push({ok:true, msg:`Longitud óptima de título (${tLen}/65 caracteres, sin cortes en móviles).`});
+            } else if (tLen > 65) {
+                score += 5;
+                checks.push({ok:false, msg:`El título es largo (${tLen} caracteres). Se truncará en pantallas móviles (ideal ≤ 65).`});
+            } else {
+                checks.push({ok:false, msg:"El título está vacío."});
+            }
+
+            // 2. Título: Palabra Clave y Posición (0-25 pts)
+            if (tVal.toLowerCase().includes(kw)) {
+                score += 20;
+                if (tVal.toLowerCase().indexOf(kw) < 20) {
+                    score += 5;
+                    checks.push({ok:true, msg:`¡Excelente! Palabra clave al inicio del título ("${kw}").`});
+                } else {
+                    checks.push({ok:true, msg:`Palabra clave encontrada en el título.`});
+                }
+            } else {
+                checks.push({ok:false, msg:`Falta la palabra clave exacta ("${kw}") en el título.`});
+            }
+
+            // 3. Título: Números y Power Words (CTR Boost) (0-10 pts)
+            if (/\d/.test(tVal)) {
+                score += 10;
+                checks.push({ok:true, msg:"Incluye números en el título (aumenta CTR y tasa de clics)."});
+            } else {
+                checks.push({ok:false, msg:"Tip CTR: Incluir números (ej. 'Top 5', '2026', 'en 10 Min') incrementa clics."});
+            }
+
+            // 4. Título: Mayúsculas excesivas (0-5 pts)
+            if (tLen > 10) {
+                const upperMatches = tVal.match(/[A-ZÁÉÍÓÚÑ]/g) || [];
+                const capsRatio = upperMatches.length / tLen;
+                if (capsRatio > 0.55) {
+                    checks.push({ok:false, msg:"Demasiadas mayúsculas. YouTube puede penalizarlo como spam o clickbait engañoso."});
+                } else {
+                    score += 5;
+                    checks.push({ok:true, msg:"Uso equilibrado y legible de mayúsculas."});
+                }
+            }
+
+            // 5. Título: Emojis Moderados (0-5 pts)
+            const emojiMatches = tVal.match(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu) || [];
+            if (emojiMatches.length >= 1 && emojiMatches.length <= 2) {
+                score += 5;
+                checks.push({ok:true, msg:"Uso moderado de emojis (1-2) para destacar visualmente en los resultados."});
+            } else if (emojiMatches.length > 2) {
+                checks.push({ok:false, msg:"Demasiados emojis en el título (más de 2 puede reducir la percepción de profesionalismo)."});
+            }
+
+            // 6. Descripción: Primeros 150 caracteres y longitud (0-20 pts)
             if (dVal.length > 0) {
                 const first150 = dVal.substring(0, 150).toLowerCase();
                 if (first150.includes(kw)) {
-                    score += 25; checks.push({ok:true, msg:"Palabra clave encontrada en las primeras líneas de la descripción."});
-                } else { checks.push({ok:false, msg:"La palabra clave debe estar en los primeros 150 caracteres de la descripción."}); }
-                
-                if(dVal.length > 100) { score += 15; checks.push({ok:true, msg:"Descripción con buena longitud y contexto SEO."}); }
-                else { score += 5; checks.push({ok:false, msg:"Añade un poco más de texto a la descripción."}); }
-            } else { checks.push({ok:false, msg:"La descripción está vacía."}); }
+                    score += 15;
+                    checks.push({ok:true, msg:"Palabra clave presente en las primeras 2 líneas (150 caracteres) de la descripción."});
+                } else {
+                    checks.push({ok:false, msg:"Coloca la palabra clave en las primeras líneas de la descripción (lo visible antes de 'mostrar más')."});
+                }
 
-            // Update UI
+                if (dVal.length >= 200) {
+                    score += 5;
+                    checks.push({ok:true, msg:`Descripción extensa y con buen contexto temático (${dVal.length} caracteres).`});
+                } else {
+                    checks.push({ok:false, msg:"Descripción corta. Agrega contexto para ayudar al algoritmo a indexar el contenido."});
+                }
+            } else {
+                checks.push({ok:false, msg:"La descripción está vacía."});
+            }
+
+            // 7. Descripción: Hashtags (#) (0-5 pts)
+            const hashtags = (dVal.match(/#[\wñáéíóú]+/gi) || []).length;
+            if (hashtags >= 3 && hashtags <= 6) {
+                score += 5;
+                checks.push({ok:true, msg:`Hashtags detectados: ${hashtags} (rango recomendado: 3 a 5).`});
+            } else if (hashtags > 6) {
+                checks.push({ok:false, msg:`Demasiados hashtags (${hashtags}). YouTube solo muestra los 3 primeros sobre el título.`});
+            } else {
+                checks.push({ok:false, msg:"Añade de 3 a 5 hashtags (#) al final de tu descripción."});
+            }
+
+            // 8. Descripción: Timestamps / Capítulos detectados (0-10 pts)
+            if (/\b\d{1,2}:\d{2}\b/.test(dVal)) {
+                score += 10;
+                checks.push({ok:true, msg:"Marcas de tiempo / Capítulos detectados (mejora retención e indexación en Google)."});
+            } else {
+                checks.push({ok:false, msg:"Añade marcas de tiempo (ej. '00:00 Intro', '01:30 Paso 1') para capítulos automáticos."});
+            }
+
+            // 9. Descripción: Llamado a la Acción (CTA) detectado (0-5 pts)
+            const ctaRegex = /(suscr[ií]b|comenta|comparte|like|descarga|enlace|link|sígueme|sigueme)/i;
+            if (ctaRegex.test(dVal)) {
+                score += 5;
+                checks.push({ok:true, msg:"Llamado a la acción (CTA) detectado en la descripción."});
+            } else {
+                checks.push({ok:false, msg:"Agrega un llamado a la acción (suscríbete, comenta tu opinión, dale like)."});
+            }
+
+            // Actualizar interfaz
+            const finalScore = Math.min(score, 100);
             const scoreDisplay = document.getElementById('seo-score-display');
-            scoreDisplay.textContent = Math.min(score, 100);
-            
-            if(score >= 80) scoreDisplay.className = "text-3xl font-black text-emerald-500";
-            else if(score >= 50) scoreDisplay.className = "text-3xl font-black text-amber-500";
-            else scoreDisplay.className = "text-3xl font-black text-red-500";
+            if (scoreDisplay) {
+                scoreDisplay.textContent = finalScore;
+                if(finalScore >= 80) scoreDisplay.className = "text-3xl font-black text-emerald-500";
+                else if(finalScore >= 50) scoreDisplay.className = "text-3xl font-black text-amber-500";
+                else scoreDisplay.className = "text-3xl font-black text-red-500";
+            }
 
-            feedbackContainer.innerHTML = checks.map(c => `
-                <div class="flex items-start gap-2">
-                    ${c.ok ? '<i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i>' : '<i class="fa-solid fa-circle-xmark text-red-400 mt-0.5"></i>'}
-                    <span class="${c.ok ? 'text-slate-700' : 'text-slate-500'}">${c.msg}</span>
-                </div>
-            `).join('');
+            if (feedbackContainer) {
+                feedbackContainer.innerHTML = checks.map(c => `
+                    <div class="flex items-start gap-2 py-0.5">
+                        ${c.ok ? '<i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i>' : '<i class="fa-solid fa-circle-xmark text-red-400 mt-0.5"></i>'}
+                        <span class="${c.ok ? 'text-slate-700 font-medium' : 'text-slate-500'}">${c.msg}</span>
+                    </div>
+                `).join('');
+            }
         };
 
         titleInput.addEventListener('input', updateSeoScore);
