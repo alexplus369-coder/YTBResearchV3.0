@@ -156,6 +156,25 @@
                 </div>
             </details>
 
+            <!-- Monetización real (YouTube Analytics API vía OAuth) -->
+            <div class="mt-4 bg-emerald-50/60 border border-emerald-100 rounded-xl p-4">
+                <div class="flex justify-between items-center flex-wrap gap-2 mb-2">
+                    <h3 class="text-xs font-black text-emerald-800 uppercase tracking-widest"><i class="fa-solid fa-sack-dollar mr-1"></i> Tu monetización real (YouTube Analytics)</h3>
+                    <span id="analytics-rpm-badge" class="hidden text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full">● RPM real activo — calibrando estimaciones</span>
+                </div>
+                <div class="flex flex-col md:flex-row gap-2 items-stretch md:items-end">
+                    <div class="flex-1">
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">Google OAuth Client ID (tipo Web) — con el origen de esta página en "Orígenes JavaScript autorizados"</label>
+                        <input type="password" id="analytics-client-id" placeholder="xxxxxxxx.apps.googleusercontent.com" class="w-full p-2 border border-emerald-200 rounded-lg text-xs font-mono bg-white outline-none focus:border-emerald-400">
+                    </div>
+                    <button type="button" id="analytics-connect-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-4 py-2.5 rounded-lg transition whitespace-nowrap">
+                        <i class="fa-brands fa-google mr-1"></i> Conectar y medir
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-1">Lee el RPM, los ingresos y el watch time reales de TU canal (90 días) vía YouTube Analytics API y calibra automáticamente el RPM de las estimaciones del Radar.</p>
+                <div id="analytics-output" class="hidden mt-3"></div>
+            </div>
+
             <div id="research-loading" class="hidden mt-4 flex items-center justify-center gap-3 text-red-600 font-bold text-sm bg-red-50 py-3 rounded-lg">
                 <div class="loader"></div> <span>Escaneando canales y calculando señales de crecimiento...</span>
             </div>
@@ -163,7 +182,19 @@
 
             <!-- RESULTADOS DEL RADAR -->
             <div id="research-results" class="hidden mt-6 space-y-6">
-                <div id="research-summary" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+                <div id="research-summary" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3"></div>
+
+                <!-- Autocomplete real de YouTube (lo que la gente busca) -->
+                <div id="research-suggest" class="hidden bg-indigo-50/60 border border-indigo-100 rounded-xl p-4">
+                    <h3 class="text-xs font-black text-indigo-800 uppercase tracking-widest mb-2"><i class="fa-solid fa-magnifying-glass-chart mr-1"></i> Lo que la gente busca de verdad (autocomplete de YouTube) — pulsa para investigar</h3>
+                    <div id="research-suggest-chips" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <!-- Top oportunidades -->
+                <div id="research-opportunities" class="hidden"></div>
+
+                <!-- Cohortes de crecimiento real -->
+                <div id="research-cohorts" class="hidden"></div>
 
                 <!-- IA: desarrollo del tema de principio a fin -->
                 <div class="bg-gradient-to-r from-slate-900 via-slate-900 to-red-900 p-5 rounded-xl text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -177,6 +208,18 @@
                 </div>
                 <div id="research-ai-output" class="hidden"></div>
 
+                <!-- Minería de comentarios -->
+                <div class="bg-gradient-to-r from-amber-500 to-orange-600 p-5 rounded-xl text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex-1">
+                        <h3 class="font-black uppercase tracking-widest text-sm text-amber-100"><i class="fa-solid fa-comments mr-1"></i> Minería de Comentarios (demanda real del nicho)</h3>
+                        <p class="text-xs text-amber-50 mt-1">Extrae los comentarios más votados de los 5 videos top y la IA detecta preguntas sin responder, temas recurrentes, intención de compra e ideas de contenido.</p>
+                    </div>
+                    <button id="research-comments-btn" onclick="mineComments()" class="bg-white text-amber-700 hover:bg-amber-50 px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wide transition whitespace-nowrap">
+                        <i class="fa-solid fa-hammer mr-1"></i> Minar comentarios
+                    </button>
+                </div>
+                <div id="research-comments-output" class="hidden"></div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                     <!-- Canales -->
                     <div>
@@ -187,13 +230,17 @@
                     <div>
                         <div class="flex justify-between items-center mb-3 gap-2 flex-wrap">
                             <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest"><i class="fa-solid fa-film text-red-500 mr-1"></i> Videos Mejor Puntuados</h3>
-                            <select id="research-videos-sort" class="text-[11px] font-bold border border-slate-200 rounded-lg p-1.5 bg-white outline-none">
-                                <option value="score">Orden: Score global</option>
-                                <option value="vpd">Orden: Vistas/día</option>
-                                <option value="eng">Orden: Engagement</option>
-                                <option value="revenue">Orden: Ingreso est.</option>
-                                <option value="recent">Orden: Más recientes</option>
-                            </select>
+                            <div class="flex items-center gap-2">
+                                <select id="research-videos-sort" class="text-[11px] font-bold border border-slate-200 rounded-lg p-1.5 bg-white outline-none">
+                                    <option value="score">Orden: Score global</option>
+                                    <option value="opportunity">Orden: Oportunidad</option>
+                                    <option value="vpd">Orden: Vistas/día</option>
+                                    <option value="eng">Orden: Engagement</option>
+                                    <option value="revenue">Orden: Ingreso est.</option>
+                                    <option value="recent">Orden: Más recientes</option>
+                                </select>
+                                <button type="button" onclick="exportResearchCsv()" title="Exportar la tabla actual a CSV" class="text-[11px] font-black bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg transition whitespace-nowrap"><i class="fa-solid fa-file-csv mr-1"></i>CSV</button>
+                            </div>
                         </div>
                         <div class="bg-white border border-slate-200 rounded-xl overflow-x-auto">
                             <table class="w-full text-left border-collapse">
@@ -209,6 +256,8 @@
                                         <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Duración</th>
                                         <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Ing. est.</th>
                                         <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Score</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b" title="Score + bonus outlier − dificultad del nicho">Oport.</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b" title="Crecimiento real medido entre búsquedas (cohortes)">Real</th>
                                     </tr>
                                 </thead>
                                 <tbody id="research-videos-table" class="divide-y divide-slate-100 text-sm"></tbody>
@@ -219,7 +268,7 @@
 
                 <p class="text-[11px] text-slate-400 leading-relaxed bg-slate-50 border border-slate-100 rounded-lg p-3">
                     <i class="fa-solid fa-circle-info mr-1"></i>
-                    <b>Nota de métricas:</b> Impresiones, CTR real, % de retención exacto, RPM y demografía son datos privados de YouTube Analytics (solo visibles para el dueño de cada canal). Este radar los aproxima con señales públicas: velocidad de vistas/día (<b>alza</b>), tiempo de visualización estimado (vistas × duración), señal de clics (likes/vistas como proxy del CTR), engagement ((likes+comentarios)/vistas), conversión de abonados (subs por 1K vistas) e ingresos estimados con el RPM configurado.
+                    <b>Nota de métricas:</b> Impresiones, CTR real, % de retención exacto, RPM y demografía son datos privados de YouTube Analytics (solo visibles para el dueño de cada canal). Este radar los aproxima con señales públicas: velocidad de vistas/día (<b>alza</b>), tiempo de visualización estimado (vistas × duración), señal de clics (likes/vistas como proxy del CTR), engagement ((likes+comentarios)/vistas), conversión de abonados (subs por 1K vistas) e ingresos estimados con el RPM configurado (o tu RPM real si conectas Analytics arriba). La columna <b>Real</b> muestra crecimiento verdadero comparando mediciones guardadas en tu navegador entre búsquedas (cohortes), y <b>Oport.</b> pondera score, outlier (vistas ÷ subs del canal) y dificultad del nicho.
                 </p>
             </div>
         </section>
@@ -1511,7 +1560,7 @@
             "https://inv.nadeko.net",
             "https://invidious.f5.si"
         ];
-        const researchState = { type: 'tema', topic: '', videos: [], signals: [], channelInsights: [], channelVideos: {}, rpm: 3.5 };
+        const researchState = { type: 'tema', topic: '', videos: [], signals: [], channelInsights: [], channelVideos: {}, nicheDifficulty: null, rpm: 3.5 };
 
         const RESEARCH_TYPE_CONFIG = {
             tema:     { max: 25, order: 'relevance', placeholder: 'Ej: inteligencia artificial, cocina saludable, historia de Roma...',
@@ -1521,7 +1570,7 @@
             keyword:  { max: 25, order: 'viewCount', placeholder: 'Ej: tutorial react, mejor micrófono 2026, setup gaming barato...',
                         hint: 'Keyword concreta: ordena por vistas totales para ver quién domina esa búsqueda.' },
             longtail: { max: 10, order: 'relevance', placeholder: 'Ej: cómo grabar voz en casa sin equipo caro...',
-                        hint: 'Long-tail: la IA genera variantes específicas de baja competencia y las busca junto a tu frase.' }
+                        hint: 'Long-tail: usa el autocomplete real de YouTube (respaldo con IA) para encontrar búsquedas específicas con demanda comprobada.' }
         };
 
         // --- Utilidades del Radar ---
@@ -1538,6 +1587,95 @@
                 <div class="text-[9px] font-black text-slate-400 uppercase tracking-wide">${label}</div>
                 <div class="text-xs font-black text-slate-800 mt-0.5">${value}</div>
             </div>`;
+
+        // --- Autocomplete real de YouTube (JSONP: sin CORS, sin cuota, sin API key) ---
+        function ytAutocomplete(query) {
+            return new Promise((resolve) => {
+                const cbName = '__ytac_' + Math.random().toString(36).slice(2);
+                const script = document.createElement('script');
+                let timer = null;
+                const cleanup = () => {
+                    if (timer) clearTimeout(timer);
+                    try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+                    script.remove();
+                };
+                window[cbName] = (data) => {
+                    cleanup();
+                    try { resolve((data[1] || []).map(x => typeof x === 'string' ? x : x[0]).filter(Boolean)); } catch (e) { resolve([]); }
+                };
+                script.onerror = () => { cleanup(); resolve([]); };
+                timer = setTimeout(() => { cleanup(); resolve([]); }, 6000);
+                script.src = `https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&hl=es&q=${encodeURIComponent(query)}&jsonp=${cbName}`;
+                document.head.appendChild(script);
+            });
+        }
+
+        async function fetchAutocompleteExpansions(topic, limit = 12) {
+            const [base, spaced] = await Promise.all([ytAutocomplete(topic), ytAutocomplete(topic + ' ')]);
+            const seen = new Set([topic.toLowerCase().trim()]);
+            const out = [];
+            for (const s of [...base, ...spaced]) {
+                const t = String(s).trim();
+                const k = t.toLowerCase();
+                if (t.length < 3 || seen.has(k)) continue;
+                seen.add(k);
+                out.push(t);
+                if (out.length >= limit) break;
+            }
+            return out;
+        }
+
+        // --- Cohortes: mediciones guardadas en el navegador para medir crecimiento REAL ---
+        const COHORT_KEY = 'ytCohortSnapshots';
+        function loadCohorts() {
+            try { return JSON.parse(localStorage.getItem(COHORT_KEY) || '{}') || {}; } catch (e) { return {}; }
+        }
+        function saveCohorts(store) {
+            try { localStorage.setItem(COHORT_KEY, JSON.stringify(store)); } catch (e) { /* almacenamiento lleno: se ignora */ }
+        }
+        function recordCohortSnapshots(videos) {
+            const store = loadCohorts();
+            const now = Date.now();
+            videos.forEach(v => {
+                const views = parseInt(v.statistics?.viewCount || 0);
+                const arr = store[v.id] || [];
+                const last = arr[arr.length - 1];
+                if (last && now - last.t < 12 * 3600000) last.v = views; // misma sesión: actualizar en vez de duplicar
+                else arr.push({ t: now, v: views });
+                store[v.id] = arr.slice(-8);
+            });
+            // Poda: mediciones con más de 180 días
+            Object.keys(store).forEach(id => {
+                store[id] = (store[id] || []).filter(s => now - s.t < 180 * 86400000);
+                if (!store[id].length) delete store[id];
+            });
+            saveCohorts(store);
+        }
+        function analyzeCohort(videoId, store) {
+            const snaps = (store || loadCohorts())[videoId] || [];
+            if (snaps.length < 2) return null;
+            const last = snaps[snaps.length - 1];
+            const prev = snaps.filter(s => last.t - s.t >= 3 * 86400000); //span mínimo de 3 días
+            if (!prev.length) return null;
+            const first = prev[0];
+            const days = Math.max(1, (last.t - first.t) / 86400000);
+            const perDay = (last.v - first.v) / days;
+            let verdict = null;
+            if (snaps.length >= 3) {
+                const iv = [];
+                for (let i = 0; i < snaps.length - 1; i++) {
+                    const d = Math.max(1, (snaps[i + 1].t - snaps[i].t) / 86400000);
+                    iv.push((snaps[i + 1].v - snaps[i].v) / d);
+                }
+                const firstIv = iv[0], lastIv = iv[iv.length - 1];
+                if (firstIv > 0) {
+                    if (lastIv > firstIv * 1.15) verdict = { label: 'Acelerando', emoji: '🚀', cls: 'bg-emerald-100 text-emerald-700' };
+                    else if (lastIv >= firstIv * 0.85) verdict = { label: 'Sostenido', emoji: '🧊', cls: 'bg-blue-100 text-blue-700' };
+                    else verdict = { label: 'Enfriando', emoji: '📉', cls: 'bg-red-100 text-red-700' };
+                }
+            }
+            return { firstTs: first.t, lastTs: last.t, firstViews: first.v, lastViews: last.v, days, perDay, verdict };
+        }
 
         // Seguridad: solo hosts públicos http/https (nunca localhost, privada o reservada)
         function isSafePublicHost(hostname) {
@@ -1737,15 +1875,16 @@
 
         // Señales por video: proxies públicos de las características pedidas + score 0-100
         // Fase 1: métricas crudas (sin comparar aún con el pool)
-        function computeRawSignals(video) {
+        function computeRawSignals(video, channelMap) {
             const views = parseInt(video.statistics?.viewCount || 0);
             const likes = parseInt(video.statistics?.likeCount || 0);
             const comments = parseInt(video.statistics?.commentCount || 0);
             const durationSec = parseISO8601Duration(video.contentDetails?.duration || '');
             const days = Math.max(1, calculateHoursPassed(video.snippet.publishedAt) / 24);
+            const subs = parseInt(channelMap?.[video.snippet.channelId]?.subs || 0);
             return {
                 video,
-                views, likes, comments, durationSec, days,
+                views, likes, comments, durationSec, days, subs,
                 vpd: views / days,                                        // Proxy de "vistas al alza"
                 vph: views / calculateHoursPassed(video.snippet.publishedAt),
                 eng: views > 0 ? (likes + comments) / views : 0,          // Interacción
@@ -1759,6 +1898,10 @@
         function applyResearchScores(raws) {
             const poolVpds = raws.map(r => r.vpd);
             const rpm = researchState.rpm;
+            // Dificultad del nicho: mediana de suscriptores de los canales del resultado
+            const subsList = raws.map(r => r.subs || 0).filter(x => x > 0).sort((a, b) => a - b);
+            const medianSubs = subsList.length ? subsList[Math.floor((subsList.length - 1) / 2)] : 0;
+            const difficulty = Math.min(100, Math.max(5, Math.round((Math.log10(medianSubs + 1) - 2) * 30)));
             return raws.map(r => {
                 const pct = poolVpds.length ? poolVpds.filter(x => x <= r.vpd).length / poolVpds.length : 0;
                 let trend = { label: 'Estable', emoji: '↔️', color: 'text-amber-500' };
@@ -1779,13 +1922,22 @@
                 else durationPts = 5;
                 const freshnessPts = r.days < 45 ? 10 : r.days < 120 ? 6 : 3;                      // Frescura / empuje del algoritmo
                 const score = Math.min(100, momentumPts + watchPts + engagementPts + clickPts + durationPts + freshnessPts);
-                return { ...r, estRevenue: (r.views / 1000) * rpm, score, trend };
+
+                // Outlier: vistas muy por encima de la base de suscriptores del canal (tema que empuja el algoritmo)
+                const outlierRatio = r.subs > 0 ? r.views / r.subs : null;
+                const outlierPts = outlierRatio ? Math.min(20, Math.round(Math.log10(outlierRatio + 1) * 10)) : 0;
+                const outlier = outlierRatio && outlierRatio >= 8 ? { ratio: Math.round(outlierRatio) } : null;
+
+                // Oportunidad: score + outlier − dificultad del nicho (¿dónde ganas más rápido?)
+                const opportunity = Math.max(0, Math.min(100, Math.round(score + outlierPts - difficulty * 0.25)));
+
+                return { ...r, estRevenue: (r.views / 1000) * rpm, score, trend, opportunity, outlier, difficulty };
             });
         }
 
         // API única: array de videos → señales puntuadas
-        function computeResearchSignals(videos) {
-            return applyResearchScores(videos.map(v => computeRawSignals(v)));
+        function computeResearchSignals(videos, channelMap) {
+            return applyResearchScores(videos.map(v => computeRawSignals(v, channelMap)));
         }
 
         // Agregación por canal: trend del canal, conversión de abonados e ingreso mensual estimado
@@ -1824,6 +1976,10 @@
         // Consultas según el tipo (Long-Tail las expande con IA, con respaldo heurístico)
         async function buildResearchQueries(topic) {
             if (researchState.type !== 'longtail') return [topic];
+            // 1º: autocomplete real de YouTube (demanda comprobada, gratis)
+            const suggestions = await fetchAutocompleteExpansions(topic, 3);
+            if (suggestions.length) return [topic, ...suggestions];
+            // 2º: IA (respaldo)
             const hasAI = document.getElementById('geminiApiKeyInput').value.trim() || document.getElementById('dsApiKeyInput').value.trim();
             if (hasAI) {
                 try {
@@ -1878,10 +2034,7 @@
                 const videos = await fetchResearchVideos(queries, ytKey);
                 if (!videos.length) throw new Error('No se encontraron videos para esta búsqueda.');
 
-                // Señales por video (percentiles dentro del propio pool de resultados)
-                const signals = computeResearchSignals(videos).sort((a, b) => b.score - a.score);
-
-                // Datos de canales (subs, vistas totales, avatar)
+                // Datos de canales (subs, vistas totales, avatar) — necesarios ANTES de puntuar (outliers/oportunidad)
                 const uniqueChannelIds = [...new Set(videos.map(v => v.snippet.channelId))];
                 const channelMap = {};
                 for (let i = 0; i < uniqueChannelIds.length; i += 50) {
@@ -1897,15 +2050,25 @@
                     });
                 }
 
+                // Señales por video (percentiles dentro del propio pool de resultados)
+                const signals = computeResearchSignals(videos, channelMap).sort((a, b) => b.score - a.score);
+
                 researchState.videos = videos;
                 researchState.signals = signals;
                 researchState.channelInsights = buildResearchChannelInsights(signals, channelMap);
+                researchState.nicheDifficulty = signals[0]?.difficulty ?? null;
+
+                // Cohortes: guardar la medición de hoy para comparar crecimiento real en futuras búsquedas
+                recordCohortSnapshots(videos);
 
                 renderResearchSummary();
                 renderResearchChannels();
                 renderResearchVideosTable();
+                renderResearchOpportunities();
+                renderResearchCohorts();
                 results.classList.remove('hidden');
                 results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                loadRealSuggestions();
             } catch (err) {
                 errorSt.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> Error: ${escHtml(err.message)}`;
                 errorSt.classList.remove('hidden');
@@ -1919,8 +2082,9 @@
             const s = researchState;
             const avgVpd = s.signals.length ? s.signals.reduce((a, x) => a + x.vpd, 0) / s.signals.length : 0;
             const rising = s.channelInsights.filter(c => ['En alza', 'Alza fuerte'].includes(c.trend.label)).length;
-            const box = (label, value, icon) => `
-                <div class="glass-card p-4 rounded-xl text-center">
+            const diff = s.signals[0]?.difficulty;
+            const box = (label, value, icon, title) => `
+                <div class="glass-card p-4 rounded-xl text-center" title="${title || ''}">
                     <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${icon} ${label}</div>
                     <div class="text-xl font-black text-slate-800 mt-1">${value}</div>
                 </div>`;
@@ -1928,7 +2092,8 @@
                 box('Canales detectados', s.channelInsights.length, '📺') +
                 box('Videos analizados', s.videos.length, '🎬') +
                 box('Canales en alza', rising, '🚀') +
-                box('Vistas/día promedio', formatNumber(Math.round(avgVpd)), '⚡');
+                box('Vistas/día promedio', formatNumber(Math.round(avgVpd)), '⚡') +
+                box('Dificultad del nicho', diff != null ? diff + '/100' : '—', '🧱', 'Mediana de suscriptores de los canales del resultado');
         }
 
         function renderResearchChannels() {
@@ -1964,14 +2129,18 @@
 
         function renderResearchVideosTable() {
             const key = document.getElementById('research-videos-sort').value;
+            const cohortStore = loadCohorts();
             const arr = [...researchState.signals].sort((a, b) => {
+                if (key === 'opportunity') return b.opportunity - a.opportunity;
                 if (key === 'vpd') return b.vpd - a.vpd;
                 if (key === 'eng') return b.eng - a.eng;
                 if (key === 'revenue') return b.estRevenue - a.estRevenue;
                 if (key === 'recent') return new Date(b.video.snippet.publishedAt) - new Date(a.video.snippet.publishedAt);
                 return b.score - a.score;
             }).slice(0, 40);
-            document.getElementById('research-videos-table').innerHTML = arr.map((s, i) => `
+            document.getElementById('research-videos-table').innerHTML = arr.map((s, i) => {
+                const coh = analyzeCohort(s.video.id, cohortStore);
+                return `
                 <tr class="hover:bg-slate-50 transition">
                     <td class="p-2 border-b border-slate-100 text-[11px] text-slate-400">${i + 1}</td>
                     <td class="p-2 border-b border-slate-100 max-w-[240px]">
@@ -1980,13 +2149,94 @@
                     <td class="p-2 border-b border-slate-100 text-[11px] text-slate-500 max-w-[110px] truncate" title="${escHtml(s.video.snippet.channelTitle)}">${escHtml(s.video.snippet.channelTitle)}</td>
                     <td class="p-2 border-b border-slate-100 text-xs font-bold text-slate-800">${formatNumber(s.views)}</td>
                     <td class="p-2 border-b border-slate-100 text-xs text-slate-600">${formatNumber(Math.round(s.vpd))}/d</td>
-                    <td class="p-2 border-b border-slate-100 text-[11px] font-bold ${s.trend.color}" title="Proxy de 'vistas al alza' (velocidad de vistas/día)">${s.trend.emoji} ${s.trend.label}</td>
+                    <td class="p-2 border-b border-slate-100 text-[11px] font-bold ${s.trend.color}" title="Proxy de 'vistas al alza' (velocidad de vistas/día)">${s.trend.emoji} ${s.trend.label}${s.outlier ? ` <span class="text-[9px] font-black bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full align-middle" title="Vistas ÷ suscriptores del canal: el algoritmo lo empujó más allá de su base">🔥 ×${s.outlier.ratio}</span>` : ''}</td>
                     <td class="p-2 border-b border-slate-100 text-xs font-bold text-emerald-600" title="(Likes+comentarios)/vistas">${(s.eng * 100).toFixed(1)}%</td>
                     <td class="p-2 border-b border-slate-100 text-xs text-slate-500" title="Watch time est.: ${formatNumber(Math.round(s.watchHours))} h">${formatSeconds(s.durationSec)}</td>
-                    <td class="p-2 border-b border-slate-100 text-xs text-slate-600" title="Vistas/1000 × RPM configurado">${fmtMoney(s.estRevenue)}</td>
+                    <td class="p-2 border-b border-slate-100 text-xs text-slate-600" title="Vistas/1000 × RPM configurado (o tu RPM real)">${fmtMoney(s.estRevenue)}</td>
                     <td class="p-2 border-b border-slate-100"><span class="text-xs font-black px-2 py-0.5 rounded-full ${s.score >= 70 ? 'bg-emerald-100 text-emerald-700' : s.score >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}">${s.score}</span></td>
-                </tr>
-            `).join('') || '<tr><td colspan="10" class="p-4 text-center text-xs text-slate-400">Sin videos.</td></tr>';
+                    <td class="p-2 border-b border-slate-100 text-center"><span class="text-xs font-black px-2 py-0.5 rounded-full ${s.opportunity >= 70 ? 'bg-emerald-100 text-emerald-700' : s.opportunity >= 45 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}" title="Score + bonus outlier (vistas ÷ subs del canal) − dificultad del nicho">${s.opportunity}</span></td>
+                    <td class="p-2 border-b border-slate-100 text-xs whitespace-nowrap" title="Crecimiento real medido con cohortes guardadas en este navegador">${coh ? `<span class="font-black ${coh.perDay >= 0 ? 'text-emerald-600' : 'text-red-500'}">${coh.perDay >= 0 ? '+' : ''}${formatNumber(Math.round(coh.perDay))}/d</span>${coh.verdict ? ` <span title="${coh.verdict.label}">${coh.verdict.emoji}</span>` : ''}` : '<span class="text-slate-300">—</span>'}</td>
+                </tr>`;
+            }).join('') || '<tr><td colspan="12" class="p-4 text-center text-xs text-slate-400">Sin videos.</td></tr>';
+        }
+
+        // --- Top oportunidades (score + outlier − dificultad del nicho) ---
+        function renderResearchOpportunities() {
+            const el = document.getElementById('research-opportunities');
+            const top = [...researchState.signals].sort((a, b) => b.opportunity - a.opportunity).slice(0, 5);
+            el.innerHTML = `
+                <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-3"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i> Top Oportunidades Rápidas</h3>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    ${top.map((s, i) => `
+                        <div class="bg-white border border-slate-200 rounded-xl p-3 hover:border-red-300 transition">
+                            <div class="flex justify-between items-center mb-1">
+                                <div class="w-6 h-6 bg-red-600 text-white font-black rounded-full flex items-center justify-center text-[10px]">${i + 1}</div>
+                                <div class="text-lg font-black ${scoreColor(s.opportunity)}">${s.opportunity}</div>
+                            </div>
+                            <a href="https://www.youtube.com/watch?v=${s.video.id}" target="_blank" class="text-[11px] font-bold text-indigo-600 hover:underline line-clamp-2" title="${escHtml(s.video.snippet.title)}">${escHtml(s.video.snippet.title)}</a>
+                            <div class="text-[10px] text-slate-500 mt-1 truncate">${escHtml(s.video.snippet.channelTitle)}${s.outlier ? ` · <span class="text-red-600 font-black">🔥 ×${s.outlier.ratio}</span>` : ''}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2">Oportunidad = Score + bonus outlier (vistas ÷ suscriptores del canal, hasta +20) − dificultad del nicho (${researchState.nicheDifficulty ?? '—'}/100 según la mediana de suscriptores).</p>
+            `;
+            el.classList.remove('hidden');
+        }
+
+        // --- Cohortes: crecimiento real comparando mediciones guardadas ---
+        function renderResearchCohorts() {
+            const el = document.getElementById('research-cohorts');
+            const store = loadCohorts();
+            const rows = researchState.signals
+                .map(s => ({ s, coh: analyzeCohort(s.video.id, store) }))
+                .filter(x => x.coh)
+                .sort((a, b) => b.coh.perDay - a.coh.perDay)
+                .slice(0, 8);
+            if (!rows.length) {
+                el.innerHTML = `
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-2"><i class="fa-solid fa-flask text-teal-500 mr-1"></i> Cohortes de Crecimiento Real</h3>
+                    <p class="text-[11px] text-slate-400 bg-teal-50 border border-teal-100 rounded-lg p-3">🧪 Primera medición guardada para esta keyword. Vuelve a buscarla dentro de 7+ días: compararé las vistas reales de cada video para confirmar qué temas son evergreen de verdad y cuáles se enfriaron.</p>`;
+                el.classList.remove('hidden');
+                return;
+            }
+            const fmtDate = (ts) => new Date(ts).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+            el.innerHTML = `
+                <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-3"><i class="fa-solid fa-flask text-teal-500 mr-1"></i> Cohortes de Crecimiento Real</h3>
+                <div class="bg-white border border-slate-200 rounded-xl divide-y divide-slate-100">
+                    ${rows.map(({ s, coh }) => `
+                        <div class="flex items-center gap-3 p-3">
+                            <div class="flex-1 min-w-0">
+                                <a href="https://www.youtube.com/watch?v=${s.video.id}" target="_blank" class="text-xs font-bold text-indigo-600 hover:underline line-clamp-1" title="${escHtml(s.video.snippet.title)}">${escHtml(s.video.snippet.title)}</a>
+                                <div class="text-[10px] text-slate-500 mt-0.5">Medido desde el ${fmtDate(coh.firstTs)} (${Math.round(coh.days)} días): ${formatNumber(coh.firstViews)} → ${formatNumber(coh.lastViews)} vistas</div>
+                            </div>
+                            ${coh.verdict ? `<span class="text-[9px] font-black px-2 py-0.5 rounded-full ${coh.verdict.cls}">${coh.verdict.emoji} ${coh.verdict.label}</span>` : ''}
+                            <div class="text-right whitespace-nowrap">
+                                <div class="text-xs font-black ${coh.perDay >= 0 ? 'text-emerald-600' : 'text-red-500'}">${coh.perDay >= 0 ? '+' : ''}${formatNumber(Math.round(coh.perDay))}/día</div>
+                                <div class="text-[9px] font-black text-slate-400 uppercase">Crecimiento real</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`;
+            el.classList.remove('hidden');
+        }
+
+        // --- Autocomplete real: chips clicables ---
+        async function loadRealSuggestions() {
+            const box = document.getElementById('research-suggest');
+            const chips = document.getElementById('research-suggest-chips');
+            const topic = researchState.topic;
+            if (!topic) return;
+            box.classList.remove('hidden');
+            chips.innerHTML = '<span class="text-[11px] text-slate-400 font-bold"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Consultando el autocomplete de YouTube...</span>';
+            const list = await fetchAutocompleteExpansions(topic, 12);
+            if (topic !== researchState.topic) return; // el usuario ya lanzó otra búsqueda
+            if (!list.length) { chips.innerHTML = '<span class="text-[11px] text-slate-400">Sin sugerencias para este término.</span>'; return; }
+            chips.innerHTML = list.map(s => `<button type="button" data-q="${escHtml(s)}" onclick="searchFromSuggestion(this)" class="bg-white border border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50 text-indigo-700 text-[11px] font-bold px-3 py-1.5 rounded-full transition">${escHtml(s)}</button>`).join('');
+        }
+
+        function searchFromSuggestion(btn) {
+            document.getElementById('research-input').value = btn.dataset.q;
+            document.getElementById('research-form').dispatchEvent(new Event('submit', { cancelable: true }));
         }
 
         // Busca los videos de un canal relacionados con el tema (fallback: sus videos más vistos).
@@ -2173,6 +2423,260 @@ Devuelve SOLO un JSON válido con esta estructura exacta: {"title": "...", "intr
             }
         }
 
+        // --- Tu monetización real (YouTube Analytics API vía OAuth) ---
+        let ytAnalyticsToken = localStorage.getItem('ytAnalyticsToken') || null;
+
+        function loadGsiScript() {
+            return new Promise((resolve, reject) => {
+                if (window.google?.accounts?.oauth2) return resolve();
+                const s = document.createElement('script');
+                s.src = 'https://accounts.google.com/gsi/client';
+                s.async = true;
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('No se pudo cargar Google Identity Services.'));
+                document.head.appendChild(s);
+            });
+        }
+
+        async function connectAnalytics() {
+            const clientId = document.getElementById('analytics-client-id').value.trim();
+            if (!clientId) return showToast('Introduce tu Google OAuth Client ID primero.', 'error');
+            localStorage.setItem('ytAnalyticsClientId', clientId);
+            const btn = document.getElementById('analytics-connect-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
+            try {
+                await loadGsiScript();
+                const client = window.google.accounts.oauth2.initTokenClient({
+                    client_id: clientId,
+                    scope: 'https://www.googleapis.com/auth/yt-analytics.readonly',
+                    callback: (resp) => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-brands fa-google mr-1"></i> Conectar y medir';
+                        if (resp && resp.access_token) {
+                            ytAnalyticsToken = resp.access_token;
+                            localStorage.setItem('ytAnalyticsToken', ytAnalyticsToken);
+                            showToast('YouTube Analytics conectado.', 'success');
+                            fetchAnalyticsReport();
+                        } else {
+                            showToast('No se obtuvo el token de acceso.', 'error');
+                        }
+                    },
+                    error_callback: (err) => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-brands fa-google mr-1"></i> Conectar y medir';
+                        showToast('Error de OAuth: ' + (err?.message || err?.type || 'desconocido'), 'error');
+                    }
+                });
+                client.requestAccessToken();
+            } catch (e) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-brands fa-google mr-1"></i> Conectar y medir';
+                showToast(e.message, 'error');
+            }
+        }
+
+        async function fetchAnalyticsReport() {
+            const out = document.getElementById('analytics-output');
+            out.classList.remove('hidden');
+            out.innerHTML = '<div class="flex items-center gap-2 text-emerald-700 font-bold text-xs bg-emerald-50 p-3 rounded-lg"><div class="loader" style="border-top-color:#059669"></div> Consultando tus ingresos reales de los últimos 90 días...</div>';
+            const fmtD = (d) => d.toISOString().slice(0, 10);
+            const end = new Date();
+            const start = new Date(Date.now() - 90 * 86400000);
+            const base = 'https://youtubeanalytics.googleapis.com/v2/reports?ids=channel==MINE';
+            const q = `startDate=${fmtD(start)}&endDate=${fmtD(end)}`;
+            const call = async (url) => {
+                const res = await fetch(url, { headers: { Authorization: `Bearer ${ytAnalyticsToken}` } });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        ytAnalyticsToken = null;
+                        localStorage.removeItem('ytAnalyticsToken');
+                        document.getElementById('analytics-rpm-badge')?.classList.add('hidden');
+                        throw new Error('La sesión de Analytics expiró. Pulsa "Conectar y medir" de nuevo.');
+                    }
+                    throw new Error(data.error?.message || `HTTP ${res.status}`);
+                }
+                return data;
+            };
+            try {
+                const totals = await call(`${base}&${q}&metrics=views,estimatedRevenue,estimatedMinutesWatched,subscribersGained,subscribersLost`);
+                const t = (totals.rows && totals.rows[0]) || [0, 0, 0, 0, 0];
+                const views = t[0] || 0, revenue = t[1] || 0, watchMinutes = t[2] || 0, subsNet = (t[3] || 0) - (t[4] || 0);
+                const realRpm = views > 0 ? (revenue / views) * 1000 : 0;
+
+                let topRows = [];
+                const titleMap = {};
+                try {
+                    const perVideo = await call(`${base}&${q}&dimensions=video&sort=-estimatedRevenue&maxResults=8&metrics=views,estimatedRevenue,estimatedMinutesWatched`);
+                    topRows = perVideo.rows || [];
+                    const ids = topRows.map(r => r[0]);
+                    const ytKey = document.getElementById('ytApiKeyInput').value.trim();
+                    if (ids.length && ytKey) {
+                        const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${ids.join(',')}&key=${ytKey}`);
+                        const vData = await vRes.json();
+                        (vData.items || []).forEach(v => { titleMap[v.id] = v.snippet.title; });
+                    }
+                } catch (e) { console.warn('Reporte por video no disponible:', e.message); }
+
+                // Calibrar el RPM del Radar con el real
+                if (realRpm > 0) {
+                    researchState.rpm = Math.round(realRpm * 100) / 100;
+                    document.getElementById('research-rpm').value = researchState.rpm;
+                    localStorage.setItem('ytResearchRpm', String(researchState.rpm));
+                    document.getElementById('analytics-rpm-badge').classList.remove('hidden');
+                }
+
+                const chip = (label, value) => `
+                    <div class="bg-white border border-emerald-100 rounded-lg p-3 text-center">
+                        <div class="text-[9px] font-black text-slate-400 uppercase">${label}</div>
+                        <div class="text-sm font-black text-slate-800 mt-0.5">${value}</div>
+                    </div>`;
+                out.innerHTML = `
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+                        ${chip('Ingresos 90 días', '$' + revenue.toFixed(2))}
+                        ${chip('Vistas 90 días', formatNumber(views))}
+                        ${chip('RPM real', realRpm > 0 ? '$' + realRpm.toFixed(2) : '—')}
+                        ${chip('Watch hours', formatNumber(Math.round(watchMinutes / 60)))}
+                        ${chip('Subs netos 90d', (subsNet >= 0 ? '+' : '') + formatNumber(subsNet))}
+                    </div>
+                    ${topRows.length ? `
+                        <div class="bg-white border border-emerald-100 rounded-lg divide-y divide-slate-100">
+                            ${topRows.map(r => {
+                                const vid = r[0], vViews = r[1] || 0, vRev = r[2] || 0;
+                                const vRpm = vViews > 0 ? (vRev / vViews) * 1000 : 0;
+                                return `
+                                    <div class="flex items-center gap-3 p-2.5">
+                                        <div class="flex-1 min-w-0">
+                                            <a href="https://www.youtube.com/watch?v=${vid}" target="_blank" class="text-xs font-bold text-indigo-600 hover:underline line-clamp-1" title="${escHtml(titleMap[vid] || vid)}">${escHtml(titleMap[vid] || vid)}</a>
+                                        </div>
+                                        <div class="text-[10px] text-slate-500 whitespace-nowrap">👁️ ${formatNumber(vViews)}</div>
+                                        <div class="text-[10px] font-black text-emerald-700 whitespace-nowrap">$${vRev.toFixed(2)}</div>
+                                        <div class="text-[10px] text-slate-500 whitespace-nowrap">RPM $${vRpm.toFixed(2)}</div>
+                                    </div>`;
+                            }).join('')}
+                        </div>
+                        <p class="text-[10px] text-emerald-700 font-bold mt-2">✅ Estimaciones del Radar calibradas con tu RPM real${realRpm > 0 ? ` ($${realRpm.toFixed(2)}/1K vistas)` : ''}.</p>
+                    ` : (realRpm > 0 ? '<p class="text-[10px] text-slate-400">Sin datos por video disponibles.</p>' : '<p class="text-[10px] text-amber-600 font-bold">Tu canal aún no reporta ingresos (¿estás en el Programa de Partners?). Las estimaciones seguirán usando el RPM manual.</p>')}
+                `;
+            } catch (e) {
+                out.innerHTML = `<div class="text-red-700 font-bold text-xs bg-red-50 p-3 rounded-lg border border-red-200"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml(e.message)}</div>`;
+            }
+        }
+
+        // --- Minería de comentarios del nicho (commentThreads: 1 unidad por 100 comentarios) ---
+        async function mineComments() {
+            const ytKey = document.getElementById('ytApiKeyInput').value.trim();
+            if (!ytKey) return showToast('Conecta tu YouTube API Key primero.', 'error');
+            if (!researchState.signals.length) return showToast('Primero ejecuta una búsqueda en el Radar.', 'error');
+
+            const btn = document.getElementById('research-comments-btn');
+            const out = document.getElementById('research-comments-output');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Minando...';
+            out.classList.remove('hidden');
+            out.innerHTML = '<div class="flex items-center gap-3 text-amber-700 font-bold text-sm bg-amber-50 p-4 rounded-xl border border-amber-200"><div class="loader" style="border-top-color:#d97706"></div> Extrayendo los comentarios más votados de los 5 videos top...</div>';
+
+            const topVideos = researchState.signals.slice(0, 5);
+            const mined = [];
+            let totalComments = 0;
+            try {
+                for (const s of topVideos) {
+                    try {
+                        const res = await fetch(`https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${s.video.id}&maxResults=100&order=relevance&textFormat=plainText&key=${ytKey}`);
+                        const data = await res.json();
+                        if (data.error) throw new Error(data.error.message);
+                        const comments = (data.items || [])
+                            .map(i => {
+                                const c = i.snippet.topLevelComment.snippet;
+                                return { text: (c.textDisplay || '').replace(/\s+/g, ' ').trim(), likes: parseInt(c.likeCount || 0) };
+                            })
+                            .filter(c => c.text)
+                            .sort((a, b) => b.likes - a.likes)
+                            .slice(0, 40);
+                        totalComments += comments.length;
+                        mined.push({ video: s.video, comments });
+                    } catch (e) {
+                        console.warn('Comentarios no disponibles para ' + s.video.id, e);
+                        mined.push({ video: s.video, comments: [] });
+                    }
+                }
+                if (!totalComments) throw new Error('No se pudieron leer comentarios de estos videos (pueden tenerlos desactivados).');
+
+                const fuente = mined.map(pv => ({
+                    video: pv.video.snippet.title,
+                    url: `https://www.youtube.com/watch?v=${pv.video.id}`,
+                    comentarios: pv.comments.map(c => c.text.substring(0, 200))
+                }));
+
+                const prompt = `Actúa como analista de audiencias de YouTube. Analiza los comentarios reales más votados de estos videos del nicho "${researchState.topic}".
+Basándote ESTRICTAMENTE en los comentarios (cita fragmentos entre comillas cuando ayude), extrae:
+1. "preguntas": preguntas frecuentes de la audiencia que quedaron sin respuesta clara.
+2. "temas": subtemas recurrentes que más interés generan.
+3. "intencionCompra": señales de intención de compra (productos, herramientas, servicios, presupuestos mencionados).
+4. "ideas": ideas de contenido nuevo justificadas por lo que la audiencia pide.
+Devuelve SOLO un JSON válido: {"preguntas": ["..."], "temas": ["..."], "intencionCompra": ["..."], "ideas": ["..."]} con máximo 6 elementos por lista, en español.
+COMENTARIOS (JSON): ${JSON.stringify(fuente)}`;
+
+                const data = await smartFetchAI(prompt, true);
+                const col = (title, icon, items, cls) => `
+                    <div class="bg-white border border-slate-200 rounded-xl p-4">
+                        <h5 class="font-black text-xs uppercase mb-2 ${cls}">${icon} ${title}</h5>
+                        <ul class="space-y-1.5 text-xs text-slate-700">${(items || []).map(i => `<li class="leading-relaxed">• ${escHtml(i)}</li>`).join('') || '<li class="text-slate-400">Sin datos</li>'}</ul>
+                    </div>`;
+                out.innerHTML = `
+                    <p class="text-[11px] text-slate-500 mb-2">💬 ${totalComments} comentarios analizados de ${mined.length} videos top.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                        ${col('Preguntas sin responder', '❓', data.preguntas, 'text-red-600')}
+                        ${col('Temas recurrentes', '🔁', data.temas, 'text-indigo-600')}
+                        ${col('Intención de compra', '💰', data.intencionCompra, 'text-emerald-600')}
+                        ${col('Ideas de contenido', '💡', data.ideas, 'text-amber-600')}
+                    </div>`;
+                out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (e) {
+                out.innerHTML = `<div class="text-red-700 font-bold text-sm bg-red-50 p-4 rounded-xl border border-red-200"><i class="fa-solid fa-triangle-exclamation"></i> Error minando comentarios: ${escHtml(e.message)}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-hammer mr-1"></i> Minar comentarios';
+            }
+        }
+
+        // --- Exportar la tabla actual a CSV ---
+        function exportResearchCsv() {
+            if (!researchState.signals.length) return showToast('Primero ejecuta una búsqueda en el Radar.', 'error');
+            const key = document.getElementById('research-videos-sort').value;
+            const arr = [...researchState.signals].sort((a, b) => {
+                if (key === 'opportunity') return b.opportunity - a.opportunity;
+                if (key === 'vpd') return b.vpd - a.vpd;
+                if (key === 'eng') return b.eng - a.eng;
+                if (key === 'revenue') return b.estRevenue - a.estRevenue;
+                if (key === 'recent') return new Date(b.video.snippet.publishedAt) - new Date(a.video.snippet.publishedAt);
+                return b.score - a.score;
+            });
+            const cohortStore = loadCohorts();
+            const q = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+            const header = ['Pos', 'Video', 'Canal', 'URL', 'Vistas', 'Vistas/dia', 'Tendencia', 'Engagement %', 'Duracion (s)', 'Watch hours', 'Ingreso est. USD', 'Score', 'Oportunidad', 'Outlier', 'Crecimiento real/dia'];
+            const lines = [header.map(q).join(';')];
+            arr.forEach((s, i) => {
+                const coh = analyzeCohort(s.video.id, cohortStore);
+                lines.push([
+                    i + 1, s.video.snippet.title, s.video.snippet.channelTitle,
+                    `https://www.youtube.com/watch?v=${s.video.id}`,
+                    s.views, Math.round(s.vpd), s.trend.label, (s.eng * 100).toFixed(2),
+                    s.durationSec, Math.round(s.watchHours), s.estRevenue.toFixed(2),
+                    s.score, s.opportunity, s.outlier ? 'x' + s.outlier.ratio : '',
+                    coh ? coh.perDay.toFixed(1) : ''
+                ].map(q).join(';'));
+            });
+            const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `radar-${(researchState.topic || 'busqueda').replace(/[^\w\-]+/g, '_').substring(0, 40)}.csv`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showToast('CSV exportado.', 'success');
+        }
+
         // --- Init del Radar: restaurar preferencias y wiring de eventos ---
         function updateResearchHint() {
             const cfg = RESEARCH_TYPE_CONFIG[researchState.type];
@@ -2195,6 +2699,10 @@ Devuelve SOLO un JSON válido con esta estructura exacta: {"title": "...", "intr
             document.getElementById('research-proxy-input').value = (savedProxy !== null && savedProxy !== '') ? savedProxy : DEFAULT_RESEARCH_PROXY;
             document.getElementById('research-rpm').addEventListener('change', (e) => localStorage.setItem('ytResearchRpm', e.target.value));
             document.getElementById('research-proxy-input').addEventListener('change', (e) => localStorage.setItem('ytResearchProxy', e.target.value));
+            const savedClientId = localStorage.getItem('ytAnalyticsClientId');
+            if (savedClientId) document.getElementById('analytics-client-id').value = savedClientId;
+            document.getElementById('analytics-connect-btn').addEventListener('click', connectAnalytics);
+            if (ytAnalyticsToken) fetchAnalyticsReport(); // reutiliza la sesión previa; si expiró, lo indica en el panel
             updateResearchHint();
         })();
 

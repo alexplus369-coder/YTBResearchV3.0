@@ -41,6 +41,15 @@ Busca por cuatro tipos de entrada y descubre qué canales y videos dominan cada 
 | Retención estimada | 10 | Franja de duración con mejor rendimiento típico |
 | Frescura | 10 | Antigüedad del video |
 
+### Funciones de monetización y evergreen (avanzado)
+
+- **💡 Autocomplete real de YouTube**: bajo el resumen aparecen las búsquedas que la gente escribe de verdad (endpoint `suggestqueries` vía JSONP, sin cuota ni API key). Pulsa cualquier chip para investigar esa keyword. El modo Long-Tail usa estas sugerencias como variantes prioritarias (con respaldo de IA).
+- **🎯 Top Oportunidades + outliers**: columna "Oport." y panel con los 5 videos donde *Score + bonus outlier (vistas ÷ suscriptores del canal, hasta +20) − dificultad del nicho* es máximo. Un outlier 🔥 ×N significa que el algoritmo empujó ese video mucho más allá de la base de suscriptores del canal: tema a la alza replicable. La dificultad del nicho sale de la mediana de suscriptores de los canales del resultado (ficha "Dificultad" del resumen).
+- **🧪 Cohortes de crecimiento real**: cada búsqueda guarda una medición de vistas en tu `localStorage` (máx. 8 por video, poda a 180 días). Al re-buscar la misma keyword con 3+ días de diferencia, la columna "Real" y el panel de cohortes muestran el crecimiento verificado por video (+X/día) y su veredicto (🚀 Acelerando / 🧊 Sostenido / 📉 Enfriando) comparando intervalos de medición — la forma pública más fiable de confirmar evergreen.
+- **💸 Tu monetización real (OAuth + YouTube Analytics)**: introduce tu Google OAuth Client ID (tipo Web, con el origen de la página autorizado) y conecta tu canal. La app lee ingresos, vistas, watch time y subs netos de 90 días vía YouTube Analytics API, muestra tu RPM real por canal y por video, y **calibra automáticamente el RPM de todas las estimaciones del Radar**. Requiere scope `yt-analytics.readonly`; si el canal no está en el Programa de Partners, se avisa y se sigue con el RPM manual.
+- **💬 Minería de comentarios**: extrae los comentarios más votados (hasta 100/video, 1 unidad de cuota c/u) de los 5 videos top y la IA clasifica preguntas sin responder, temas recurrentes, señales de intención de compra e ideas de contenido.
+- **⬇ Export CSV**: descarga la tabla actual (con el orden activo) incluyendo score, oportunidad, outlier y crecimiento real; separador `;` y BOM para Excel en español.
+
 ### Nota importante sobre métricas privadas
 
 Impresiones, CTR real, % de retención exacto, RPM, ingresos reales, retornos de espectadores y demografía son **datos privados de YouTube Analytics** (solo el dueño de cada canal puede verlos mediante la YouTube Analytics API). Esta sección los aproxima con **señales públicas**: velocidad de vistas, watch time estimado, engagement, conversión de abonados y una estimación de ingresos configurable (RPM en "Opciones avanzadas").
