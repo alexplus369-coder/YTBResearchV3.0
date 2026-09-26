@@ -26,6 +26,12 @@
         /* Animaciones para Notificaciones (Toasts) */
         .toast-enter { transform: translateY(100%); opacity: 0; }
         .toast-enter-active { transform: translateY(0); opacity: 1; transition: all 0.3s ease-out; }
+
+        /* Radar de Temas: selector de tipo de búsqueda (Tema/Nicho/Keyword/Long-Tail) */
+        .rtype-btn { background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; padding: 6px 14px; border-radius: 999px; font-size: 0.75rem; font-weight: 800; transition: all .2s; cursor: pointer; }
+        .rtype-btn:hover { border-color: #ef4444; color: #ef4444; }
+        .rtype-btn.rtype-active { background: #ef4444; border-color: #ef4444; color: #fff; box-shadow: 0 4px 10px rgba(239,68,68,.25); }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-800">
@@ -40,7 +46,7 @@
                     <div>
                         <h1 class="text-2xl font-black text-slate-900 leading-tight">YT SEO Pro Suite <span class="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full ml-2 align-top">ENTERPRISE</span></h1>
                         <p class="text-slate-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2 flex-wrap mt-1">
-                            Semántica, Vision AI & Content Gaps
+                            Semántica, Vision AI, Content Gaps & Radar de Nicho
                             <span id="user-channel-badge" class="hidden bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md text-[10px] font-bold"></span>
                         </p>
                     </div>
@@ -100,6 +106,123 @@
             </div>
             <div id="error-state" class="hidden mt-4 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-medium"></div>
         </div>
+
+        <!-- ================================================== -->
+        <!-- NUEVA SECCIÓN: RADAR DE TEMAS & CANALES            -->
+        <!-- Búsqueda por Tema / Nicho / Keyword / Long-Tail    -->
+        <!-- ================================================== -->
+        <section id="research-section" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+            <div class="mb-4">
+                <h2 class="text-lg font-black text-slate-900 uppercase tracking-wide">
+                    <i class="fa-solid fa-satellite-dish text-red-500 mr-2"></i> Radar de Temas & Canales
+                </h2>
+                <p class="text-xs text-slate-500 mt-1">Busca por <span class="font-bold text-slate-700">Tema, Nicho, Keyword o Long-Tail</span> y descubre los canales y videos con mejores señales de crecimiento (vistas al alza, engagement, watch time e ingresos estimados).</p>
+            </div>
+
+            <!-- Selector de tipo de búsqueda -->
+            <div class="flex flex-wrap gap-2 mb-2" id="research-type-group">
+                <button type="button" class="rtype-btn rtype-active" data-rtype="tema">📚 Tema</button>
+                <button type="button" class="rtype-btn" data-rtype="nicho">🎯 Nicho</button>
+                <button type="button" class="rtype-btn" data-rtype="keyword">🔑 Keyword</button>
+                <button type="button" class="rtype-btn" data-rtype="longtail">🪝 Long-Tail</button>
+            </div>
+            <p id="research-type-hint" class="text-[11px] text-slate-400 mb-3"></p>
+
+            <form id="research-form" class="flex flex-col md:flex-row gap-3">
+                <div class="flex-1 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="research-input" required
+                           class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all font-medium">
+                </div>
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-black uppercase tracking-wider transition-all shadow-lg shadow-red-200 whitespace-nowrap">
+                    <i class="fa-solid fa-bolt mr-1"></i> Escanear
+                </button>
+            </form>
+
+            <!-- Opciones avanzadas -->
+            <details class="mt-4">
+                <summary class="cursor-pointer text-[11px] font-black text-slate-500 uppercase tracking-widest select-none"><i class="fa-solid fa-sliders mr-1"></i> Opciones avanzadas</summary>
+                <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 border border-slate-100 rounded-xl p-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">RPM estimado (USD por 1,000 vistas)</label>
+                        <input type="number" id="research-rpm" min="0" step="0.5" value="3.5" class="w-full p-2 border border-slate-200 rounded-lg text-sm font-mono bg-white outline-none focus:border-red-400">
+                        <p class="text-[10px] text-slate-400 mt-1">Se usa para calcular los ingresos estimados de videos y canales.</p>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1">Proxy CORS para transcripciones (opcional)</label>
+                        <input type="text" id="research-proxy-input" class="w-full p-2 border border-slate-200 rounded-lg text-xs font-mono bg-white outline-none focus:border-red-400">
+                        <p class="text-[10px] text-slate-400 mt-1">Necesario para leer transcripciones (YouTube bloquea CORS). Debe contener <code class="bg-slate-200 px-1 rounded">{url}</code>. Solo se aceptan hosts públicos http(s).</p>
+                    </div>
+                </div>
+            </details>
+
+            <div id="research-loading" class="hidden mt-4 flex items-center justify-center gap-3 text-red-600 font-bold text-sm bg-red-50 py-3 rounded-lg">
+                <div class="loader"></div> <span>Escaneando canales y calculando señales de crecimiento...</span>
+            </div>
+            <div id="research-error" class="hidden mt-4 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-medium"></div>
+
+            <!-- RESULTADOS DEL RADAR -->
+            <div id="research-results" class="hidden mt-6 space-y-6">
+                <div id="research-summary" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+
+                <!-- IA: desarrollo del tema de principio a fin -->
+                <div class="bg-gradient-to-r from-slate-900 via-slate-900 to-red-900 p-5 rounded-xl text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex-1">
+                        <h3 class="font-black uppercase tracking-widest text-sm text-red-300"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Desarrollo del Tema con IA</h3>
+                        <p class="text-xs text-slate-300 mt-1">Genera un documento de principio a fin integrando la información de los videos del radar (transcripciones, títulos y descripciones).</p>
+                    </div>
+                    <button id="research-ai-btn" onclick="developTopicWithAI('all')" class="bg-white text-slate-900 hover:bg-red-50 px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wide transition whitespace-nowrap">
+                        <i class="fa-solid fa-brain mr-1 text-red-600"></i> Desarrollar Tema Completo
+                    </button>
+                </div>
+                <div id="research-ai-output" class="hidden"></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                    <!-- Canales -->
+                    <div>
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-3"><i class="fa-solid fa-trophy text-amber-500 mr-1"></i> Canales con Mayor Señal de Crecimiento</h3>
+                        <div id="research-channels" class="space-y-3"></div>
+                    </div>
+                    <!-- Videos -->
+                    <div>
+                        <div class="flex justify-between items-center mb-3 gap-2 flex-wrap">
+                            <h3 class="text-sm font-black text-slate-800 uppercase tracking-widest"><i class="fa-solid fa-film text-red-500 mr-1"></i> Videos Mejor Puntuados</h3>
+                            <select id="research-videos-sort" class="text-[11px] font-bold border border-slate-200 rounded-lg p-1.5 bg-white outline-none">
+                                <option value="score">Orden: Score global</option>
+                                <option value="vpd">Orden: Vistas/día</option>
+                                <option value="eng">Orden: Engagement</option>
+                                <option value="revenue">Orden: Ingreso est.</option>
+                                <option value="recent">Orden: Más recientes</option>
+                            </select>
+                        </div>
+                        <div class="bg-white border border-slate-200 rounded-xl overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50">
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">#</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Video</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Canal</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Vistas</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">V/día</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Tendencia</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Eng.%</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Duración</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Ing. est.</th>
+                                        <th class="p-2 text-[10px] font-bold text-slate-500 uppercase border-b">Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="research-videos-table" class="divide-y divide-slate-100 text-sm"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-slate-400 leading-relaxed bg-slate-50 border border-slate-100 rounded-lg p-3">
+                    <i class="fa-solid fa-circle-info mr-1"></i>
+                    <b>Nota de métricas:</b> Impresiones, CTR real, % de retención exacto, RPM y demografía son datos privados de YouTube Analytics (solo visibles para el dueño de cada canal). Este radar los aproxima con señales públicas: velocidad de vistas/día (<b>alza</b>), tiempo de visualización estimado (vistas × duración), señal de clics (likes/vistas como proxy del CTR), engagement ((likes+comentarios)/vistas), conversión de abonados (subs por 1K vistas) e ingresos estimados con el RPM configurado.
+                </p>
+            </div>
+        </section>
 
         <!-- DASHBOARD CONTAINER (Hidden initally) -->
         <div id="dashboard" class="hidden">
@@ -1364,6 +1487,568 @@
 
         titleInput.addEventListener('input', updateSeoScore);
         descInput.addEventListener('input', updateSeoScore);
+
+        // =====================================================================
+        // NUEVA SECCIÓN: RADAR DE TEMAS & CANALES
+        // Búsqueda por Tema / Nicho / Keyword / Long-Tail con señales de
+        // crecimiento (proxies públicos de las métricas privadas de YT Analytics)
+        // =====================================================================
+        const DEFAULT_RESEARCH_PROXY = "https://api.allorigins.win/raw?url={url}";
+        const researchState = { type: 'tema', topic: '', videos: [], signals: [], channelInsights: [], rpm: 3.5 };
+
+        const RESEARCH_TYPE_CONFIG = {
+            tema:     { max: 25, order: 'relevance', placeholder: 'Ej: inteligencia artificial, cocina saludable, historia de Roma...',
+                        hint: 'Exploración amplia del tema: mapea el mercado con formatos y ángulos variados.' },
+            nicho:    { max: 25, order: 'relevance', placeholder: 'Ej: finanzas personales para jóvenes, simulación de vuelo, acuariofilia...',
+                        hint: 'Foco en el nicho: detecta canales especializados con audiencia fiel y consistente.' },
+            keyword:  { max: 25, order: 'viewCount', placeholder: 'Ej: tutorial react, mejor micrófono 2026, setup gaming barato...',
+                        hint: 'Keyword concreta: ordena por vistas totales para ver quién domina esa búsqueda.' },
+            longtail: { max: 10, order: 'relevance', placeholder: 'Ej: cómo grabar voz en casa sin equipo caro...',
+                        hint: 'Long-tail: la IA genera variantes específicas de baja competencia y las busca junto a tu frase.' }
+        };
+
+        // --- Utilidades del Radar ---
+        const escHtml = (s) => (s === null || s === undefined ? '' : String(s)).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const fmtMoney = (n) => n >= 1000 ? '$' + formatNumber(Math.round(n)) : '$' + (n || 0).toFixed(2);
+        const scoreColor = (s) => s >= 70 ? 'text-emerald-500' : s >= 50 ? 'text-amber-500' : 'text-slate-500';
+        const trendBadge = (label) => ({
+            'Alza fuerte': 'bg-emerald-100 text-emerald-700', 'En alza': 'bg-emerald-100 text-emerald-700',
+            'Estable': 'bg-amber-100 text-amber-700', 'Nuevo': 'bg-blue-100 text-blue-700', 'Evergreen': 'bg-blue-100 text-blue-700',
+            'En caída': 'bg-red-100 text-red-700', 'Baja velocidad': 'bg-slate-100 text-slate-600', 'Sin datos': 'bg-slate-100 text-slate-600'
+        }[label] || 'bg-slate-100 text-slate-600');
+        const researchMiniBox = (label, value) => `
+            <div class="bg-slate-50 border border-slate-100 rounded-lg py-2 text-center">
+                <div class="text-[9px] font-black text-slate-400 uppercase tracking-wide">${label}</div>
+                <div class="text-xs font-black text-slate-800 mt-0.5">${value}</div>
+            </div>`;
+
+        // Seguridad: solo hosts públicos http/https (nunca localhost, privada o reservada)
+        function isSafePublicHost(hostname) {
+            let h = (hostname || '').toLowerCase().trim().replace(/\.$/, '').replace(/^\[|\]$/g, '');
+            if (!h) return false;
+            if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h.endsWith('.internal')) return false;
+            if (h.includes(':')) return false; // Cualquier literal IPv6 (incluye ::1, ULA fc/fd, link-local fe80) se bloquea
+            const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+            if (m) {
+                const a = parseInt(m[1], 10), b = parseInt(m[2], 10);
+                if (a === 0 || a === 10 || a === 127) return false;           // "Esta" red / privada / loopback
+                if (a === 169 && b === 254) return false;                     // Link-local (incl. metadata 169.254.169.254)
+                if (a === 172 && b >= 16 && b <= 31) return false;            // Privada 172.16.0.0/12
+                if (a === 192 && b === 168) return false;                     // Privada 192.168.0.0/16
+                if (a >= 224) return false;                                   // Multicast / reservado
+                return true;
+            }
+            return true;
+        }
+
+        function getProxyTemplate() {
+            const raw = ((document.getElementById('research-proxy-input')?.value || '').trim() || DEFAULT_RESEARCH_PROXY);
+            if (!raw.includes('{url}')) return null;
+            try {
+                const u = new URL(raw.split('{url}')[0]);
+                if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+                if (!isSafePublicHost(u.hostname)) return null;
+                return raw;
+            } catch (e) { return null; }
+        }
+
+        async function proxiedFetch(url, timeoutMs = 12000) {
+            const tpl = getProxyTemplate();
+            if (!tpl) throw new Error("Proxy CORS inválido: debe ser http(s) a un host público y contener {url}.");
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+            try {
+                const res = await fetch(tpl.replace('{url}', encodeURIComponent(url)), { signal: ctrl.signal });
+                if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+                return await res.text();
+            } finally { clearTimeout(timer); }
+        }
+
+        // Extrae ytInitialPlayerResponse de la página del video (búsqueda de llaves balanceada)
+        function extractPlayerResponseJson(html) {
+            const idx = html.indexOf('ytInitialPlayerResponse');
+            if (idx === -1) return null;
+            const start = html.indexOf('{', idx);
+            if (start === -1) return null;
+            let depth = 0, inStr = false, escape = false;
+            for (let i = start; i < html.length; i++) {
+                const ch = html[i];
+                if (inStr) {
+                    if (escape) escape = false;
+                    else if (ch === '\\') escape = true;
+                    else if (ch === '"') inStr = false;
+                    continue;
+                }
+                if (ch === '"') inStr = true;
+                else if (ch === '{') depth++;
+                else if (ch === '}') {
+                    depth--;
+                    if (depth === 0) { try { return JSON.parse(html.slice(start, i + 1)); } catch (e) { return null; } }
+                }
+            }
+            return null;
+        }
+
+        // Transcripción de un video (best-effort vía proxy; null si no está disponible)
+        async function fetchVideoTranscript(videoId) {
+            const html = await proxiedFetch(`https://www.youtube.com/watch?v=${videoId}&hl=es`);
+            const pr = extractPlayerResponseJson(html);
+            const tracks = pr?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+            if (!tracks.length) return null;
+            let track = null;
+            for (const lang of ['es', 'en']) {
+                track = tracks.find(t => (t.languageCode || '').toLowerCase().startsWith(lang));
+                if (track) break;
+            }
+            if (!track) track = tracks[0];
+            try {
+                const j = JSON.parse(await proxiedFetch(track.baseUrl + '&fmt=json3'));
+                const text = (j.events || []).flatMap(e => (e.segs || []).map(s => s.utf8 || '')).join(' ');
+                return text.replace(/\s+/g, ' ').trim() || null;
+            } catch (e) {
+                const xml = await proxiedFetch(track.baseUrl);
+                const raw = [...xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)].map(m => m[1]).join(' ')
+                    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+                return raw.replace(/\s+/g, ' ').trim() || null;
+            }
+        }
+
+        // Señales por video: proxies públicos de las características pedidas + score 0-100
+        // Fase 1: métricas crudas (sin comparar aún con el pool)
+        function computeRawSignals(video) {
+            const views = parseInt(video.statistics?.viewCount || 0);
+            const likes = parseInt(video.statistics?.likeCount || 0);
+            const comments = parseInt(video.statistics?.commentCount || 0);
+            const durationSec = parseISO8601Duration(video.contentDetails?.duration || '');
+            const days = Math.max(1, calculateHoursPassed(video.snippet.publishedAt) / 24);
+            return {
+                video,
+                views, likes, comments, durationSec, days,
+                vpd: views / days,                                        // Proxy de "vistas al alza"
+                vph: views / calculateHoursPassed(video.snippet.publishedAt),
+                eng: views > 0 ? (likes + comments) / views : 0,          // Interacción
+                likeRate: views > 0 ? likes / views : 0,                  // Proxy del atractivo de clic (CTR ~4-10%)
+                watchHours: (views * durationSec) / 3600,                 // Proxy de tiempo de visualización
+                estRevenue: (views / 1000) * researchState.rpm            // Ingreso estimado según RPM
+            };
+        }
+
+        // Fase 2: percentiles sobre los MISMOS valores crudos (un solo snapshot temporal) + score
+        function applyResearchScores(raws) {
+            const poolVpds = raws.map(r => r.vpd);
+            const rpm = researchState.rpm;
+            return raws.map(r => {
+                const pct = poolVpds.length ? poolVpds.filter(x => x <= r.vpd).length / poolVpds.length : 0;
+                let trend = { label: 'Estable', emoji: '↔️', color: 'text-amber-500' };
+                if (pct >= 0.8) trend = { label: 'Alza fuerte', emoji: '🚀', color: 'text-emerald-500' };
+                else if (pct >= 0.6) trend = { label: 'En alza', emoji: '📈', color: 'text-emerald-500' };
+                else if (pct < 0.35 && r.days > 120) trend = { label: 'Evergreen', emoji: '🌳', color: 'text-blue-500' };
+                else if (pct < 0.35) trend = { label: 'Baja velocidad', emoji: '🐢', color: 'text-slate-400' };
+
+                // Score 0-100 compuesto
+                const momentumPts = Math.min(25, Math.round(pct * 25 * (r.days < 21 ? 1.1 : 1)));  // Vistas al alza
+                const watchPts = Math.round(Math.min(Math.log10(r.watchHours + 1) / 5, 1) * 15);   // Watch time impulsa recomendaciones
+                const engagementPts = Math.round(Math.min(r.eng / 0.08, 1) * 25);                  // Interacción (8%+ = tope)
+                const clickPts = Math.round(Math.min(r.likeRate / 0.06, 1) * 15);                  // Proxy CTR
+                let durationPts;                                                                    // Retención estimada por formato
+                if (r.durationSec >= 240 && r.durationSec <= 1200) durationPts = 10;
+                else if ((r.durationSec > 60 && r.durationSec < 240) || (r.durationSec > 1200 && r.durationSec <= 2100)) durationPts = 7;
+                else if (r.durationSec <= 60) durationPts = 6;
+                else durationPts = 5;
+                const freshnessPts = r.days < 45 ? 10 : r.days < 120 ? 6 : 3;                      // Frescura / empuje del algoritmo
+                const score = Math.min(100, momentumPts + watchPts + engagementPts + clickPts + durationPts + freshnessPts);
+                return { ...r, estRevenue: (r.views / 1000) * rpm, score, trend };
+            });
+        }
+
+        // API única: array de videos → señales puntuadas
+        function computeResearchSignals(videos) {
+            return applyResearchScores(videos.map(v => computeRawSignals(v)));
+        }
+
+        // Agregación por canal: trend del canal, conversión de abonados e ingreso mensual estimado
+        function buildResearchChannelInsights(signals, channelMap) {
+            const groups = {};
+            signals.forEach(s => {
+                const cid = s.video.snippet.channelId;
+                (groups[cid] = groups[cid] || []).push(s);
+            });
+            return Object.entries(groups).map(([cid, sigs]) => {
+                const ch = channelMap[cid] || {};
+                const avg = (fn) => sigs.reduce((acc, s) => acc + fn(s), 0) / sigs.length;
+                const trend = calculateTrendMomentum(sigs.map(s => s.video));
+                const subs = parseInt(ch.subs || 0);
+                const totalViews = parseInt(ch.totalViews || 0);
+                const subsPer1k = totalViews > 0 ? (subs / totalViews) * 1000 : 0;   // Proxy de ganancia neta de abonados
+                const trendBonus = { 'En alza': 8, 'Nuevo': 5, 'Estable': 2 }[trend.label] ?? -6;
+                const channelScore = Math.max(0, Math.min(100, Math.round(avg(s => s.score) + trendBonus + (subsPer1k >= 8 ? 5 : 0))));
+                return {
+                    id: cid,
+                    name: ch.name || sigs[0].video.snippet.channelTitle,
+                    avatar: ch.avatar || '',
+                    subs, totalViews,
+                    sampleCount: sigs.length,
+                    channelScore,
+                    trend,
+                    subsPer1k,
+                    avgEng: avg(s => s.eng),
+                    avgVpd: avg(s => s.vpd),
+                    estMonthlyRevenue: (avg(s => s.vpd) * 30 / 1000) * researchState.rpm,
+                    signals: [...sigs].sort((a, b) => b.score - a.score)
+                };
+            }).sort((a, b) => b.channelScore - a.channelScore);
+        }
+
+        // Consultas según el tipo (Long-Tail las expande con IA, con respaldo heurístico)
+        async function buildResearchQueries(topic) {
+            if (researchState.type !== 'longtail') return [topic];
+            const hasAI = document.getElementById('geminiApiKeyInput').value.trim() || document.getElementById('dsApiKeyInput').value.trim();
+            if (hasAI) {
+                try {
+                    const data = await smartFetchAI(`Actúa como experto SEO de YouTube. Genera 6 variaciones "long-tail" específicas y de baja competencia para la semilla "${topic}". Mezcla modificadores como "cómo", "paso a paso", "para principiantes", "sin", "errores", números y el año actual. Devuelve SOLO un JSON válido: {"queries": ["q1", "q2", "q3", "q4", "q5", "q6"]}`, true);
+                    const qs = (data.queries || []).map(q => String(q).trim()).filter(Boolean).slice(0, 3);
+                    if (qs.length) return [topic, ...qs];
+                } catch (e) { console.warn('Expansión long-tail con IA falló; usando heurístico.', e); }
+            }
+            return [topic, `cómo ${topic} paso a paso`, `${topic} para principiantes`, `${topic} errores comunes`];
+        }
+
+        async function fetchResearchVideos(queries, ytKey) {
+            const cfg = RESEARCH_TYPE_CONFIG[researchState.type];
+            const idSet = new Set();
+            for (const q of queries) {
+                const sRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=id&type=video&maxResults=${cfg.max}&order=${cfg.order}&q=${encodeURIComponent(q)}&key=${ytKey}`);
+                const sData = await sRes.json();
+                if (sData.error) throw new Error(sData.error.message || 'Error en YouTube Search API.');
+                (sData.items || []).forEach(i => { if (i.id?.videoId) idSet.add(i.id.videoId); });
+            }
+            const ids = [...idSet].slice(0, 48);
+            const out = [];
+            for (let i = 0; i < ids.length; i += 50) {
+                const dRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids.slice(i, i + 50).join(',')}&key=${ytKey}`);
+                const dData = await dRes.json();
+                if (dData.error) throw new Error(dData.error.message || 'Error en YouTube Videos API.');
+                (dData.items || []).forEach(v => out.push(v));
+            }
+            return out;
+        }
+
+        // --- Flujo principal del Radar ---
+        document.getElementById('research-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const ytKey = document.getElementById('ytApiKeyInput').value.trim();
+            const topic = document.getElementById('research-input').value.trim();
+            if (!ytKey) return showToast('Conecta tu YouTube API Key en Configuración primero.', 'error');
+            if (!topic) return showToast('Escribe un tema, nicho, keyword o frase long-tail.', 'error');
+
+            researchState.topic = topic;
+            researchState.rpm = parseFloat(document.getElementById('research-rpm').value) || 3.5;
+
+            const loading = document.getElementById('research-loading');
+            const errorSt = document.getElementById('research-error');
+            const results = document.getElementById('research-results');
+            loading.classList.remove('hidden');
+            errorSt.classList.add('hidden');
+            results.classList.add('hidden');
+
+            try {
+                const queries = await buildResearchQueries(topic);
+                const videos = await fetchResearchVideos(queries, ytKey);
+                if (!videos.length) throw new Error('No se encontraron videos para esta búsqueda.');
+
+                // Señales por video (percentiles dentro del propio pool de resultados)
+                const signals = computeResearchSignals(videos).sort((a, b) => b.score - a.score);
+
+                // Datos de canales (subs, vistas totales, avatar)
+                const uniqueChannelIds = [...new Set(videos.map(v => v.snippet.channelId))];
+                const channelMap = {};
+                for (let i = 0; i < uniqueChannelIds.length; i += 50) {
+                    const cRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${uniqueChannelIds.slice(i, i + 50).join(',')}&key=${ytKey}`);
+                    const cData = await cRes.json();
+                    (cData.items || []).forEach(ch => {
+                        channelMap[ch.id] = {
+                            name: ch.snippet.title,
+                            avatar: ch.snippet.thumbnails?.default?.url || '',
+                            subs: parseInt(ch.statistics?.subscriberCount || 0),
+                            totalViews: parseInt(ch.statistics?.viewCount || 0)
+                        };
+                    });
+                }
+
+                researchState.videos = videos;
+                researchState.signals = signals;
+                researchState.channelInsights = buildResearchChannelInsights(signals, channelMap);
+
+                renderResearchSummary();
+                renderResearchChannels();
+                renderResearchVideosTable();
+                results.classList.remove('hidden');
+                results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (err) {
+                errorSt.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> Error: ${escHtml(err.message)}`;
+                errorSt.classList.remove('hidden');
+                showToast('Error en el Radar: ' + err.message, 'error');
+            } finally {
+                loading.classList.add('hidden');
+            }
+        });
+
+        function renderResearchSummary() {
+            const s = researchState;
+            const avgVpd = s.signals.length ? s.signals.reduce((a, x) => a + x.vpd, 0) / s.signals.length : 0;
+            const rising = s.channelInsights.filter(c => ['En alza', 'Alza fuerte'].includes(c.trend.label)).length;
+            const box = (label, value, icon) => `
+                <div class="glass-card p-4 rounded-xl text-center">
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">${icon} ${label}</div>
+                    <div class="text-xl font-black text-slate-800 mt-1">${value}</div>
+                </div>`;
+            document.getElementById('research-summary').innerHTML =
+                box('Canales detectados', s.channelInsights.length, '📺') +
+                box('Videos analizados', s.videos.length, '🎬') +
+                box('Canales en alza', rising, '🚀') +
+                box('Vistas/día promedio', formatNumber(Math.round(avgVpd)), '⚡');
+        }
+
+        function renderResearchChannels() {
+            document.getElementById('research-channels').innerHTML = researchState.channelInsights.map((c) => `
+                <div class="border border-slate-200 rounded-xl p-4 hover:border-red-300 transition bg-white">
+                    <div class="flex items-center gap-3">
+                        ${c.avatar ? `<img src="${escHtml(c.avatar)}" alt="" class="w-10 h-10 rounded-full border border-slate-200 flex-shrink-0" onerror="this.style.display='none'">` : ''}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <a href="https://www.youtube.com/channel/${c.id}" target="_blank" class="font-black text-slate-800 text-sm hover:text-red-600 truncate max-w-[220px]" title="${escHtml(c.name)}">${escHtml(c.name)}</a>
+                                <span class="text-[9px] font-black px-2 py-0.5 rounded-full ${trendBadge(c.trend.label)}">${c.trend.emoji} ${c.trend.label}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-500 mt-0.5">${c.subs ? formatNumber(c.subs) + ' subs' : 'subs ocultos'} · ${c.sampleCount} video(s) analizados · ${formatNumber(c.totalViews)} vistas totales</div>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <div class="text-xl font-black ${scoreColor(c.channelScore)}">${c.channelScore}</div>
+                            <div class="text-[9px] font-black text-slate-400 uppercase">Score canal</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                        ${researchMiniBox('Vistas/día', formatNumber(Math.round(c.avgVpd)))}
+                        ${researchMiniBox('Eng. prom.', (c.avgEng * 100).toFixed(1) + '%')}
+                        ${researchMiniBox('Subs/1K vistas', c.subsPer1k.toFixed(1))}
+                        ${researchMiniBox('Ingreso est./mes', fmtMoney(c.estMonthlyRevenue))}
+                    </div>
+                    <button type="button" onclick="toggleResearchChannel('${c.id}')" class="mt-3 w-full bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 text-slate-700 hover:text-red-700 text-xs font-bold py-2 rounded-lg transition">
+                        <i class="fa-solid fa-video mr-1"></i> Videos que mencionan "${escHtml(researchState.topic)}" <i class="fa-solid fa-chevron-down ml-1"></i>
+                    </button>
+                    <div id="rch-detail-${c.id}" class="hidden mt-3"></div>
+                </div>
+            `).join('');
+        }
+
+        function renderResearchVideosTable() {
+            const key = document.getElementById('research-videos-sort').value;
+            const arr = [...researchState.signals].sort((a, b) => {
+                if (key === 'vpd') return b.vpd - a.vpd;
+                if (key === 'eng') return b.eng - a.eng;
+                if (key === 'revenue') return b.estRevenue - a.estRevenue;
+                if (key === 'recent') return new Date(b.video.snippet.publishedAt) - new Date(a.video.snippet.publishedAt);
+                return b.score - a.score;
+            }).slice(0, 40);
+            document.getElementById('research-videos-table').innerHTML = arr.map((s, i) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-2 border-b border-slate-100 text-[11px] text-slate-400">${i + 1}</td>
+                    <td class="p-2 border-b border-slate-100 max-w-[240px]">
+                        <a href="https://www.youtube.com/watch?v=${s.video.id}" target="_blank" class="text-indigo-600 hover:underline font-semibold text-xs line-clamp-2" title="${escHtml(s.video.snippet.title)}">${escHtml(s.video.snippet.title)}</a>
+                    </td>
+                    <td class="p-2 border-b border-slate-100 text-[11px] text-slate-500 max-w-[110px] truncate" title="${escHtml(s.video.snippet.channelTitle)}">${escHtml(s.video.snippet.channelTitle)}</td>
+                    <td class="p-2 border-b border-slate-100 text-xs font-bold text-slate-800">${formatNumber(s.views)}</td>
+                    <td class="p-2 border-b border-slate-100 text-xs text-slate-600">${formatNumber(Math.round(s.vpd))}/d</td>
+                    <td class="p-2 border-b border-slate-100 text-[11px] font-bold ${s.trend.color}" title="Proxy de 'vistas al alza' (velocidad de vistas/día)">${s.trend.emoji} ${s.trend.label}</td>
+                    <td class="p-2 border-b border-slate-100 text-xs font-bold text-emerald-600" title="(Likes+comentarios)/vistas">${(s.eng * 100).toFixed(1)}%</td>
+                    <td class="p-2 border-b border-slate-100 text-xs text-slate-500" title="Watch time est.: ${formatNumber(Math.round(s.watchHours))} h">${formatSeconds(s.durationSec)}</td>
+                    <td class="p-2 border-b border-slate-100 text-xs text-slate-600" title="Vistas/1000 × RPM configurado">${fmtMoney(s.estRevenue)}</td>
+                    <td class="p-2 border-b border-slate-100"><span class="text-xs font-black px-2 py-0.5 rounded-full ${s.score >= 70 ? 'bg-emerald-100 text-emerald-700' : s.score >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}">${s.score}</span></td>
+                </tr>
+            `).join('') || '<tr><td colspan="10" class="p-4 text-center text-xs text-slate-400">Sin videos.</td></tr>';
+        }
+
+        // Detalle de canal: lista de videos que mencionan el tema, con enlaces
+        async function toggleResearchChannel(channelId) {
+            const box = document.getElementById(`rch-detail-${channelId}`);
+            if (!box) return;
+            if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
+            box.classList.remove('hidden');
+            if (box.dataset.loaded === '1') return;
+            box.innerHTML = '<div class="flex items-center gap-2 text-xs text-slate-500 font-bold p-3"><div class="loader" style="border-top-color:#ef4444"></div> Buscando videos del canal...</div>';
+            const ytKey = document.getElementById('ytApiKeyInput').value.trim();
+            try {
+                // 1º: búsqueda temática dentro del canal; si no hay, sus videos más vistos
+                let ids = [];
+                const sRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=id&type=video&channelId=${channelId}&maxResults=25&q=${encodeURIComponent(researchState.topic)}&key=${ytKey}`);
+                const sData = await sRes.json();
+                if (sData.error) throw new Error(sData.error.message || 'Error buscando videos del canal.');
+                ids = (sData.items || []).map(i => i.id?.videoId).filter(Boolean);
+                if (!ids.length) {
+                    const fRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=id&type=video&channelId=${channelId}&maxResults=15&order=viewCount&key=${ytKey}`);
+                    const fData = await fRes.json();
+                    ids = (fData.items || []).map(i => i.id?.videoId).filter(Boolean);
+                }
+                if (!ids.length) {
+                    box.innerHTML = '<p class="text-xs text-slate-400 p-3">Sin videos públicos suficientes.</p>';
+                    box.dataset.loaded = '1';
+                    return;
+                }
+                const vRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids.join(',')}&key=${ytKey}`);
+                const vData = await vRes.json();
+                const tokens = researchState.topic.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+                const videos = (vData.items || []).map(v => {
+                    const hay = (v.snippet.title + ' ' + (v.snippet.tags || []).join(' ')).toLowerCase();
+                    return { v, rel: tokens.filter(t => hay.includes(t)).length };
+                }).sort((a, b) => b.rel - a.rel || parseInt(b.v.statistics?.viewCount || 0) - parseInt(a.v.statistics?.viewCount || 0));
+                box.innerHTML = `
+                    <div class="bg-slate-50 border border-slate-100 rounded-lg divide-y divide-slate-100 max-h-[420px] overflow-y-auto">
+                        ${videos.map(({ v, rel }) => `
+                            <div class="flex items-start gap-3 p-3">
+                                <div class="flex-1 min-w-0">
+                                    <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" class="text-xs font-bold text-indigo-600 hover:underline line-clamp-2" title="${escHtml(v.snippet.title)}">${escHtml(v.snippet.title)}</a>
+                                    <div class="text-[10px] text-slate-500 mt-1">👁️ ${formatNumber(parseInt(v.statistics?.viewCount || 0))} · 👍 ${formatNumber(parseInt(v.statistics?.likeCount || 0))} · 💬 ${formatNumber(parseInt(v.statistics?.commentCount || 0))} · ⏱️ ${formatSeconds(parseISO8601Duration(v.contentDetails?.duration || ''))} · 📅 ${new Date(v.snippet.publishedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                </div>
+                                ${rel > 0 ? '<span class="text-[9px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full whitespace-nowrap">✔ TEMA</span>' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" onclick="developTopicWithAI('channel:${channelId}')" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black py-2.5 rounded-lg transition">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Desarrollar el tema con IA usando este canal
+                    </button>
+                `;
+                box.dataset.loaded = '1';
+            } catch (e) {
+                box.innerHTML = `<p class="text-xs text-red-600 font-bold p-3"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml(e.message)}</p>`;
+            }
+        }
+
+        // --- IA: desarrollo del tema de principio a fin con la información de los videos ---
+        function buildTopicMarkdown(data, usedVideos) {
+            const lines = [`# ${data.title || 'Desarrollo del tema'}`, '', data.intro || '', ''];
+            (data.sections || []).forEach(s => { lines.push(`## ${s.heading || ''}`, '', s.body || '', ''); });
+            if (data.keyPoints?.length) { lines.push('## Puntos clave', '', ...data.keyPoints.map(k => `- ${k}`), ''); }
+            if (data.mistakes?.length) { lines.push('## Errores comunes', '', ...data.mistakes.map(k => `- ${k}`), ''); }
+            if (data.conclusion) { lines.push('## Conclusión', '', data.conclusion, ''); }
+            lines.push('## Fuentes', '', ...usedVideos.map(v => `- ${v.snippet.title} — https://www.youtube.com/watch?v=${v.id} (${v.snippet.channelTitle})`));
+            return lines.join('\n');
+        }
+
+        async function copyTopicDocument() {
+            try {
+                await navigator.clipboard.writeText(window.__researchDocText || '');
+                showToast('Documento copiado al portapapeles.', 'success');
+            } catch (e) { showToast('No se pudo copiar automáticamente.', 'error'); }
+        }
+
+        async function developTopicWithAI(scope) {
+            const hasAI = document.getElementById('geminiApiKeyInput').value.trim() || document.getElementById('dsApiKeyInput').value.trim();
+            if (!hasAI) return showToast('Conecta Gemini o DeepSeek en Configuración para usar la IA.', 'error');
+
+            let videos = [];
+            let scopeLabel = 'todos los canales y videos del radar';
+            if (scope === 'all') {
+                videos = researchState.signals.map(s => s.video);
+            } else if (scope.startsWith('channel:')) {
+                const insight = researchState.channelInsights.find(c => c.id === scope.slice(8));
+                if (insight) { videos = insight.signals.map(s => s.video); scopeLabel = `el canal "${insight.name}"`; }
+            }
+            if (!videos.length) return showToast('Primero ejecuta una búsqueda en el Radar.', 'error');
+
+            const mainBtn = document.getElementById('research-ai-btn');
+            const out = document.getElementById('research-ai-output');
+            if (mainBtn) { mainBtn.disabled = true; mainBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...'; }
+            out.classList.remove('hidden');
+            out.innerHTML = '<div class="flex items-center gap-3 text-indigo-700 font-bold text-sm bg-indigo-50 p-4 rounded-xl border border-indigo-100"><div class="loader" style="border-top-color:#6366f1"></div> Recopilando transcripciones y fuentes, y redactando el desarrollo completo...</div>';
+
+            const usedVideos = videos.slice(0, 8);
+            try {
+                // Transcripciones best-effort (hasta 6 videos en paralelo); si fallan, se usan descripciones
+                const tResults = await Promise.allSettled(usedVideos.slice(0, 6).map(v => fetchVideoTranscript(v.id)));
+                const transcripts = tResults.map(r => r.status === 'fulfilled' ? r.value : null);
+                const okCount = transcripts.filter(Boolean).length;
+                const transcriptNote = okCount > 0
+                    ? `✅ ${okCount} transcripción(es) obtenida(s) y usadas como fuente principal.`
+                    : '⚠️ No se pudieron descargar transcripciones (revisa el proxy CORS en Opciones avanzadas). Se usaron títulos, descripciones y etiquetas como fuente.';
+
+                const fuentes = usedVideos.map((v, i) => ({
+                    url: `https://www.youtube.com/watch?v=${v.id}`,
+                    titulo: v.snippet.title,
+                    canal: v.snippet.channelTitle,
+                    vistas: parseInt(v.statistics?.viewCount || 0),
+                    duracion: formatSeconds(parseISO8601Duration(v.contentDetails?.duration || '')),
+                    descripcion: (v.snippet.description || '').substring(0, 900),
+                    etiquetas: (v.snippet.tags || []).slice(0, 12),
+                    transcripcion: transcripts[i] ? transcripts[i].substring(0, 4000) : '(no disponible)'
+                }));
+
+                const prompt = `Actúa como investigador senior y guionista experto en YouTube.
+OBJETIVO: Desarrolla de principio a fin el tema "${researchState.topic}" (tipo de búsqueda: ${researchState.type}; alcance de fuentes: ${scopeLabel}).
+INSTRUCCIONES:
+1. Integra TODA la información relevante mencionada en las FUENTES (datos, cifras, pasos, herramientas, ejemplos, opiniones). No inventes información que no esté en las fuentes; cuando cites un dato concreto, indica entre paréntesis de qué fuente viene (usa su url).
+2. Estructura: introducción con contexto; desarrollo por secciones paso a paso (de lo básico a lo avanzado); puntos clave; errores comunes; conclusión con próximos pasos.
+3. Escribe en español, claro y directo, listo para usarse como guion base de un video.
+FUENTES (JSON): ${JSON.stringify(fuentes)}
+Devuelve SOLO un JSON válido con esta estructura exacta: {"title": "...", "intro": "...", "sections": [{"heading": "...", "body": "..."}], "keyPoints": ["..."], "mistakes": ["..."], "conclusion": "..."}`;
+
+                const data = await smartFetchAI(prompt, true);
+                window.__researchDocText = buildTopicMarkdown(data, usedVideos);
+
+                const chip = (t) => `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1.5 rounded-full text-xs font-semibold">✓ ${escHtml(t)}</span>`;
+                const warn = (t) => `<span class="bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-full text-xs font-semibold">⚠ ${escHtml(t)}</span>`;
+
+                out.innerHTML = `
+                    <div class="bg-white border border-indigo-100 rounded-xl p-6 shadow-sm space-y-4">
+                        <div class="flex justify-between items-start gap-3 border-b border-slate-100 pb-3">
+                            <h4 class="text-lg font-black text-slate-900">${escHtml(data.title || 'Desarrollo del tema: ' + researchState.topic)}</h4>
+                            <button type="button" onclick="copyTopicDocument()" class="bg-slate-900 hover:bg-slate-700 text-white text-[11px] font-black px-3 py-2 rounded-lg whitespace-nowrap"><i class="fa-solid fa-copy mr-1"></i> Copiar</button>
+                        </div>
+                        <p class="text-sm text-slate-700 leading-relaxed">${escHtml(data.intro || '').replace(/\n/g, '<br>')}</p>
+                        ${(data.sections || []).map(s => `
+                            <div>
+                                <h5 class="font-black text-slate-800 text-sm uppercase tracking-wide border-l-4 border-indigo-400 pl-2">${escHtml(s.heading || '')}</h5>
+                                <p class="text-sm text-slate-700 mt-1 leading-relaxed">${escHtml(s.body || '').replace(/\n/g, '<br>')}</p>
+                            </div>`).join('')}
+                        ${(data.keyPoints || []).length ? `<div><h5 class="font-black text-slate-800 text-xs uppercase mb-2">🎯 Puntos clave</h5><div class="flex flex-wrap gap-2">${data.keyPoints.map(chip).join('')}</div></div>` : ''}
+                        ${(data.mistakes || []).length ? `<div><h5 class="font-black text-slate-800 text-xs uppercase mb-2">🚫 Errores comunes</h5><div class="flex flex-wrap gap-2">${data.mistakes.map(warn).join('')}</div></div>` : ''}
+                        ${data.conclusion ? `<div class="bg-slate-50 border-l-4 border-slate-800 p-3 rounded"><h5 class="font-black text-xs uppercase mb-1">🏁 Conclusión</h5><p class="text-sm text-slate-700">${escHtml(data.conclusion).replace(/\n/g, '<br>')}</p></div>` : ''}
+                        <div>
+                            <h5 class="font-black text-slate-800 text-xs uppercase mb-2">🎥 Fuentes usadas</h5>
+                            <div class="space-y-1">${usedVideos.map(v => `<a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" class="block text-xs text-indigo-600 hover:underline truncate" title="${escHtml(v.snippet.title)}">▶ ${escHtml(v.snippet.title)} — ${escHtml(v.snippet.channelTitle)}</a>`).join('')}</div>
+                        </div>
+                        <p class="text-[11px] text-slate-400">${transcriptNote}</p>
+                    </div>`;
+                out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (e) {
+                out.innerHTML = `<div class="text-red-700 font-bold text-sm bg-red-50 p-4 rounded-xl border border-red-200"><i class="fa-solid fa-triangle-exclamation"></i> Error al desarrollar el tema: ${escHtml(e.message)}</div>`;
+            } finally {
+                if (mainBtn) { mainBtn.disabled = false; mainBtn.innerHTML = '<i class="fa-solid fa-brain mr-1 text-red-600"></i> Desarrollar Tema Completo'; }
+            }
+        }
+
+        // --- Init del Radar: restaurar preferencias y wiring de eventos ---
+        function updateResearchHint() {
+            const cfg = RESEARCH_TYPE_CONFIG[researchState.type];
+            document.getElementById('research-type-hint').textContent = cfg.hint;
+            document.getElementById('research-input').placeholder = cfg.placeholder;
+        }
+        document.querySelectorAll('#research-type-group .rtype-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#research-type-group .rtype-btn').forEach(b => b.classList.remove('rtype-active'));
+                btn.classList.add('rtype-active');
+                researchState.type = btn.dataset.rtype;
+                updateResearchHint();
+            });
+        });
+        document.getElementById('research-videos-sort').addEventListener('change', renderResearchVideosTable);
+        (function initResearchSection() {
+            const savedRpm = localStorage.getItem('ytResearchRpm');
+            if (savedRpm) document.getElementById('research-rpm').value = savedRpm;
+            const savedProxy = localStorage.getItem('ytResearchProxy');
+            document.getElementById('research-proxy-input').value = (savedProxy !== null && savedProxy !== '') ? savedProxy : DEFAULT_RESEARCH_PROXY;
+            document.getElementById('research-rpm').addEventListener('change', (e) => localStorage.setItem('ytResearchRpm', e.target.value));
+            document.getElementById('research-proxy-input').addEventListener('change', (e) => localStorage.setItem('ytResearchProxy', e.target.value));
+            updateResearchHint();
+        })();
 
     </script>
 </body>
