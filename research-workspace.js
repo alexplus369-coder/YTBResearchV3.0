@@ -43,6 +43,7 @@
         $('research-force-refresh').disabled = busy;
         $('research-ai-btn').disabled = busy || !!researchState.aiBusy;
         $('research-comments-btn').disabled = busy || !!researchState.commentsBusy;
+        document.dispatchEvent(new CustomEvent('research-busy', { detail: { busy } }));
     };
     window.refreshResearchView = function () {
         if (!researchState.rawVideos.length) return;
@@ -59,10 +60,18 @@
         renderResearchOpportunities();
         renderResearchCohorts();
         $('research-result-count').textContent = `Mostrando ${researchState.signals.length} de ${researchState.rawVideos.length} videos de la muestra. Los filtros de vistas y suscriptores se aplican sin nuevas consultas.`;
+        document.dispatchEvent(new CustomEvent('research-updated'));
     };
     window.researchSaveButton = function (videoId) {
         const saved = board.some(entry => entry.id === videoId);
         return `<button type="button" data-save-video="${escHtml(videoId)}" aria-pressed="${saved}" aria-label="${saved ? 'Referencia guardada' : 'Guardar referencia'}" class="text-[11px] font-bold px-2 py-1 rounded-lg ${saved ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'}">${saved ? '✓ Guardado' : '+ Guardar'}</button>`;
+    };
+    window.saveResearchReference = function (videoId, notes = '') {
+        const signal = researchState.signals.find(s => s.video.id === videoId);
+        if (!signal) throw new Error('La referencia ya no pertenece a la muestra actual.');
+        const entry = ResearchCore.entryFromSignal(signal, researchState.topic);
+        entry.notes = String(notes).slice(0, 2000);
+        return saveBoard(ResearchCore.mergeBoard(board, [entry]));
     };
 
     function renderBoard() {

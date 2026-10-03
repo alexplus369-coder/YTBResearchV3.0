@@ -1,10 +1,10 @@
-# YT SEO Pro Suite — Research Workspace
+# YT SEO Pro Suite — Investigación y producción
 
-Aplicación estática en español para investigar temas de YouTube y convertir las referencias encontradas en un plan editorial. Funciona en el navegador, sin servidor de aplicación ni base de datos. YouTube proporciona datos públicos; Gemini y DeepSeek son opcionales para la redacción y el análisis con IA.
+Aplicación estática en español para investigar temas de YouTube, descubrir oportunidades y preparar videos originales: empaquetado, guion completo, storyboard, prompts visuales, edición y publicación. Funciona en el navegador, sin servidor de aplicación ni base de datos. YouTube proporciona datos públicos; Gemini y DeepSeek redactan los contenidos con IA cuando los configuras.
 
 ## Inicio rápido
 
-1. Conserva juntos `index.html`, `research-core.js` y `research-workspace.js`. Puedes abrir `index.html` directamente; para almacenamiento consistente y OAuth, usa un servidor estático:
+1. Conserva juntos `index.html`, `research-core.js`, `research-workspace.js`, `creator-core.js` y `creator-studio.js`. Puedes abrir `index.html` directamente; para almacenamiento consistente y OAuth, usa un servidor estático:
 
    ```bash
    python -m http.server 8000
@@ -12,9 +12,57 @@ Aplicación estática en español para investigar temas de YouTube y convertir l
 
 2. Abre `http://localhost:8000` y coloca tu **YouTube Data API v3 Key** en **Configuración APIs**. **Guardar Configuración** verifica YouTube con una consulta de regiones, sin gastar una búsqueda. La configuración del canal acepta `@handle` o ID.
 3. Usa el **Radar de Temas & Canales**. No necesitas una clave de IA para buscar, puntuar, filtrar, guardar referencias o exportar planes.
-4. Si deseas usar AI Studio, Vision AI, minería de comentarios o desarrollo del tema, configura Gemini o DeepSeek. Vision AI requiere Gemini.
+4. Define el nicho y audiencia en **Estudio de crecimiento y producción**. Tendrás referencias, palabras clave e ideas editoriales sin IA. Configura Gemini o DeepSeek para personalizar las ideas y generar títulos, miniaturas y guiones. Vision AI requiere Gemini.
 
 Los paquetes de Node son exclusivamente para desarrollo y pruebas. La aplicación publicada no necesita ejecutar `npm install` ni un proceso de Node. El diseño conserva Tailwind y Font Awesome desde sus CDN; necesitas conexión para cargar estos recursos y consultar APIs.
+
+## Las cuatro herramientas de creación
+
+| Herramienta | Datos y resultado |
+|---|---|
+| Videos destacados | Referencias del Radar, comparación con otros videos del mismo canal, evidencia del rendimiento atípico y propuestas de adaptación original. Guarda la referencia y el ángulo en el tablero. |
+| Palabras clave de tendencia | Menciones en títulos/etiquetas, recencia, velocidad media, sugerencias y cohortes. Cada palabra muestra la evidencia de la muestra; se puede llevar al estudio. |
+| Ideas diarias personalizadas | Cinco ideas por día, nicho, audiencia, objetivo y zona horaria. Funciona con propuestas editoriales locales; **Personalizar con IA** produce un lote específico y lo guarda. |
+| Guion y producción | Tres empaquetados para elegir antes de generar un guion de 8, 9 o 10 minutos, con seis bloques, escenas y prompts en inglés, locución en español, hoja de edición, monetización y materiales de publicación. |
+
+### Videos destacados y tendencia: evidencia disponible
+
+Un video se etiqueta como **Atípico en esta muestra** cuando su velocidad media desde publicación es al menos 2× la mediana de **otros tres videos** del mismo canal y grupo de duración (menos de 4 min o 4 min en adelante). Solo se comparan videos con duración y vistas disponibles, publicados entre 2 y 365 días atrás. Si faltan pares, se muestra **Comparación insuficiente**, sin adjudicar un outlier.
+
+**Ampliar comparación de canales** consulta las listas de subidas de hasta tres canales y un máximo de 20 publicaciones por canal, reutilizando la caché. Hace como máximo una consulta de canales, tres de listas y dos de detalles de videos, sin nuevas búsquedas. No es un censo del canal; las edades de los videos y los cambios de audiencia pueden afectar la comparación. El formato de duración no identifica Shorts. Adaptar una referencia significa crear una prueba, caso y enfoque propios; el generador no recibe instrucciones de copiarla.
+
+Las palabras se ordenan por menciones en videos (30 puntos), proporción publicada en 30 días (25), velocidad media logarítmica relativa a la muestra (25), presencia en autocomplete (10) y aceleración observada en cohortes (10). Cada video cuenta una sola vez por término. Las cohortes necesitan lecturas separadas en el tiempo; sin ellas se muestran señales actuales y se omite la aceleración. **Ni la puntuación ni autocomplete representan volumen de búsquedas o crecimiento medido de una palabra clave.**
+
+### Ideas diarias
+
+Completa nicho, audiencia y resultado que quieres enseñar. El día se calcula con la zona horaria elegida (Ciudad de México por defecto). Las ideas se renuevan al abrir el panel, volver a la página o cambiar de perfil/muestra; no hay notificaciones ni ejecución en segundo plano. Un lote de IA se reutiliza para el mismo día, perfil y datos, evitando consultas pagadas al abrir el panel. Los cambios de audiencia, objetivos o evidencia lo invalidan. Puedes descargar las cinco ideas en Markdown o elegir una para producir.
+
+### Flujo de guion y producción
+
+1. Escanea el nicho en el Radar y elige una referencia, palabra o idea, o escribe un tema propio. Las referencias elegidas tienen prioridad entre las seis fuentes enviadas al generador.
+2. Define audiencia, objetivo, tono, duración, estilo visual y metas de CTR/retención. El RPM se toma del Radar. Los rangos de nichos de la metodología del creador son hipótesis orientativas etiquetadas, no mediciones financieras ni RPM aplicados automáticamente.
+3. Añade hechos y enlaces verificables propios. Configura solo las ofertas reales que quieras integrar: sponsor, sus prestaciones, afiliado, URL y recurso propio. Estos campos se guardan localmente como parte del trabajo editorial.
+4. **Crear títulos y miniaturas** solicita tres propuestas. Se validan títulos de menos de 50 caracteres, hasta tres elementos visuales y texto que no duplique el título. Los prompts son en inglés, con composición 16:9. Elige una propuesta.
+5. **Generar guion y producción** realiza dos solicitudes de IA (bloques 1–3 y 4–6), conservando la continuidad. Escribe locución completa, no solo un esquema. Se validan todos los bloques, su longitud respecto a un presupuesto de 145 palabras/min y los prompts de cada escena. Una respuesta incompleta no sustituye la última producción válida. Se muestra la duración estimada de locución para ajustar pausas y demostraciones en el ensayo.
+6. Revisa y descarga Markdown o JSON. Markdown incluye la hoja de edición con cambios orientativos cada 5 s (3 s en el gancho), prompts de imagen y clips de video de 5 s, negativos, fuentes, monetización, descripción, comentario fijado y verificaciones. El JSON permite recuperar la producción; se valida y solo incluye campos editoriales autorizados.
+
+El esquema temporal mantiene gancho/re-hook en los primeros 30 s, victoria rápida, núcleo con integración comercial opcional, transición natural de 15 s, revelación y recurso/cierre invisible. En 10 minutos las transiciones principales son 0:30, 3:00, 5:30, 5:45 y 8:00; en 8 o 9 minutos se ajustan al total. El gancho debe iniciar la locución, durar aproximadamente cinco segundos y aparecer con el re-hook en el guion. El cierre rechaza despedidas directas y peticiones de suscripción.
+
+La hoja de edición propone b-roll, gráficos, cambios de plano, zoom 10–15%, SFX sutil y música dinámica. Las escenas se distribuyen dentro de cada bloque: los prompts describen clips cortos que hay que ensamblar o variar para cubrir su duración. **Esta app prepara texto y prompts; no genera archivos de imagen/video, no edita material ni publica en YouTube.**
+
+Las transcripciones son opcionales y de mejor esfuerzo para hasta tres referencias. Si no hay transcripción, solo se usan títulos/descripciones, sin considerarlos prueba de afirmaciones. Las notas y las transcripciones también requieren revisión humana; el paquete incluye las comprobaciones pendientes. No se inventan acuerdos de patrocinio, uso personal de productos ni recursos descargables en las instrucciones al modelo.
+
+### Monetización y auditoría
+
+El estudio permite calcular un escenario de publicidad, afiliación, patrocinio y producto propio. Solo la publicidad usa el RPM elegido; clics, conversiones, comisiones, leads e ingresos acordados son supuestos manuales que parten de cero. No predice ingresos reales. Las URLs configuradas y la divulgación de afiliación se añaden al inicio de la descripción y al comentario fijado; el patrocinio incluye divulgación y una verificación del acuerdo.
+
+La transición se propone como pausa mid-roll natural en un video monetizado elegible de **8 minutos o más**. La app no inserta anuncios y YouTube decide si los sirve; consulta las [reglas de pausas mid-roll](https://support.google.com/youtube/answer/6175006?hl=es).
+
+La auditoría compara métricas del mismo video y periodo con tus metas editables. Distingue una lectura preliminar antes de 48 h, CTR bajo con muchas impresiones, caída inicial mayor de 40%, retención media baja y valles anotados. Son reglas editoriales, no umbrales universales de éxito.
+
+Con Analytics conectado, **Leer AVD y retención** consulta `averageViewDuration`, `averageViewPercentage` y `audienceWatchRatio` de un video del canal autorizado. Se indica el periodo consultado y se aproxima la caída a 30 s con el punto más cercano de la curva. El ratio puede superar 100% por repeticiones. **CTR de impresiones e impresiones se introducen desde Studio**, porque no se sustituyen por CTR de tarjetas o anotaciones. Los [reportes de canal](https://developers.google.com/youtube/analytics/channel_reports#user-activity-reports) y las [definiciones de métricas](https://developers.google.com/youtube/analytics/metrics) explican esta distinción.
+
+La disponibilidad de informes puede tener retrasos o datos insuficientes. Los reportes privados solo permanecen en memoria; se descartan si cambias el video, el periodo, la búsqueda o desconectas Analytics. No se incluyen en las exportaciones de producción.
 
 ## Investigación y filtros
 
@@ -118,13 +166,15 @@ Las transcripciones siguen siendo de mejor esfuerzo mediante Piped, Invidious y 
 
 Las API keys no se guardan en almacenamiento persistente ni se incluyen automáticamente en los respaldos. Se envían al proveedor correspondiente desde el navegador. El token de Analytics no entra en la caché pública.
 
-El tablero, historial, cohortes y preferencias son locales. Los CDN de diseño, Google Identity Services, autocomplete y los servicios de transcripción también reciben las solicitudes que les corresponden. El HTML y las respuestas de IA se escapan al renderizarlos en los módulos modificados.
+El tablero, historial, cohortes, perfil editorial, último lote diario de IA y última producción son locales. Los CDN de diseño, Google Identity Services, autocomplete y los servicios de transcripción también reciben las solicitudes que les corresponden. El perfil y las referencias seleccionadas se envían al proveedor de IA cuando pides una generación; las exportaciones no añaden claves ni tokens. El HTML y las respuestas de IA se escapan al renderizarlos en los módulos modificados.
 
 Código:
 
 - `index.html`: interfaz y módulos de análisis existentes.
 - `research-core.js`: cliente público de YouTube, filtros, cohortes, CSV y validación de respaldos.
 - `research-workspace.js`: tablero editorial, historial y enlace de las herramientas con la interfaz.
+- `creator-core.js`: perfiles, evidencia de outliers/tendencias, ideas, presupuestos temporales, validación de guiones, escenarios y exportación.
+- `creator-studio.js`: cuatro herramientas, generación por etapas, persistencia y auditoría privada opcional.
 
 ## Pruebas
 
@@ -136,6 +186,6 @@ npm run check
 npm test
 ```
 
-Las pruebas cubren caché, solicitudes concurrentes, límites de espera, errores, filtros, cohortes, respaldos, CSV y flujos del DOM con jsdom. Simulan YouTube, IA y OAuth: no gastan cuota y no validan conexiones reales ni el diseño visual. GitHub Actions ejecuta los mismos comandos en cada push y pull request.
+Las pruebas cubren caché, solicitudes concurrentes, límites de espera, errores, filtros, cohortes, respaldos, CSV, outliers, tendencias, calendario local, guiones incompletos, monetización y flujos completos del DOM con jsdom. Simulan YouTube, IA y OAuth: no gastan cuota y no validan conexiones reales ni el diseño visual. GitHub Actions ejecuta los mismos comandos en cada push y pull request.
 
 Antes de publicar una versión, revisa la interfaz en un navegador real y prueba tus claves y consentimiento OAuth en tu origen autorizado.
