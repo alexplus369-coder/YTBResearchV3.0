@@ -106,6 +106,26 @@ test('a short model outline cannot overwrite the completed production', async t 
     assert.match(a.$('creator-error').textContent, /palabras/); assert.equal(a.w.localStorage.getItem('ytCreatorProductionV1'), JSON.stringify(previous));
 });
 
+test('an invalid block length gets one bounded automatic repair with exact limits', async t => {
+    const a = app(t); ai(a);
+    a.change('creator-niche', 'Software'); a.$('creator-topic').value = 'Tema'; submit(a);
+    await until(() => !a.$('creator-script-btn').disabled);
+    const calls = [];
+    a.w.smartFetchAI = async prompt => {
+        calls.push(prompt);
+        const secondPart = prompt.includes('"index":3');
+        const expected = core.timeline(9).slice(secondPart ? 3 : 0, secondPart ? 6 : 3);
+        const blocks = expected.map(block);
+        if (calls.length === 1) blocks[0].narration = Array.from({ length: 45 }, () => 'corto').join(' ');
+        return { blocks, ...(secondPart ? { publishing: publishing() } : {}) };
+    };
+    a.$('creator-script-btn').click(); await until(() => !a.$('creator-export-md').disabled);
+    assert.equal(calls.length, 3);
+    assert.match(calls[1], /CORRECCIÓN ÚNICA/); assert.match(calls[1], /"minWords":49/);
+    assert.equal(JSON.parse(a.w.localStorage.getItem('ytCreatorProductionV1')).blocks.length, 6);
+    assert.deepEqual(a.errors, []);
+});
+
 test('late packaging is discarded when a new Radar scan changes its evidence', async t => {
     const a = app(t); await a.scan(); a.$('geminiApiKeyInput').value = 'fake-key';
     let release; a.w.smartFetchAI = () => new Promise(resolve => { release = resolve; });

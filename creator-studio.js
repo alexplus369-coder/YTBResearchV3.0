@@ -268,11 +268,13 @@
         for (let part = 0; part < 2; part++) {
             if (!current()) return;
             const expected = slots.slice(part * 3, part * 3 + 3);
+            const wordLimits = expected.map(slot => ({ index: slot.index, label: slot.label, targetWords: slot.targetWords,
+                minWords: Math.floor(slot.targetWords * .68), maxWords: Math.ceil(slot.targetWords * 1.35) }));
             status('Escribiendo guion, storyboard y prompts: bloques ' + (part * 3 + 1) + '–' + (part * 3 + 3) + ' de 6…');
             const prompt = groundedPrompt(ctx) + '\nEmpaquetado elegido: ' + JSON.stringify(chosenVariants[chosen]) +
                 '\nBloques a escribir: ' + JSON.stringify(expected) + '\nContinuidad previa: ' + JSON.stringify(blocks.map(b => ({ label: b.label, narration: b.narration, openLoop: b.openLoop }))) +
                 '\nDevuelve JSON {blocks:[{index,narration,hook,rehook,openLoop,editing,sourceIds:[],scenes:[{visual,imagePrompt,videoPrompt,negativePrompt}]}]' + (part === 1 ? ',publishing:{description,pinnedComment,checks:[]}' : '') + '}.' +
-                '\nEscribe EXACTAMENTE los tres índices solicitados y todo el texto de locución, listo para narrar en español. Respeta targetWords por bloque (+/-20%). No devuelvas un esquema ni texto de relleno ni corchetes con tareas sin desarrollar. No asignes tiempos a escenas: se distribuirán uniformemente dentro del bloque. Usa 2–5 escenas por bloque largo y una en la transición.' +
+                '\nEscribe EXACTAMENTE los tres índices solicitados y todo el texto de locución, listo para narrar en español. Cuenta las palabras de narration y respeta estos límites inclusivos: ' + JSON.stringify(wordLimits) + '. No devuelvas un esquema ni texto de relleno ni corchetes con tareas sin desarrollar. No asignes tiempos a escenas: se distribuirán uniformemente dentro del bloque. Usa 2–5 escenas por bloque largo y una en la transición.' +
                 '\nBloque 0: hook de 0–5 s (hasta 17 palabras) y rehook de 5–30 s; narration debe contener exactamente ese gancho y re-hook, sin saludos, logos ni introducción de canal. Valida la promesa, establece apuestas honestas y abre un bucle de curiosidad.' +
                 '\nBloques 1 y 2: una victoria rápida demostrable y desarrollo detallado del método. Abre nuevos bucles antes de resolver los anteriores. Si hay patrocinador definido, integra 30–60 s y di que es patrocinio; solo usa las prestaciones proporcionadas. Si no hay datos suficientes de sponsor, deja pendiente su verificación en checks y explica la decisión técnica sin hacer publicidad. Si hay afiliado, muestra una utilidad comprobable y divulga la afiliación. Si no hay sponsor ni afiliado, dedica el tiempo a valor práctico.' +
                 '\nBloque 3: completa el punto anterior y deja una pausa natural sin interrumpir una frase. Propón una pausa mid-roll en esa transición si el canal y video son elegibles (8 min o más); no garantices anuncio. Bloque 4: cumple la revelación y demuestra el paso avanzado con un ejemplo explícitamente hipotético cuando no haya resultados verificados.' +
@@ -280,9 +282,21 @@
                 '\nCada escena incluye visual específico, imagePrompt y videoPrompt EN INGLÉS, y stockQuery (2–5 palabras en inglés para buscar un clip pertinente). Mantén el estilo visual, misma paleta y continuidad de personajes/objetos. Imagen 16:9; video como clip 5 segundos con encuadre, movimiento de cámara, luz y acción. Evita gráficos con datos fabricados, logotipos o texto generado ilegible. Si se necesita texto exacto, indica añadirlo en posproducción.' +
                 '\nediting describe b-roll, cambios de plano o gráfico cada 4–6 s (gancho 1.5–3 s cuando ayude), zoom 10–15%, SFX sutil al entrar texto, música moderada, volumen menor durante sponsor y aumento de energía en los últimos dos minutos. No cortes por cortar: preserve comprensión y legibilidad.' +
                 (part === 1 ? '\npublishing: descripción y comentario fijado listos para publicar, sin URLs inventadas. checks: mínimo cinco verificaciones concretas de afirmaciones, pruebas, originalidad/derechos de los recursos, pertinencia de ofertas y cumplimiento de la promesa. Señala especialmente hechos sin respaldo de transcripción o notas verificables.' : '');
-            const result = await smartFetchAI(prompt, true);
+            let result = await smartFetchAI(prompt, true);
             if (!current()) return;
-            blocks.push(...core.validateBlocks(result, expected, ctx.sources.map(s => s.id)));
+            let validated;
+            try {
+                validated = core.validateBlocks(result, expected, ctx.sources.map(s => s.id));
+            } catch (validationError) {
+                status('Ajustando automáticamente la extensión de los bloques ' + (part * 3 + 1) + '–' + (part * 3 + 3) + '…');
+                result = await smartFetchAI(prompt + '\nCORRECCIÓN ÚNICA: la respuesta anterior no pasó la validación: ' + validationError.message +
+                    '\nLímites obligatorios de narration: ' + JSON.stringify(wordLimits) +
+                    '\nRespuesta anterior: ' + JSON.stringify(result) +
+                    '\nDevuelve únicamente el JSON completo corregido para los mismos tres índices. Conserva los hechos, fuentes y continuidad válidos; corrige la extensión y cualquier campo señalado. No expliques la corrección.', true);
+                if (!current()) return;
+                validated = core.validateBlocks(result, expected, ctx.sources.map(s => s.id));
+            }
+            blocks.push(...validated);
             if (part === 1) publishing = result.publishing;
         }
         if (!publishing || typeof publishing.description !== 'string' || typeof publishing.pinnedComment !== 'string' || !Array.isArray(publishing.checks) || publishing.checks.length < 5) throw new Error('Falta el paquete de publicación y las verificaciones del guion. Reintenta la generación.');
