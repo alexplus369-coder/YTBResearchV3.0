@@ -261,6 +261,12 @@ def create_app(settings=None, run_worker=True):
     def index():
         return FileResponse(ROOT / 'index.html')
 
+    @app.get('/docs/{filename}')
+    def guide(filename: str):
+        if filename not in {'video-production.md', 'third-party-notices.md'}:
+            raise HTTPException(404, 'No encontrado.')
+        return FileResponse(ROOT / 'docs' / filename, media_type='text/plain; charset=utf-8')
+
     @app.get('/{filename}')
     def static(filename: str):
         if filename not in STATIC:

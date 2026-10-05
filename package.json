@@ -5,8 +5,14 @@
   "description": "Development checks for a static YouTube research app",
   "scripts": {
     "check": "node scripts/check-scripts.cjs",
-    "test": "node --test tests/*.test.cjs"
+    "test": "node --test tests/*.test.cjs",
+    "test:production": "node scripts/verify-production.cjs"
   },
-  "engines": { "node": ">=20" },
-  "devDependencies": { "jsdom": "26.1.0" }
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "agent-browser": "0.38.2",
+    "jsdom": "26.1.0"
+  }
 }

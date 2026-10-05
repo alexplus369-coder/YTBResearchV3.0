@@ -120,7 +120,9 @@ El recorte usa el video limpio del render original, reutiliza su audio final y r
 
 ## Proyecto editable y Remotion
 
-El ZIP incluye narración WAV, recursos utilizados, línea de tiempo por frames, subtítulos, créditos, metadatos y `remotion-input.json`. Es un paquete de montaje; conserva además el JSON editorial del estudio para recuperar el guion completo y sus fuentes. La música opcional se mezcla en el MP4 pero no se incluye en la composición Remotion.
+El ZIP incluye narración WAV, música opcional, recursos utilizados, línea de tiempo por frames, subtítulos, créditos, metadatos y `remotion-input.json`. La composición conserva el volumen de música elegido y el punto de inicio de cada recurso de video. Es un paquete de montaje; conserva además el JSON editorial del estudio para recuperar el guion completo y sus fuentes.
+
+El manifiesto distingue los tiempos de subtítulos de los tiempos por bloque. Edge TTS mide cada bloque al generar su voz; con narración propia, los límites de bloques se estiman según el guion aunque Whisper mida los subtítulos. Los recortes expresan ambos tiempos respecto al inicio del clip.
 
 Desde la raíz:
 
@@ -175,4 +177,8 @@ npm run check --prefix remotion
 npm run bundle --prefix remotion
 ```
 
-Las pruebas incluyen renders **reales** FFmpeg con audio WAV de prueba, H.264/AAC, SRT/ASS, ZIP editable, recursos propios, selección de bloques, recorte vertical y reanudación tras un fallo. Los adaptadores online, OAuth, avisos y subida se prueban con respuestas simuladas: no gastan créditos, no suben videos y no envían mensajes. Remotion se valida con TypeScript y su bundle; un render de Remotion y el diseño de la web necesitan verificación en un navegador compatible. Docker y los encoders de hardware requieren validación en tu equipo.
+Las pruebas incluyen renders **reales** FFmpeg con audio WAV de prueba, H.264/AAC, SRT/ASS, ZIP editable con música, recursos propios, selección de bloques, recorte vertical y reanudación tras un fallo. Los adaptadores online, OAuth, avisos y subida se prueban con respuestas simuladas: no gastan créditos, no suben videos y no envían mensajes.
+
+Con Chrome/Chromium compatible instalado, ejecuta también `npm run test:production`. Puedes indicar el ejecutable mediante `YT_BROWSER_BIN`. Este check crea recursos originales de prueba, abre la interfaz con `agent-browser`, conecta el motor, carga voz/video/música, genera un MP4, comprueba su vista previa y crea un recorte vertical desde la transcripción. Captura el panel en escritorio y móvil y comprueba errores del navegador. Después renderiza el ZIP con Remotion y verifica dimensiones, duración, audio y presencia de la música elegida.
+
+GitHub Actions ejecuta el flujo completo en los pull requests y en los cambios de `main`. El artefacto `production-verification` conserva capturas, informes y el MP4 de Remotion durante 14 días. El check usa recursos locales; solo necesita acceso a los CDN de estilos de la interfaz. Docker, proveedores reales y encoders de hardware requieren validación en tu equipo.

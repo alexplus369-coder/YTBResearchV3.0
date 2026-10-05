@@ -69,6 +69,9 @@ def test_real_queue_render_caption_bundle_and_portrait_clip(settings, request_pa
         assert abs(float(cut_meta['format']['duration']) - 3) < .15
         rebased = json.loads((cut_folder / 'words.json').read_text())
         assert all(0 <= w['start'] < w['end'] <= 3 for w in rebased)
+        clip_manifest = json.loads((cut_folder / 'manifest.json').read_text())
+        assert all(0 <= b['start'] < b['end'] <= 3 for b in clip_manifest['blocks'])
+        assert clip_manifest['blockTiming'] == 'estimated-from-script'
         assert client.post(f'/api/video/jobs/{ident}/clips', json={'start': 0, 'end': 8}).status_code == 400
         assert client.post(f'/api/video/jobs/{cut["id"]}/clips', json={'start': 0, 'end': 2}).status_code == 400
 

@@ -13,7 +13,7 @@ from .models import JobRequest, ClipRequest
 from .process import run, probe, duration, Cancelled
 
 FPS = 24
-ENGINE_VERSION = '1.0.0'
+ENGINE_VERSION = '1.1.0'
 ARTIFACTS = {'video.mp4', 'subtitles.srt', 'subtitles.ass', 'words.json', 'manifest.json', 'timeline.json', 'publication.json', 'project.zip'}
 
 
@@ -187,6 +187,7 @@ class Pipeline:
                 last = start + round((end - start) * (i + 1) / len(scenes))
                 while first < last:
                     frames = min(round(request.options.clip_seconds * FPS), last - first)
+                    source_start = round(((first / FPS) % (item['mediaDuration'] - frames / FPS)) * FPS) if item['kind'] == 'video' and item['mediaDuration'] > frames / FPS else 0
                     clip_name = f'segment-{position:04}.mp4'; target = folder / clip_name
                     self.step(ident, f'rendering {position + 1}', 40 + 45 * first / max(1, voice['duration'] * FPS))
                     if not target.exists():
@@ -194,21 +195,23 @@ class Pipeline:
                         vf = f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1,fps={FPS}'
                         if item['kind'] == 'image':
                             vf += f",zoompan=z='1+0.05*on/{frames}':d=1:s={width}x{height}:fps={FPS}"
-                        if item['kind'] == 'video' and item['mediaDuration'] > frames / FPS:
-                            args += ['-ss', str((first / FPS) % (item['mediaDuration'] - frames / FPS))]
+                        if source_start:
+                            args += ['-ss', str(source_start / FPS)]
                         run(args + ['-i', item['path'], '-an', '-vf', vf, '-frames:v', str(frames), *encoder(self.settings), '-pix_fmt', 'yuv420p', '-threads', '2', clip_name + '.part.mp4'], folder, cancelled, self.settings.process_timeout)
                         (folder / (clip_name + '.part.mp4')).replace(target)
                     segments.append("file '" + clip_name + "'")
                     timeline.append({'startFrame': first, 'durationInFrames': frames, 'scene': item['index'], 'kind': item['kind'],
-                                     'visual': item['visual'], 'asset': Path(item['path']).name, 'mediaDuration': item['mediaDuration']})
+                                     'visual': item['visual'], 'asset': Path(item['path']).name, 'mediaDuration': item['mediaDuration'], 'sourceStartFrame': source_start})
                     first += frames; position += 1
         (folder / 'segments.txt').write_text('\n'.join(segments))
         self.step(ident, 'assembling', 87)
         run(base(self.settings) + ['-f', 'concat', '-safe', '1', '-i', 'segments.txt', '-c', 'copy', 'silent.part.mp4'], folder, cancelled)
         (folder / 'silent.part.mp4').replace(folder / 'silent.mp4')
         args = base(self.settings) + ['-i', 'silent.mp4', '-i', 'narration.wav']
+        music_track = None
         if request.music_id:
             music, _ = self.asset(request.music_id, {'audio', 'video'})
+            music_track = {'path': str(music), 'durationSeconds': duration(music, self.settings), 'volume': request.options.music_volume}
             args += ['-stream_loop', '-1', '-i', music, '-filter_complex', f'[1:a]volume=1[a];[2:a]volume={request.options.music_volume}[b];[a][b]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11[out]', '-map', '0:v', '-map', '[out]']
         else:
             args += ['-map', '0:v', '-map', '1:a', '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11']
@@ -220,30 +223,35 @@ class Pipeline:
         publication = {'title': request.production.packaging.title, 'description': request.production.description,
                        'pinnedComment': request.production.pinnedComment, 'checks': request.production.checks, 'privacyStatus': 'private'}
         manifest = {'engine': 'FFmpeg', 'engineVersion': ENGINE_VERSION, 'durationSeconds': actual, 'width': width, 'height': height, 'fps': FPS,
-                    'captionTiming': timing_source, 'blocks': voice['blocks'], 'midRollDurationThresholdMet': actual >= 480,
+                    'captionTiming': timing_source, 'blockTiming': 'measured-per-block' if request.options.tts == 'edge' else 'estimated-from-script', 'blocks': voice['blocks'], 'midRollDurationThresholdMet': actual >= 480,
                     'credits': [m['credit'] for m in media], 'originalProjectTopic': request.production.topic}
         providers.atomic_json(folder / 'timeline.json', timeline); providers.atomic_json(folder / 'publication.json', publication)
         providers.atomic_json(folder / 'manifest.json', manifest)
-        self.bundle(folder, media, width, height, timeline, voice, words)
+        self.bundle(folder, media, width, height, timeline, voice, words, music_track)
         for path in folder.glob('segment-*'):
             path.unlink(missing_ok=True)
         return {'durationSeconds': actual, 'width': width, 'height': height, 'captionTiming': timing_source,
                 'artifacts': sorted(ARTIFACTS), 'midRollDurationThresholdMet': actual >= 480, 'canClip': True}
 
-    def bundle(self, folder, media, width, height, timeline, voice, words):
+    def bundle(self, folder, media, width, height, timeline, voice, words, music=None):
         unique = {m['path']: m for m in media}
         # Prefix paths with scene index; identical upload basenames never collide in an editable project.
         names = {path: f'media/{m["index"]}-{Path(path).name}' for path, m in unique.items()}
         by_index = {m['index']: names[m['path']] for m in media}
         props = {'width': width, 'height': height, 'fps': FPS, 'durationInFrames': round(voice['duration'] * FPS), 'audio': 'narration.wav',
                  'scenes': [{**item, 'src': by_index[item['scene']]} for item in timeline], 'words': [asdict(w) for w in words]}
+        music_name = names.get(music['path'], 'music' + Path(music['path']).suffix) if music else None
+        if music:
+            props['music'] = {'src': music_name, 'durationSeconds': music['durationSeconds'], 'volume': music['volume']}
         with zipfile.ZipFile(folder / 'project.zip.part', 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=1) as archive:
             for filename in ['subtitles.srt', 'subtitles.ass', 'words.json', 'timeline.json', 'publication.json', 'manifest.json', 'narration.wav']:
                 archive.write(folder / filename, filename)
             for path, name in names.items():
                 archive.write(path, name)
+            if music and music['path'] not in names:
+                archive.write(music['path'], music_name)
             archive.writestr('remotion-input.json', json.dumps(props, ensure_ascii=False, indent=2))
-            archive.writestr('README.txt', 'Proyecto editable: audio, recursos, subtitulos, tiempos reales y metadatos. Para Remotion, extrae en remotion/public y consulta docs/video-production.md. La musica opcional no se incluye en el proyecto Remotion; agregarla en el editor.\n')
+            archive.writestr('README.txt', 'Proyecto editable: narracion, musica opcional, recursos, subtitulos, tiempos reales y metadatos. Para Remotion, extrae en remotion/public y consulta docs/video-production.md. La mezcla y las animaciones son editables; revisa niveles de audio antes de exportar.\n')
         (folder / 'project.zip.part').replace(folder / 'project.zip')
 
     def clip(self, ident, parent_id, payload):
@@ -267,7 +275,9 @@ class Pipeline:
             *encoder(self.settings), '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-movflags', '+faststart', '-threads', '2', 'video.part.mp4'], folder, cancelled, self.settings.process_timeout)
         (folder / 'video.part.mp4').replace(folder / 'video.mp4')
         actual = duration(folder / 'video.mp4', self.settings)
-        providers.atomic_json(folder / 'manifest.json', {**metadata, 'durationSeconds': actual, 'width': width, 'height': height, 'parentJob': parent_id, 'sourceStart': request.start, 'sourceEnd': request.end, 'midRollDurationThresholdMet': False})
+        blocks = [{**block, 'start': max(0, block['start'] - request.start), 'end': min(request.end, block['end']) - request.start}
+                  for block in metadata.get('blocks', []) if block['end'] > request.start and block['start'] < request.end]
+        providers.atomic_json(folder / 'manifest.json', {**metadata, 'durationSeconds': actual, 'width': width, 'height': height, 'blocks': blocks, 'parentJob': parent_id, 'sourceStart': request.start, 'sourceEnd': request.end, 'midRollDurationThresholdMet': False})
         shutil.copyfile(source / 'publication.json', folder / 'publication.json')
         return {'durationSeconds': actual, 'width': width, 'height': height, 'captionTiming': metadata['captionTiming'],
                 'artifacts': ['video.mp4', 'subtitles.srt', 'subtitles.ass', 'words.json', 'manifest.json', 'publication.json'], 'canClip': False}

@@ -206,6 +206,8 @@ npm run check
 npm test
 ```
 
-Las pruebas cubren caché, solicitudes concurrentes, límites de espera, errores, filtros, cohortes, respaldos, CSV, outliers, tendencias, calendario local, guiones incompletos, monetización y flujos completos del DOM con jsdom. Simulan YouTube, IA y OAuth: no gastan cuota y no validan conexiones reales ni el diseño visual. GitHub Actions ejecuta estos checks, pruebas del backend y el bundle de Remotion en cada push y pull request. Las pruebas del backend incluyen renders FFmpeg reales con audio de prueba, subtítulos, proyecto editable, recortes y recuperación tras fallos; proveedores y subidas usan respuestas simuladas.
+Las pruebas cubren caché, solicitudes concurrentes, límites de espera, errores, filtros, cohortes, respaldos, CSV, outliers, tendencias, calendario local, guiones incompletos, monetización y flujos completos del DOM con jsdom. Simulan YouTube, IA y OAuth: no gastan cuota ni validan esas conexiones reales. Las pruebas del backend incluyen renders FFmpeg reales con audio de prueba, subtítulos, proyecto editable con música, recortes y recuperación tras fallos; proveedores y subidas usan respuestas simuladas.
+
+GitHub Actions ejecuta estos checks en los pull requests y los cambios de `main`. También prueba el panel en Chrome, carga recursos propios, genera un MP4, reproduce su vista previa, crea un recorte y captura el diseño en escritorio y móvil. El proyecto exportado se renderiza con Remotion y se comprueban duración, dimensiones y mezcla de audio. Las capturas, informes y el MP4 de prueba quedan en el artefacto `production-verification`.
 
 Para los checks del backend y Remotion consulta la [guía de producción](docs/video-production.md#verificar). Antes de publicar una versión, revisa la interfaz en un navegador real y prueba tus claves y consentimiento OAuth en tu origen autorizado.

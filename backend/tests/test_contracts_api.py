@@ -62,6 +62,9 @@ def test_api_auth_precedes_parsing_and_static_cannot_leak_data(settings, request
         assert client.post('/api/video/assets', content=b'bad multipart').status_code == 401
         assert client.get('/queue.sqlite3').status_code == 404
         assert client.get('/backend/config.py').status_code == 404
+        assert client.get('/docs/video-production.md').status_code == 200
+        assert 'Fábrica de videos' in client.get('/docs/video-production.md').text
+        assert client.get('/docs/config.py').status_code == 404
         health = client.get('/api/video/health', headers=headers).json()
         assert settings.token not in str(health) and health['worker'] is False
         assert client.get('/', headers={'Host': 'evil.example'}).status_code == 400

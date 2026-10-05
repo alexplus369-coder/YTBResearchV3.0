@@ -3,9 +3,10 @@ import { AbsoluteFill, Audio, Composition, Img, Loop, OffthreadVideo, Sequence, 
   registerRoot, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 
 type Word = {text: string; start: number; end: number};
-type Scene = {startFrame: number; durationInFrames: number; kind: 'image' | 'video' | 'card'; src?: string; visual: string; mediaDuration?: number};
+type Scene = {startFrame: number; durationInFrames: number; kind: 'image' | 'video' | 'card'; src?: string; visual: string; mediaDuration?: number; sourceStartFrame?: number};
 type Metric = {label: string; value: number; unit?: string};
-type VideoProps = {width: number; height: number; fps: number; durationInFrames: number; audio?: string; scenes: Scene[]; words: Word[]; metrics?: Metric[]};
+type Music = {src: string; durationSeconds: number; volume: number};
+type VideoProps = {width: number; height: number; fps: number; durationInFrames: number; audio?: string; music?: Music; scenes: Scene[]; words: Word[]; metrics?: Metric[]};
 
 const localFile = (value: string) => {
   if (!value || /(^\/|\\|\.\.|:|[?#])/.test(value)) throw new Error('Usa rutas relativas dentro de public/.');
@@ -19,10 +20,15 @@ const validate = (props: VideoProps) => {
   if (![24, 25, 30, 60].includes(props.fps) || !Number.isInteger(props.durationInFrames) || props.durationInFrames < 1 || props.durationInFrames > props.fps * 1200) throw new Error('Duración o FPS inválidos.');
   if (!Array.isArray(props.scenes) || props.scenes.length < 1 || props.scenes.length > 800 || !Array.isArray(props.words) || props.words.length > 12000) throw new Error('Datos de escena/subtítulos inválidos.');
   if (props.audio) localFile(props.audio);
+  if (props.music) {
+    localFile(props.music.src);
+    if (!Number.isFinite(props.music.durationSeconds) || props.music.durationSeconds <= 0 || props.music.durationSeconds > 1200 || !Number.isFinite(props.music.volume) || props.music.volume < 0 || props.music.volume > .3) throw new Error('Pista de música inválida.');
+  }
   for (const scene of props.scenes) {
     if (!Number.isInteger(scene.startFrame) || !Number.isInteger(scene.durationInFrames) || scene.startFrame < 0 || scene.durationInFrames < 1 || scene.startFrame + scene.durationInFrames > props.durationInFrames || !['image', 'video', 'card'].includes(scene.kind)) throw new Error('Escena fuera de la línea de tiempo.');
     if (scene.kind !== 'card') localFile(scene.src || '');
     if (scene.kind === 'video' && (!Number.isFinite(scene.mediaDuration) || (scene.mediaDuration || 0) <= 0)) throw new Error('Falta la duración del recurso de video.');
+    if (scene.sourceStartFrame !== undefined && (!Number.isInteger(scene.sourceStartFrame) || scene.sourceStartFrame < 0 || scene.sourceStartFrame >= (scene.mediaDuration || 0) * props.fps && scene.kind === 'video')) throw new Error('Inicio del recurso inválido.');
   }
   for (const word of props.words) if (typeof word.text !== 'string' || word.text.length > 400 || !Number.isFinite(word.start) || !Number.isFinite(word.end) || word.start < 0 || word.end <= word.start || word.end > props.durationInFrames / props.fps + .1) throw new Error('Marcas de tiempo inválidas.');
   if (props.metrics && (!Array.isArray(props.metrics) || props.metrics.length > 8 || props.metrics.some(m => typeof m.label !== 'string' || m.label.length > 100 || !Number.isFinite(m.value) || m.value < 0))) throw new Error('Métricas inválidas.');
@@ -32,7 +38,7 @@ const validate = (props: VideoProps) => {
 const SceneView: React.FC<{scene: Scene}> = ({scene}) => {
   const frame = useCurrentFrame(), {fps} = useVideoConfig();
   const cover: React.CSSProperties = {width: '100%', height: '100%', objectFit: 'cover'};
-  if (scene.kind === 'video') return <Loop durationInFrames={Math.max(1, Math.floor((scene.mediaDuration || 1) * fps))}><OffthreadVideo src={localFile(scene.src || '')} muted style={cover}/></Loop>;
+  if (scene.kind === 'video') return <Loop durationInFrames={Math.max(1, Math.floor((scene.mediaDuration || 1) * fps) - (scene.sourceStartFrame || 0))}><OffthreadVideo src={localFile(scene.src || '')} trimBefore={scene.sourceStartFrame || 0} muted style={cover}/></Loop>;
   if (scene.kind === 'image') return <Img src={localFile(scene.src || '')} style={{...cover, transform: `scale(${interpolate(frame, [0, scene.durationInFrames], [1, 1.05], {extrapolateRight: 'clamp'})})`}}/>;
   return <AbsoluteFill style={{justifyContent: 'center', padding: '10%', background: 'linear-gradient(145deg,#101827,#264660)', color: 'white', fontSize: 52, fontWeight: 800}}>{scene.visual}</AbsoluteFill>;
 };
@@ -67,6 +73,7 @@ const Metrics: React.FC<{metrics: Metric[]}> = ({metrics}) => {
 const Video: React.FC<VideoProps> = props => <AbsoluteFill style={{background: '#101827', fontFamily: 'DejaVu Sans, Arial, sans-serif'}}>
   {props.scenes.map((scene, i) => <Sequence key={i} from={scene.startFrame} durationInFrames={scene.durationInFrames}><SceneView scene={scene}/></Sequence>)}
   {props.audio ? <Audio src={localFile(props.audio)}/> : null}
+  {props.music ? <Loop durationInFrames={Math.max(1, Math.floor(props.music.durationSeconds * props.fps))}><Audio src={localFile(props.music.src)} volume={props.music.volume}/></Loop> : null}
   <Metrics metrics={props.metrics || []}/><Captions words={props.words}/>
 </AbsoluteFill>;
 

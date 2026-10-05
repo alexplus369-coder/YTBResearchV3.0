@@ -8,11 +8,11 @@ import pytest
 from backend.config import Settings
 
 
-def wav_bytes(seconds=6):
+def wav_bytes(seconds=6, frequency=220):
     output = io.BytesIO()
     with wave.open(output, 'wb') as audio:
         audio.setnchannels(1); audio.setsampwidth(2); audio.setframerate(24000)
-        audio.writeframes(b''.join(struct.pack('<h', round(1600 * math.sin(2 * math.pi * 220 * i / 24000))) for i in range(round(seconds * 24000))))
+        audio.writeframes(b''.join(struct.pack('<h', round(1600 * math.sin(2 * math.pi * frequency * i / 24000))) for i in range(round(seconds * 24000))))
     return output.getvalue()
 
 
