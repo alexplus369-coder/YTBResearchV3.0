@@ -1,0 +1,13 @@
+# Referencias y componentes
+
+Esta ampliación contiene una implementación propia de producción por escenas. No incorpora código fuente, pesos de modelos ni recursos multimedia de los repositorios sugeridos. Los paquetes se instalan con sus gestores y mantienen sus licencias originales.
+
+- **MoneyPrinterTurbo**, Harry, MIT: [repositorio y licencia](https://github.com/harry0703/MoneyPrinterTurbo/blob/main/LICENSE). Referencia del flujo tema/guion → voz → recursos → video; no se copia su código.
+- **ShortGPT**: [repositorio](https://github.com/RayVentura/ShortGPT). Referencia de edición por escenas y subtítulos; no se ejecuta ni se incluye.
+- **FFmpeg**: [licencias por compilación](https://ffmpeg.org/legal.html). Dependencia ejecutable externa; libx264 puede hacer que una distribución esté sujeta a GPL. Conserva los avisos/licencias de tu build, incluida la del paquete del sistema usado por Docker.
+- **FastAPI**, **Starlette**, **Uvicorn**, **Pydantic**, **HTTPX**, **python-multipart**, **edge-tts** y **Pillow**: dependencias declaradas en `backend/requirements.txt`; sus distribuciones incluyen sus propios avisos. [edge-tts](https://github.com/rany2/edge-tts) utiliza un servicio online externo; la licencia del cliente no sustituye las condiciones del servicio.
+- **Whisper.cpp**: [repositorio](https://github.com/ggml-org/whisper.cpp), instalado por el creador. No se distribuyen binario ni modelos.
+- **React** y **Remotion**: dependencias opcionales del subproyecto `remotion/`. Remotion usa [condiciones propias](https://www.remotion.dev/docs/license/pricing); no se presupone gratuidad para todas las organizaciones.
+- **Pexels**, **Replicate**, **Google/YouTube** y **Telegram**: APIs externas. Las licencias de imágenes, clips, música, modelos y contenido generado se revisan por separado. Los manifiestos conservan la procedencia disponible.
+
+La lista distingue referencias arquitectónicas de integraciones activas. No se afirma afiliación ni respaldo por parte de estos proyectos o proveedores.

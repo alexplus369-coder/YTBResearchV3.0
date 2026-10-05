@@ -1,0 +1,10 @@
+.git
+node_modules
+render-data
+.env
+.env.*
+__pycache__
+**/__pycache__
+.pytest_cache
+test-results
+remotion

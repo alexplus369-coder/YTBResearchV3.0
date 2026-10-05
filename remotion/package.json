@@ -1,0 +1,22 @@
+{
+  "name": "ytb-research-remotion",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.tsx",
+    "render": "remotion render src/index.tsx StudioVideo output/video.mp4 --props=public/remotion-input.json",
+    "check": "tsc --noEmit",
+    "bundle": "remotion bundle src/index.tsx --out-dir=dist"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.533",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.533"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "~5.9.3"
+  }
+}

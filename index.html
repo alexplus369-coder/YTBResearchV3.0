@@ -380,6 +380,61 @@
                     <label class="text-sm font-bold border rounded-lg px-3 py-2 cursor-pointer" for="creator-import-json">Recuperar producción<input id="creator-import-json" type="file" accept=".json,application/json" class="hidden"></label>
                 </div>
                 <div id="creator-production" class="space-y-3"></div>
+
+                <section id="video-factory" class="border border-indigo-200 rounded-2xl p-4 sm:p-5 mt-5 bg-indigo-50/30">
+                    <h3 class="text-lg font-black">Fábrica de video · MP4</h3>
+                    <p class="text-xs text-slate-500 mt-1 mb-4">Convierte la producción guardada en voz, escenas, subtítulos y video. Puedes generar el video completo o elegir bloques, y después crear recortes desde su transcripción.</p>
+                    <details class="mb-4 border rounded-xl bg-white p-3" open><summary class="text-sm font-bold cursor-pointer">Conectar tu motor de producción</summary>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                            <label class="text-xs font-bold">Dirección del motor<input id="video-server" type="url" value="http://127.0.0.1:8787" class="block w-full mt-1 p-2 border rounded-lg font-normal"></label>
+                            <label class="text-xs font-bold">Código de acceso<input id="video-access" type="password" autocomplete="off" class="block w-full mt-1 p-2 border rounded-lg font-normal" placeholder="Código mostrado al iniciar el motor"></label>
+                            <div class="flex items-end gap-2"><button id="video-connect" type="button" class="bg-indigo-600 text-white text-xs font-bold rounded-lg px-4 py-2">Conectar</button><button id="video-disconnect" type="button" class="text-xs font-bold border rounded-lg px-3 py-2">Desconectar</button></div>
+                        </div><p class="text-xs text-slate-500 mt-3">Inicio local: instala los requisitos y ejecuta <code>python -m backend</code>. Las instrucciones están en <a class="text-indigo-700 underline" href="docs/video-production.md" target="_blank" rel="noopener noreferrer">la guía de producción</a>.</p>
+                    </details>
+                    <p id="video-connection" role="status" aria-live="polite" class="text-xs font-bold text-indigo-700 mb-3">Motor sin conectar. La investigación y el estudio siguen disponibles.</p>
+                    <p id="video-error" class="hidden text-sm text-red-700 bg-red-50 p-3 rounded-lg mb-3" role="alert"></p>
+                    <form id="video-render-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <label class="text-xs font-bold">Formato<select id="video-aspect" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="landscape">Horizontal · 16:9</option><option value="portrait">Vertical · 9:16</option><option value="square">Cuadrado · 1:1</option></select></label>
+                            <label class="text-xs font-bold">Resolución<select id="video-resolution" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="720">720p</option><option value="1080">1080p</option></select></label>
+                            <label class="text-xs font-bold">Recursos visuales<select id="video-materials" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="cards">Tarjetas gráficas originales</option><option value="own">Mis imágenes y clips</option><option value="pexels">Stock de Pexels</option><option value="replicate">Generación con Replicate (pago)</option></select></label>
+                            <label class="text-xs font-bold">Narración<select id="video-tts" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="edge">Voz de Edge TTS</option><option value="uploaded">Audio propio</option></select></label>
+                            <label class="text-xs font-bold">Voz<select id="video-voice" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="es-MX-DaliaNeural">Español México · Dalia</option><option value="es-MX-JorgeNeural">Español México · Jorge</option><option value="es-ES-ElviraNeural">Español España · Elvira</option><option value="es-ES-AlvaroNeural">Español España · Álvaro</option><option value="en-US-AriaNeural">English · Aria</option></select></label>
+                            <label class="text-xs font-bold">Subtítulos<select id="video-subtitles" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="tts">Marcas TTS / estimación para audio propio</option><option value="whisper">Alinear con Whisper.cpp local</option><option value="estimated">Estimar a partir del guion</option></select></label>
+                            <label class="text-xs font-bold">Cambio visual cada (s)<input id="video-clip-seconds" type="number" min="3" max="8" value="5" class="block w-full mt-1 p-2 border rounded-lg font-normal"></label>
+                            <label class="text-xs font-bold">Máximo de recursos de proveedor<input id="video-max-generated" type="number" min="1" max="8" value="4" class="block w-full mt-1 p-2 border rounded-lg font-normal"></label>
+                            <label class="text-xs font-bold">Volumen de música (0–0.30)<input id="video-music-volume" type="number" min="0" max=".3" step=".01" value=".08" class="block w-full mt-1 p-2 border rounded-lg font-normal"></label>
+                        </div>
+                        <label id="video-paid-label" class="hidden text-xs text-slate-600 flex gap-2 items-start"><input id="video-paid" type="checkbox">Activar generación de pago para este trabajo, hasta el máximo de recursos elegido. El coste depende del modelo configurado en mi servidor.</label>
+                        <details class="bg-white border rounded-xl p-3"><summary class="text-sm font-bold cursor-pointer">Mis recursos y asignación de escenas</summary>
+                            <label class="block text-xs font-bold mt-3">Subir imágenes, videos, narración o música<input id="video-upload" type="file" multiple accept=".mp4,.mov,.webm,.wav,.mp3,.m4a,.png,.jpg,.jpeg,.webp" class="block w-full mt-2 text-xs"></label>
+                            <div id="video-assets" class="space-y-2 mt-3"></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3"><label class="text-xs font-bold">Audio que corresponde al guion/bloques seleccionados<select id="video-audio" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="">Seleccionar narración</option></select></label><label class="text-xs font-bold">Música de fondo<select id="video-music" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="">Sin música</option></select></label></div>
+                            <div id="video-scenes" class="space-y-2 mt-4"></div>
+                        </details>
+                        <div><p class="text-xs font-bold mb-2">Bloques de la producción guardada</p><div id="video-blocks" class="flex flex-wrap gap-3 text-xs"></div></div>
+                        <div class="flex flex-wrap gap-3 items-center"><button id="video-render" type="submit" disabled class="bg-indigo-600 text-white font-bold text-sm rounded-lg px-4 py-3 disabled:opacity-40">Generar MP4</button><label class="text-xs flex items-center gap-2"><input id="video-notify" type="checkbox" disabled>Notificar por Telegram configurado en el servidor</label></div>
+                        <p id="video-project-state" class="text-xs text-slate-500"></p>
+                    </form>
+                    <div class="flex flex-wrap justify-between items-center gap-2 mt-5"><h4 class="font-bold">Cola y videos producidos</h4><button id="video-refresh" type="button" class="text-xs font-bold border rounded-lg px-3 py-2">Actualizar</button></div>
+                    <div id="video-jobs" class="space-y-3 mt-3"></div>
+                    <div id="video-preview-wrap" class="hidden mt-4"><p id="video-preview-title" class="text-sm font-bold mb-2"></p><video id="video-preview" controls preload="metadata" class="w-full max-h-[540px] rounded-xl bg-slate-900"></video></div>
+                    <details class="border rounded-xl bg-white p-3 mt-4"><summary class="text-sm font-bold cursor-pointer">Recortes por transcripción</summary>
+                        <p id="video-clip-source" class="text-xs text-slate-500 my-3">Elige “Transcripción / recortar” en un render terminado. Las marcas estimadas requieren comprobar el audio.</p>
+                        <div id="video-transcript" class="max-h-48 overflow-y-auto flex flex-wrap gap-2 mb-3"></div>
+                        <form id="video-cut-form" class="flex flex-wrap gap-3 items-end">
+                            <label class="text-xs">Desde (s)<input id="video-cut-start" type="number" min="0" step=".1" value="0" class="block mt-1 p-2 border rounded-lg w-28"></label><label class="text-xs">Hasta (s)<input id="video-cut-end" type="number" min="1" step=".1" value="30" class="block mt-1 p-2 border rounded-lg w-28"></label>
+                            <label class="text-xs">Formato<select id="video-cut-aspect" class="block mt-1 p-2 border rounded-lg"><option value="portrait">9:16</option><option value="landscape">16:9</option><option value="square">1:1</option></select></label>
+                            <button id="video-cut" type="submit" disabled class="bg-slate-900 text-white text-xs font-bold rounded-lg px-3 py-2 disabled:opacity-40">Crear recorte de 1–180 s</button>
+                        </form>
+                    </details>
+                    <details class="border rounded-xl bg-white p-3 mt-4"><summary class="text-sm font-bold cursor-pointer">Subida privada a YouTube</summary>
+                        <p class="text-xs text-slate-500 mt-3">Usa el OAuth Client ID del Radar con YouTube Data API habilitada. Esta conexión solicita permiso de subida y conserva el token solo durante la sesión. La publicación pública se decide después en Studio.</p>
+                        <div class="flex flex-wrap gap-3 mt-3"><button id="video-youtube-connect" type="button" class="text-xs font-bold border rounded-lg px-3 py-2">Autorizar subida</button><label class="text-xs flex items-center gap-2"><input id="video-kids" type="checkbox">Video dirigido a niños</label><label class="text-xs flex items-center gap-2"><input id="video-synthetic" type="checkbox">Contenido sintético realista que requiere divulgación</label></div>
+                        <p id="video-youtube-state" class="text-xs text-slate-500 mt-3" role="status">Sin autorización de subida.</p>
+                    </details>
+                </section>
+
                 <details class="border rounded-xl p-4 mt-5"><summary class="font-bold cursor-pointer">Escenario de ingresos multicapa</summary>
                     <p class="text-xs text-slate-500 my-3">Supuestos manuales en USD. Afiliación, patrocinio y producto parten de cero; no se infieren conversiones ni ingresos de tus competidores.</p>
                     <div id="creator-scenario" class="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -2890,5 +2945,6 @@ COMENTARIOS (JSON): ${JSON.stringify(fuente)}`;
     <script src="research-workspace.js"></script>
     <script src="creator-core.js"></script>
     <script src="creator-studio.js"></script>
+    <script src="video-production.js"></script>
 </body>
 </html>
