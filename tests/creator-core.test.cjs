@@ -72,6 +72,21 @@ test('short outlines and missing image/video prompts are rejected instead of lab
     assert.throws(() => core.validateBlocks({ blocks }, slots, []), /videoPrompt/);
 });
 
+test('word budgets and validation share inclusive limits for the hook and transition', () => {
+    const slots = core.timeline(9);
+    for (const [slot, min, max] of [[slots[0], 49, 99], [slots[3], 24, 49]]) {
+        assert.deepEqual(core.wordBudget(slot), { targetWords: slot.targetWords, minWords: min, maxWords: max });
+        for (const count of [min - 1, min, max, max + 1]) {
+            const value = block(slot), tokens = value.narration.split(/\s+/u).slice(0, count);
+            while (tokens.length < count) tokens.push('ejemplo');
+            value.narration = tokens.join(' ');
+            if (count >= min && count <= max) assert.equal(core.validateBlocks({ blocks: [value] }, [slot], [])[0].wordCount, count);
+            else assert.throws(() => core.validateBlocks({ blocks: [value] }, [slot], []), e => e.code === 'BLOCK_WORD_COUNT');
+        }
+    }
+    assert.throws(() => core.validateBlocks({ blocks: [null] }, [slots[0]], []), /Guion incompleto/);
+});
+
 test('the hook must open the actual narration and the invisible outro rejects direct goodbyes', () => {
     const slots = core.timeline(9), blocks = slots.map(block);
     blocks[0].narration = 'Hola amigos. ' + blocks[0].narration;

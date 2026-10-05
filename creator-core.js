@@ -150,14 +150,21 @@
                 prompt: text(v.thumbnail.prompt, 3000) } };
         });
     }
+    function wordBudget(slot) {
+        return { targetWords: slot.targetWords, minWords: Math.floor(slot.targetWords * .68), maxWords: Math.ceil(slot.targetWords * 1.35) };
+    }
     function validateBlocks(data, expected, allowedSourceIds) {
         if (!Array.isArray(data?.blocks) || data.blocks.length !== expected.length) throw new Error('La IA no devolvió todos los bloques de este tramo.');
         return expected.map(slot => {
-            const b = data.blocks.find(b => b.index === slot.index);
+            const b = data.blocks.find(b => b?.index === slot.index);
             if (!b || !text(b.narration, 40000) || !text(b.editing) || !Array.isArray(b.scenes) || !b.scenes.length || b.scenes.length > 8) throw new Error('Guion incompleto en el bloque ' + (slot.index + 1) + '.');
             const count = words(b.narration);
-            const min = Math.floor(slot.targetWords * .68), max = Math.ceil(slot.targetWords * 1.35);
-            if (count < min || count > max) throw new Error('Bloque ' + (slot.index + 1) + ': ' + count + ' palabras; ajusta a ' + min + '–' + max + ' para su duración.');
+            const { minWords: min, maxWords: max } = wordBudget(slot);
+            if (count < min || count > max) {
+                const error = new Error('Bloque ' + (slot.index + 1) + ': ' + count + ' palabras; ajusta a ' + min + '–' + max + ' para su duración.');
+                error.code = 'BLOCK_WORD_COUNT';
+                throw error;
+            }
             if (slot.index === 0 && (!text(b.hook) || !text(b.rehook) || words(b.hook) > 17)) throw new Error('Falta un gancho de hasta cinco segundos o el re-hook.');
             if (slot.index === 0 && (!normalize(b.narration).startsWith(normalize(b.hook)) || !normalize(b.narration).includes(normalize(b.rehook)) || /^(hola\b|bienvenid|buenos dias|buenas tardes)/.test(normalize(b.hook)))) throw new Error('La locución debe empezar con el gancho y contener el re-hook, sin saludo.');
             if (slot.index === 5 && /\b(eso (es|fue) todo|gracias por ver|nos vemos en|suscribete)\b/.test(normalize(b.narration))) throw new Error('El cierre debe enlazar al siguiente tema sin despedida ni petición de suscripción.');
@@ -250,5 +257,5 @@
         return lines.join('\n');
     }
     return { profile, dayKey, fingerprint, rpmGuidance, source, highlights, keywordSignals, dailyIdeas, validateIdeas, timeline, validatePackaging,
-        validateBlocks, validateProject, editingCues, revenueScenario, audit, productionMarkdown, time, words, shortTitle, hash };
+        wordBudget, validateBlocks, validateProject, editingCues, revenueScenario, audit, productionMarkdown, time, words, shortTitle, hash };
 });

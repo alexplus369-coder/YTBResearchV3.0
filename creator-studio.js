@@ -9,7 +9,7 @@
         affiliate: 'affiliate', affiliateUrl: 'affiliate-url', lead: 'lead', leadUrl: 'lead-url', ownFacts: 'own-facts' };
     let revision = 0, busy = '', baseline = [], suggestions = [], keywords = [], references = [], ideas = [];
     let variants = [], selected = 0, packageContext = null, project = null, lastRun = researchState.runId, auditRevision = 0;
-    let dailyCache = null, chosenIds = [];
+    let dailyCache = null, chosenIds = [], scriptDraft = null;
     window.getCreatorProduction = () => project ? core.validateProject(project) : null;
     const html = value => escHtml(String(value ?? ''));
     const button = (action, index, label) => '<button type="button" data-creator-action="' + action + '" data-index="' + index + '" class="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg">' + label + '</button>';
@@ -38,6 +38,7 @@
         for (const el of document.querySelectorAll('#creator-profile input, #creator-profile textarea, #creator-profile select, #creator-commercial input, #creator-commercial textarea, #creator-topic, #creator-angle, #creator-use-transcripts')) el.disabled = !!busy;
         document.querySelectorAll('[data-creator-action], #creator-packaging input').forEach(el => { el.disabled = disabled; });
         $('creator-script-btn').disabled = disabled || !packageContext || !variants.length;
+        $('creator-script-btn').textContent = scriptDraft ? '2. Continuar guion y producción' : '2. Generar guion y producción';
         $('creator-export-md').disabled = !project;
         $('creator-export-json').disabled = !project;
         $('creator-audit-fetch').disabled = busy === 'audit';
@@ -48,7 +49,12 @@
         const version = revision;
         const current = () => version === revision;
         try { await work(current); }
-        catch (error) { if (current()) { showError(error); status('No se completó la operación. Puedes corregir el problema y reintentar.'); } }
+        catch (error) {
+            if (current()) {
+                showError(error);
+                status(name === 'script' && scriptDraft ? 'No se completó la operación. Se conservan ' + scriptDraft.valid.size + ' de 6 bloques validados en esta página. Pulsa «Continuar guion y producción» para corregir lo pendiente.' : 'No se completó la operación. Puedes corregir el problema y reintentar.');
+            }
+        }
         finally { busy = ''; lock(); }
     }
     function selectTab(name, focus = false) {
@@ -62,7 +68,7 @@
         if (name === 'daily') refreshDaily();
     }
     function invalidatePackaging() {
-        revision++; packageContext = null; variants = []; selected = 0;
+        revision++; packageContext = null; variants = []; selected = 0; scriptDraft = null;
         $('creator-packaging').innerHTML = ''; lock();
     }
     function updateContext() {
@@ -171,7 +177,9 @@
         invalidatePackaging(); const p = profile(); persist(KEY.profile, p); refreshDaily(); updateContext(); renderScenario();
     });
     for (const id of ['creator-topic', 'creator-angle', 'creator-use-transcripts']) $(id).addEventListener('change', invalidatePackaging);
-    $('creator-packaging').addEventListener('change', event => { if (event.target.name === 'creator-variant' && !busy) selected = Number(event.target.value); });
+    $('creator-packaging').addEventListener('change', event => {
+        if (event.target.name === 'creator-variant' && !busy) { selected = Number(event.target.value); scriptDraft = null; lock(); }
+    });
     document.addEventListener('research-busy', event => {
         if (event.detail.busy) { invalidatePackaging(); baseline = []; suggestions = []; chosenIds = []; auditRevision++; clearPrivateAudit(); $('creator-audit-source').textContent = ''; status('Esperando la nueva muestra del Radar…'); }
         else { updateContext(); status(researchState.signals.length ? 'Herramientas actualizadas con las referencias visibles del Radar.' : 'Define tu nicho y escanea el Radar para comenzar.'); }
@@ -267,26 +275,57 @@
                 if (!current()) return;
                 nextVariants = core.validatePackaging(result);
             }
-            variants = nextVariants; selected = 0; packageContext = ctx; renderPackaging();
+            variants = nextVariants; selected = 0; packageContext = ctx; scriptDraft = null; renderPackaging();
             status('Elige el título y miniatura que mejor expresen la promesa. Después genera el guion completo.');
         });
     });
+    function receiveScriptBlocks(draft, result, requested) {
+        const received = Array.isArray(result?.blocks) ? result.blocks : [];
+        for (const { slot, textOnly = false } of requested) {
+            if (draft.valid.has(slot.index)) continue;
+            const matches = received.filter(b => b?.index === slot.index);
+            if (matches.length !== 1) continue;
+            if (textOnly) {
+                const previous = draft.raw.get(slot.index), next = { ...previous };
+                for (const key of ['narration', 'hook', 'rehook', 'openLoop']) {
+                    if (typeof matches[0][key] === 'string') next[key] = matches[0][key];
+                }
+                draft.raw.set(slot.index, next);
+            } else draft.raw.set(slot.index, matches[0]);
+        }
+    }
+    function inspectScriptBlocks(draft, expected, sourceIds) {
+        const failures = [];
+        for (const slot of expected) {
+            if (draft.valid.has(slot.index)) continue;
+            const previous = draft.raw.get(slot.index);
+            try {
+                draft.valid.set(slot.index, core.validateBlocks({ blocks: [previous] }, [slot], sourceIds)[0]);
+            } catch (error) { failures.push({ slot, previous, error, textOnly: error.code === 'BLOCK_WORD_COUNT' }); }
+        }
+        return failures;
+    }
+    function validPublishing(value) {
+        return value && typeof value.description === 'string' && value.description.trim() && typeof value.pinnedComment === 'string' && value.pinnedComment.trim() &&
+            Array.isArray(value.checks) && value.checks.length >= 5 && value.checks.length <= 28 && value.checks.every(check => typeof check === 'string' && check.trim());
+    }
     $('creator-script-btn').addEventListener('click', () => task('script', async current => {
         requireAI();
         if (!packageContext || !variants.length) throw new Error('Crea y elige el empaquetado antes de escribir el guion.');
         const ctx = packageContext, chosen = selected, chosenVariants = variants;
+        if (!scriptDraft || scriptDraft.context !== ctx || scriptDraft.chosen !== chosen) {
+            scriptDraft = { context: ctx, chosen, raw: new Map(), valid: new Map(), generated: new Set(), publishing: null };
+        }
+        const draft = scriptDraft, sourceIds = ctx.sources.map(s => s.id);
         const slots = core.timeline(ctx.profile.duration), blocks = [];
-        let publishing = null;
         for (let part = 0; part < 2; part++) {
             if (!current()) return;
             const expected = slots.slice(part * 3, part * 3 + 3);
-            const wordLimits = expected.map(slot => ({ index: slot.index, label: slot.label, targetWords: slot.targetWords,
-                minWords: Math.floor(slot.targetWords * .68), maxWords: Math.ceil(slot.targetWords * 1.35) }));
-            status('Escribiendo guion, storyboard y prompts: bloques ' + (part * 3 + 1) + '–' + (part * 3 + 3) + ' de 6…');
+            const wordLimits = expected.map(slot => ({ index: slot.index, label: slot.label, ...core.wordBudget(slot) }));
             const prompt = groundedPrompt(ctx) + '\nEmpaquetado elegido: ' + JSON.stringify(chosenVariants[chosen]) +
                 '\nBloques a escribir: ' + JSON.stringify(expected) + '\nContinuidad previa: ' + JSON.stringify(blocks.map(b => ({ label: b.label, narration: b.narration, openLoop: b.openLoop }))) +
                 '\nDevuelve JSON {blocks:[{index,narration,hook,rehook,openLoop,editing,sourceIds:[],scenes:[{visual,imagePrompt,videoPrompt,negativePrompt}]}]' + (part === 1 ? ',publishing:{description,pinnedComment,checks:[]}' : '') + '}.' +
-                '\nEscribe EXACTAMENTE los tres índices solicitados y todo el texto de locución, listo para narrar en español. Cuenta las palabras de narration y respeta estos límites inclusivos: ' + JSON.stringify(wordLimits) + '. No devuelvas un esquema ni texto de relleno ni corchetes con tareas sin desarrollar. No asignes tiempos a escenas: se distribuirán uniformemente dentro del bloque. Usa 2–5 escenas por bloque largo y una en la transición.' +
+                '\nEscribe EXACTAMENTE los tres índices solicitados y todo el texto de locución, listo para narrar en español. Cuenta las palabras de narration y apunta a targetWords, en el centro de estos límites inclusivos: ' + JSON.stringify(wordLimits) + '. No devuelvas un esquema ni texto de relleno ni corchetes con tareas sin desarrollar. No asignes tiempos a escenas: se distribuirán uniformemente dentro del bloque. Usa 2–5 escenas por bloque largo y una en la transición.' +
                 '\nBloque 0: hook de 0–5 s (hasta 17 palabras) y rehook de 5–30 s; narration debe contener exactamente ese gancho y re-hook, sin saludos, logos ni introducción de canal. Valida la promesa, establece apuestas honestas y abre un bucle de curiosidad.' +
                 '\nBloques 1 y 2: una victoria rápida demostrable y desarrollo detallado del método. Abre nuevos bucles antes de resolver los anteriores. Si hay patrocinador definido, integra 30–60 s y di que es patrocinio; solo usa las prestaciones proporcionadas. Si no hay datos suficientes de sponsor, deja pendiente su verificación en checks y explica la decisión técnica sin hacer publicidad. Si hay afiliado, muestra una utilidad comprobable y divulga la afiliación. Si no hay sponsor ni afiliado, dedica el tiempo a valor práctico.' +
                 '\nBloque 3: completa el punto anterior y deja una pausa natural sin interrumpir una frase. Propón una pausa mid-roll en esa transición si el canal y video son elegibles (8 min o más); no garantices anuncio. Bloque 4: cumple la revelación y demuestra el paso avanzado con un ejemplo explícitamente hipotético cuando no haya resultados verificados.' +
@@ -294,29 +333,46 @@
                 '\nCada escena incluye visual específico, imagePrompt y videoPrompt EN INGLÉS, y stockQuery (2–5 palabras en inglés para buscar un clip pertinente). Mantén el estilo visual, misma paleta y continuidad de personajes/objetos. Imagen 16:9; video como clip 5 segundos con encuadre, movimiento de cámara, luz y acción. Evita gráficos con datos fabricados, logotipos o texto generado ilegible. Si se necesita texto exacto, indica añadirlo en posproducción.' +
                 '\nediting describe b-roll, cambios de plano o gráfico cada 4–6 s (gancho 1.5–3 s cuando ayude), zoom 10–15%, SFX sutil al entrar texto, música moderada, volumen menor durante sponsor y aumento de energía en los últimos dos minutos. No cortes por cortar: preserve comprensión y legibilidad.' +
                 (part === 1 ? '\npublishing: descripción y comentario fijado listos para publicar, sin URLs inventadas. checks: mínimo cinco verificaciones concretas de afirmaciones, pruebas, originalidad/derechos de los recursos, pertinencia de ofertas y cumplimiento de la promesa. Señala especialmente hechos sin respaldo de transcripción o notas verificables.' : '');
-            let result = await smartFetchAI(prompt, true);
-            if (!current()) return;
-            let validated;
-            const validatePart = value => {
-                const valueBlocks = core.validateBlocks(value, expected, ctx.sources.map(s => s.id));
-                if (part === 1 && (!value?.publishing || typeof value.publishing.description !== 'string' || typeof value.publishing.pinnedComment !== 'string' || !Array.isArray(value.publishing.checks) || value.publishing.checks.length < 5)) throw new Error('Falta el paquete de publicación y al menos cinco verificaciones.');
-                return valueBlocks;
-            };
-            try {
-                validated = validatePart(result);
-            } catch (validationError) {
-                status('Ajustando automáticamente la extensión de los bloques ' + (part * 3 + 1) + '–' + (part * 3 + 3) + '…');
-                result = await smartFetchAI(prompt + '\nCORRECCIÓN ÚNICA: la respuesta anterior no pasó la validación: ' + validationError.message +
-                    '\nLímites obligatorios de narration: ' + JSON.stringify(wordLimits) +
-                    '\nRespuesta anterior: ' + JSON.stringify(result) +
-                    '\nDevuelve únicamente el JSON completo corregido para los mismos tres índices. Conserva los hechos, fuentes y continuidad válidos; corrige la extensión y cualquier campo señalado. No expliques la corrección.', true);
+            if (!draft.generated.has(part)) {
+                status('Escribiendo guion, storyboard y prompts: bloques ' + (part * 3 + 1) + '–' + (part * 3 + 3) + ' de 6…');
+                const result = await smartFetchAI(prompt, true);
                 if (!current()) return;
-                validated = validatePart(result);
+                receiveScriptBlocks(draft, result, expected.map(slot => ({ slot })));
+                draft.generated.add(part);
+                if (part === 1) draft.publishing = result?.publishing;
             }
-            blocks.push(...validated);
-            if (part === 1) publishing = result.publishing;
+            let failures = inspectScriptBlocks(draft, expected, sourceIds);
+            for (let attempt = 1; failures.length && attempt <= 2; attempt++) {
+                status('Corrigiendo solo los bloques ' + failures.map(f => f.slot.index + 1).join(', ') + ' · ajuste ' + attempt + ' de 2…');
+                const corrections = failures.map(({ slot, previous, error, textOnly }) => ({ index: slot.index, label: slot.label, ...core.wordBudget(slot),
+                    wordsReceived: core.words(previous?.narration), wordsToTarget: slot.targetWords - core.words(previous?.narration),
+                    mode: textOnly ? 'narration' : 'block', error: error.message, previous: previous || null }));
+                const continuity = [...draft.valid.values()].sort((a, b) => a.index - b.index).map(b => ({ index: b.index, narration: b.narration, openLoop: b.openLoop }));
+                const result = await smartFetchAI(groundedPrompt(ctx) + '\nEmpaquetado elegido: ' + JSON.stringify(chosenVariants[chosen]) +
+                    '\nREPARACIÓN SELECTIVA DE GUION. Intento ' + attempt + ' de 2. Devuelve JSON {blocks:[{index,narration,hook,rehook,openLoop,editing,sourceIds:[],scenes:[{visual,imagePrompt,videoPrompt,stockQuery,negativePrompt}]}]}.' +
+                    '\nDevuelve solamente estos índices pendientes: ' + JSON.stringify(corrections) +
+                    '\nContinuidad ya validada, NO la reescribas: ' + JSON.stringify(continuity) +
+                    '\nEl conteo recibido se calculó separando narration por espacios. Usa targetWords como objetivo; no apuntes al mínimo o máximo. wordsToTarget positivo indica cuántas palabras útiles añadir; negativo, cuántas eliminar. Cuenta solo la locución, sin títulos, edición ni prompts.' +
+                    '\nModo narration: devuelve solo index, narration, hook, rehook y openLoop; los recursos y la edición se conservan. Amplía con una explicación concreta o un ejemplo pertinente; si sobra texto, condensa sin cortar frases. No uses relleno, repeticiones ni afirmaciones nuevas sin respaldo.' +
+                    '\nModo block: devuelve el bloque completo con edición y escenas; cada escena necesita visual, imagePrompt y videoPrompt en inglés. Conserva las partes válidas de previous.' +
+                    '\nÍndice 0: narration empieza literalmente con hook (máximo 17 palabras), incluye rehook y establece promesa, apuestas honestas y curiosidad; todo ello cuenta en targetWords. Índices 0, 1 y 2 necesitan openLoop. Índice 3: transición natural de 15 s, sin repetir el desarrollo largo. Índice 5: cierre hacia el siguiente tema, sin despedida ni petición de suscripción. No inventes patrocinios, recursos, cifras ni URLs. No incluyas publishing ni comentarios sobre la corrección.', true);
+                if (!current()) return;
+                receiveScriptBlocks(draft, result, failures);
+                failures = inspectScriptBlocks(draft, expected, sourceIds);
+            }
+            if (failures.length) throw new Error(failures.map(f => f.error.message).join('\n'));
+            blocks.push(...expected.map(slot => draft.valid.get(slot.index)));
         }
-        if (!publishing || typeof publishing.description !== 'string' || typeof publishing.pinnedComment !== 'string' || !Array.isArray(publishing.checks) || publishing.checks.length < 5) throw new Error('Falta el paquete de publicación y las verificaciones del guion. Reintenta la generación.');
+        if (!validPublishing(draft.publishing)) {
+            status('Completando la descripción, el comentario fijado y las verificaciones; se conservan los seis bloques…');
+            const result = await smartFetchAI(groundedPrompt(ctx) + '\nEmpaquetado elegido: ' + JSON.stringify(chosenVariants[chosen]) +
+                '\nGuion validado: ' + JSON.stringify(blocks.map(b => ({ index: b.index, narration: b.narration }))) +
+                '\nCORRECCIÓN DE PUBLICACIÓN: devuelve solo JSON {publishing:{description,pinnedComment,checks:[]}}. No reescribas los bloques. Descripción y comentario fijado no vacíos, en español, sin URLs inventadas. Entre 5 y 28 verificaciones concretas no vacías de afirmaciones, demostraciones, originalidad/derechos de recursos, ofertas y promesa.', true);
+            if (!current()) return;
+            draft.publishing = result?.publishing;
+            if (!validPublishing(draft.publishing)) throw new Error('Falta el paquete de publicación y al menos cinco verificaciones. Se conservan los seis bloques para continuar.');
+        }
+        const publishing = draft.publishing;
         const p = ctx.profile, links = [];
         if (p.affiliate && p.affiliateUrl) links.push(p.affiliate + ': ' + p.affiliateUrl + ' (enlace de afiliado; puedo recibir una comisión).');
         if (p.lead && p.leadUrl) links.push(p.lead + ': ' + p.leadUrl);
@@ -334,7 +390,7 @@
             pinnedComment: links.join('\n') + (links.length ? '\n\n' : '') + cleanPublishing(publishing.pinnedComment), monetization,
             checks: ['Verificar cada afirmación y cifra; los títulos y descripciones no constituyen evidencia.', 'Ensayar la locución y ajustar pausas, demostraciones y duración antes de editar.', ...publishing.checks] });
         if (!current()) return;
-        project = next; persist(KEY.project, project); renderProduction();
+        project = next; scriptDraft = null; persist(KEY.project, project); renderProduction();
         status('Producción completa guardada: guion, storyboard, prompts, edición, monetización y publicación. Revisa las verificaciones antes de grabar.');
     }));
     $('creator-export-md').addEventListener('click', () => { if (project) download(core.productionMarkdown(project), 'produccion-youtube.md', 'text/markdown;charset=utf-8'); });
