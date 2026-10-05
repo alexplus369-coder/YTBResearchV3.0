@@ -1,0 +1,18 @@
+services:
+  video:
+    build: .
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - ./render-data:/data
+    environment:
+      YT_RENDER_TOKEN: ${YT_RENDER_TOKEN:-}
+      YT_RENDER_ORIGINS: ${YT_RENDER_ORIGINS:-http://127.0.0.1:8787,http://localhost:8787}
+      YT_ENCODER: ${YT_ENCODER:-libx264}
+      PEXELS_API_KEY: ${PEXELS_API_KEY:-}
+      REPLICATE_API_TOKEN: ${REPLICATE_API_TOKEN:-}
+      REPLICATE_MODEL_VERSION: ${REPLICATE_MODEL_VERSION:-}
+      REPLICATE_INPUT_JSON: ${REPLICATE_INPUT_JSON:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    restart: unless-stopped

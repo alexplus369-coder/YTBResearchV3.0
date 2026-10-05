@@ -1,4 +1,4 @@
-name: Static app checks
+name: App and video production checks
 on:
   push:
   pull_request:
@@ -16,3 +16,23 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - run: python -m pip install -r backend/requirements-dev.txt
+      - run: python -m pytest backend/tests -q
+  remotion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: remotion/package-lock.json
+      - run: npm ci --prefix remotion
+      - run: npm run check --prefix remotion
+      - run: npm run bundle --prefix remotion

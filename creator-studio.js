@@ -10,6 +10,7 @@
     let revision = 0, busy = '', baseline = [], suggestions = [], keywords = [], references = [], ideas = [];
     let variants = [], selected = 0, packageContext = null, project = null, lastRun = researchState.runId, auditRevision = 0;
     let dailyCache = null, chosenIds = [];
+    window.getCreatorProduction = () => project ? core.validateProject(project) : null;
     const html = value => escHtml(String(value ?? ''));
     const button = (action, index, label) => '<button type="button" data-creator-action="' + action + '" data-index="' + index + '" class="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg">' + label + '</button>';
     function read(key) {
@@ -139,6 +140,7 @@
         const list = values => '<ul class="list-disc pl-5 text-sm space-y-2 mt-3">' + values.map(v => '<li>' + html(v) + '</li>').join('') + '</ul>';
         $('creator-production').innerHTML = intro + blocks + '<details class="border rounded-xl p-4"><summary class="font-bold cursor-pointer">Monetización, publicación y verificación</summary>' + list(project.monetization) + '<h4 class="font-bold mt-4">Descripción</h4><p class="text-sm whitespace-pre-wrap">' + html(project.description) + '</p><h4 class="font-bold mt-4">Comentario fijado</h4><p class="text-sm whitespace-pre-wrap">' + html(project.pinnedComment) + '</p><h4 class="font-bold mt-4">Pendientes antes de grabar</h4>' + list(project.checks) + '<h4 class="font-bold mt-4">Fuentes</h4>' + list(project.sources.map(s => s.url + ' · ' + s.title + ' · ' + (s.transcript ? 'transcripción' : 'metadatos'))) + '</details>';
         lock();
+        document.dispatchEvent(new CustomEvent('creator-production-updated'));
     }
     function download(content, name, type) {
         const url = URL.createObjectURL(new Blob([content], { type })); const a = document.createElement('a');
@@ -275,7 +277,7 @@
                 '\nBloques 1 y 2: una victoria rápida demostrable y desarrollo detallado del método. Abre nuevos bucles antes de resolver los anteriores. Si hay patrocinador definido, integra 30–60 s y di que es patrocinio; solo usa las prestaciones proporcionadas. Si no hay datos suficientes de sponsor, deja pendiente su verificación en checks y explica la decisión técnica sin hacer publicidad. Si hay afiliado, muestra una utilidad comprobable y divulga la afiliación. Si no hay sponsor ni afiliado, dedica el tiempo a valor práctico.' +
                 '\nBloque 3: completa el punto anterior y deja una pausa natural sin interrumpir una frase. Propón una pausa mid-roll en esa transición si el canal y video son elegibles (8 min o más); no garantices anuncio. Bloque 4: cumple la revelación y demuestra el paso avanzado con un ejemplo explícitamente hipotético cuando no haya resultados verificados.' +
                 '\nBloque 5: recurso propio solo si se proporcionó, sin afirmar que existe uno inventado. Cierre invisible hacia un siguiente tema pertinente, sin despedidas, sin decir que termina y sin pedir suscripción.' +
-                '\nCada escena incluye visual específico, imagePrompt y videoPrompt EN INGLÉS, coherentes con el estilo visual, misma paleta y continuidad de personajes/objetos. Imagen 16:9; video como clip 5 segundos con encuadre, movimiento de cámara, luz y acción. Evita gráficos con datos fabricados, logotipos o texto generado ilegible. Si se necesita texto exacto, indica añadirlo en posproducción.' +
+                '\nCada escena incluye visual específico, imagePrompt y videoPrompt EN INGLÉS, y stockQuery (2–5 palabras en inglés para buscar un clip pertinente). Mantén el estilo visual, misma paleta y continuidad de personajes/objetos. Imagen 16:9; video como clip 5 segundos con encuadre, movimiento de cámara, luz y acción. Evita gráficos con datos fabricados, logotipos o texto generado ilegible. Si se necesita texto exacto, indica añadirlo en posproducción.' +
                 '\nediting describe b-roll, cambios de plano o gráfico cada 4–6 s (gancho 1.5–3 s cuando ayude), zoom 10–15%, SFX sutil al entrar texto, música moderada, volumen menor durante sponsor y aumento de energía en los últimos dos minutos. No cortes por cortar: preserve comprensión y legibilidad.' +
                 (part === 1 ? '\npublishing: descripción y comentario fijado listos para publicar, sin URLs inventadas. checks: mínimo cinco verificaciones concretas de afirmaciones, pruebas, originalidad/derechos de los recursos, pertinencia de ofertas y cumplimiento de la promesa. Señala especialmente hechos sin respaldo de transcripción o notas verificables.' : '');
             const result = await smartFetchAI(prompt, true);

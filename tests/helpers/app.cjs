@@ -97,7 +97,8 @@ function app(t, initialStorage = {}) {
     };
     for (const file of ['research-core.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
     vm.runInContext(inline, context, { filename: 'index.html inline' });
-    for (const file of ['research-workspace.js', 'creator-core.js', 'creator-studio.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
+    w.HTMLMediaElement.prototype.pause = function () {};
+    for (const file of ['research-workspace.js', 'creator-core.js', 'creator-studio.js', 'video-production.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
     const $ = id => w.document.getElementById(id);
     const change = (id, value) => { $(id).value = value; $(id).dispatchEvent(new w.Event('change', { bubbles: true })); };
     const submit = () => $('research-form').dispatchEvent(new w.Event('submit', { cancelable: true }));

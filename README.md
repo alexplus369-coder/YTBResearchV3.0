@@ -1,10 +1,10 @@
 # YT SEO Pro Suite — Investigación y producción
 
-Aplicación estática en español para investigar temas de YouTube, descubrir oportunidades y preparar videos originales: empaquetado, guion completo, storyboard, prompts visuales, edición y publicación. Funciona en el navegador, sin servidor de aplicación ni base de datos. YouTube proporciona datos públicos; Gemini y DeepSeek redactan los contenidos con IA cuando los configuras.
+Aplicación estática en español para investigar temas de YouTube, descubrir oportunidades y preparar videos originales: empaquetado, guion completo, storyboard, prompts visuales, edición y publicación. La investigación y los guiones funcionan en el navegador. El motor opcional Python/FFmpeg convierte la producción en MP4 y guarda una cola en SQLite. YouTube proporciona datos públicos; Gemini y DeepSeek redactan los contenidos con IA cuando los configuras.
 
 ## Inicio rápido
 
-1. Conserva juntos `index.html`, `research-core.js`, `research-workspace.js`, `creator-core.js` y `creator-studio.js`. Puedes abrir `index.html` directamente; para almacenamiento consistente y OAuth, usa un servidor estático:
+1. Conserva juntos `index.html`, `research-core.js`, `research-workspace.js`, `creator-core.js`, `creator-studio.js` y `video-production.js`. Puedes abrir `index.html` directamente; para almacenamiento consistente y OAuth, usa un servidor estático:
 
    ```bash
    python -m http.server 8000
@@ -14,7 +14,7 @@ Aplicación estática en español para investigar temas de YouTube, descubrir op
 3. Usa el **Radar de Temas & Canales**. No necesitas una clave de IA para buscar, puntuar, filtrar, guardar referencias o exportar planes.
 4. Define el nicho y audiencia en **Estudio de crecimiento y producción**. Tendrás referencias, palabras clave e ideas editoriales sin IA. Configura Gemini o DeepSeek para personalizar las ideas y generar títulos, miniaturas y guiones. Vision AI requiere Gemini.
 
-Los paquetes de Node son exclusivamente para desarrollo y pruebas. La aplicación publicada no necesita ejecutar `npm install` ni un proceso de Node. El diseño conserva Tailwind y Font Awesome desde sus CDN; necesitas conexión para cargar estos recursos y consultar APIs.
+El frontend estático no necesita paquetes de Node. La fábrica de videos requiere el backend Python y FFmpeg; la edición alternativa con Remotion requiere Node. El diseño conserva Tailwind y Font Awesome desde sus CDN; necesitas conexión para cargar estos recursos y consultar APIs.
 
 ## Las cuatro herramientas de creación
 
@@ -48,9 +48,26 @@ Completa nicho, audiencia y resultado que quieres enseñar. El día se calcula c
 
 El esquema temporal mantiene gancho/re-hook en los primeros 30 s, victoria rápida, núcleo con integración comercial opcional, transición natural de 15 s, revelación y recurso/cierre invisible. En 10 minutos las transiciones principales son 0:30, 3:00, 5:30, 5:45 y 8:00; en 8 o 9 minutos se ajustan al total. El gancho debe iniciar la locución, durar aproximadamente cinco segundos y aparecer con el re-hook en el guion. El cierre rechaza despedidas directas y peticiones de suscripción.
 
-La hoja de edición propone b-roll, gráficos, cambios de plano, zoom 10–15%, SFX sutil y música dinámica. Las escenas se distribuyen dentro de cada bloque: los prompts describen clips cortos que hay que ensamblar o variar para cubrir su duración. **Esta app prepara texto y prompts; no genera archivos de imagen/video, no edita material ni publica en YouTube.**
+La hoja de edición propone b-roll, gráficos, cambios de plano, zoom 10–15%, SFX sutil y música dinámica. Las escenas se distribuyen dentro de cada bloque: los prompts describen clips cortos que hay que ensamblar o variar para cubrir su duración. El estudio prepara el guion y los prompts; la **Fábrica de videos** opcional puede generar voz, usar recursos propios/stock/Replicate, ensamblar el MP4 y crear recortes. La subida a YouTube se realiza con una acción separada y siempre como privado.
 
 Las transcripciones son opcionales y de mejor esfuerzo para hasta tres referencias. Si no hay transcripción, solo se usan títulos/descripciones, sin considerarlos prueba de afirmaciones. Las notas y las transcripciones también requieren revisión humana; el paquete incluye las comprobaciones pendientes. No se inventan acuerdos de patrocinio, uso personal de productos ni recursos descargables en las instrucciones al modelo.
+
+### Fábrica de videos y recortes
+
+El motor opcional conecta la producción con voz Edge TTS o narración propia, recursos por escena, subtítulos karaoke y render FFmpeg H.264/AAC en 720p/1080p horizontal, vertical o cuadrado. Incluye cola persistente, avances, cancelación, reintentos que conservan recursos, música, vista previa, MP4/SRT y proyecto editable para Remotion. Puedes seleccionar palabras para recortar clips de 1–180 segundos con subtítulos ajustados.
+
+Desde la raíz, con Python 3.12 y FFmpeg/FFprobe instalados:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+python -m backend
+```
+
+Abre `http://127.0.0.1:8787`, conecta el motor con el código que aparece en la terminal y genera una producción en el estudio. **Tarjetas gráficas + narración propia** permite probar sin servicios de IA. Pexels, Replicate, Whisper.cpp, avisos Telegram y subida privada con OAuth son opciones configurables. Replicate requiere activar explícitamente las generaciones de pago.
+
+Consulta [instalación en Windows/Linux, Docker, proveedores, recuperación y Remotion](docs/video-production.md) y los [avisos de terceros](docs/third-party-notices.md). La automatización no garantiza monetización; revisa originalidad, fuentes, derechos y calidad del resultado antes de publicarlo.
 
 ### Monetización y auditoría
 
@@ -175,6 +192,9 @@ Código:
 - `research-workspace.js`: tablero editorial, historial y enlace de las herramientas con la interfaz.
 - `creator-core.js`: perfiles, evidencia de outliers/tendencias, ideas, presupuestos temporales, validación de guiones, escenarios y exportación.
 - `creator-studio.js`: cuatro herramientas, generación por etapas, persistencia y auditoría privada opcional.
+- `video-production.js`: conexión optativa con el motor, recursos, cola, vista previa, recortes y subida privada.
+- `backend/`: API FastAPI, cola SQLite, voz/recursos, FFmpeg, subtítulos y sesiones reanudables de YouTube.
+- `remotion/`: composición React opcional alimentada por el proyecto exportado.
 
 ## Pruebas
 
@@ -186,6 +206,6 @@ npm run check
 npm test
 ```
 
-Las pruebas cubren caché, solicitudes concurrentes, límites de espera, errores, filtros, cohortes, respaldos, CSV, outliers, tendencias, calendario local, guiones incompletos, monetización y flujos completos del DOM con jsdom. Simulan YouTube, IA y OAuth: no gastan cuota y no validan conexiones reales ni el diseño visual. GitHub Actions ejecuta los mismos comandos en cada push y pull request.
+Las pruebas cubren caché, solicitudes concurrentes, límites de espera, errores, filtros, cohortes, respaldos, CSV, outliers, tendencias, calendario local, guiones incompletos, monetización y flujos completos del DOM con jsdom. Simulan YouTube, IA y OAuth: no gastan cuota y no validan conexiones reales ni el diseño visual. GitHub Actions ejecuta estos checks, pruebas del backend y el bundle de Remotion en cada push y pull request. Las pruebas del backend incluyen renders FFmpeg reales con audio de prueba, subtítulos, proyecto editable, recortes y recuperación tras fallos; proveedores y subidas usan respuestas simuladas.
 
-Antes de publicar una versión, revisa la interfaz en un navegador real y prueba tus claves y consentimiento OAuth en tu origen autorizado.
+Para los checks del backend y Remotion consulta la [guía de producción](docs/video-production.md#verificar). Antes de publicar una versión, revisa la interfaz en un navegador real y prueba tus claves y consentimiento OAuth en tu origen autorizado.

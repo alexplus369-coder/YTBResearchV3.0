@@ -166,7 +166,7 @@
                 for (const key of ['visual', 'imagePrompt', 'videoPrompt']) if (!text(s[key])) throw new Error('Falta ' + key + ' en una escena.');
                 return { start: slot.start + Math.floor((slot.end - slot.start) * i / b.scenes.length),
                     end: slot.start + Math.floor((slot.end - slot.start) * (i + 1) / b.scenes.length), visual: text(s.visual, 1600),
-                    imagePrompt: text(s.imagePrompt, 3000), videoPrompt: text(s.videoPrompt, 3000), negativePrompt: text(s.negativePrompt, 1000) || 'No watermarks, no logos, no distorted anatomy, no unreadable text, no fabricated charts.' };
+                    imagePrompt: text(s.imagePrompt, 3000), videoPrompt: text(s.videoPrompt, 3000), stockQuery: text(s.stockQuery, 120), negativePrompt: text(s.negativePrompt, 1000) || 'No watermarks, no logos, no distorted anatomy, no unreadable text, no fabricated charts.' };
             });
             return { ...slot, narration: text(b.narration, 40000), wordCount: count, hook: text(b.hook, 600), rehook: text(b.rehook, 1500),
                 openLoop: text(b.openLoop, 1500), editing: text(b.editing, 2200), scenes,
