@@ -74,7 +74,7 @@
     }
     function renderAssets() {
         const audio = $('video-audio').value, music = $('video-music').value;
-        $('video-assets').innerHTML = assets.map(a => '<div class="flex gap-2 items-center text-xs"><label class="flex-1"><input type="checkbox" data-use-asset="' + a.id + '"' + (selectedAssets.has(a.id) ? ' checked' : '') + (a.kind === 'audio' ? ' disabled' : '') + '> ' + h(a.name) + ' · ' + h(a.kind) + ' · ' + (a.size / 1024 / 1024).toFixed(1) + ' MB</label><button type="button" data-remove-asset="' + a.id + '" class="text-slate-500 underline">Eliminar recurso</button></div>').join('') || '<p class="text-xs text-slate-500">Todavía no has subido recursos.</p>';
+        $('video-assets').innerHTML = assets.map(a => '<div class="flex flex-col sm:flex-row gap-2 items-start sm:items-center text-xs"><label class="w-full min-w-0 break-words sm:flex-1"><input type="checkbox" data-use-asset="' + a.id + '"' + (selectedAssets.has(a.id) ? ' checked' : '') + (a.kind === 'audio' ? ' disabled' : '') + '> ' + h(a.name) + ' · ' + h(a.kind) + ' · ' + (a.size / 1024 / 1024).toFixed(1) + ' MB</label><button type="button" data-remove-asset="' + a.id + '" class="shrink-0 text-slate-500 underline">Eliminar recurso</button></div>').join('') || '<p class="text-xs text-slate-500">Todavía no has subido recursos.</p>';
         $('video-audio').innerHTML = audioOptions('Seleccionar narración'); $('video-music').innerHTML = audioOptions('Sin música');
         $('video-audio').value = audio; $('video-music').value = music; renderScenes(); lock();
     }

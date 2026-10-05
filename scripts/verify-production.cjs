@@ -101,11 +101,14 @@ async function main() {
     await browser('click', '[data-video-action="preview"]');
     await wait('document.getElementById("video-preview").readyState >= 1 && !document.getElementById("video-refresh").disabled');
     assert.ok(await value('document.getElementById("video-preview").videoWidth > 0 && !document.getElementById("video-preview").error'));
+    await value('document.getElementById("video-preview").play().then(() => true)');
+    await wait('document.getElementById("video-preview").currentTime > .25');
+    await value('document.getElementById("video-preview").pause()');
     await screenshot('jobs-desktop.png', '#video-jobs');
     await browser('click', '[data-video-action="transcript"]');
     await wait('document.getElementById("video-transcript").querySelector("button") !== null');
     await value('document.getElementById("video-transcript").closest("details").open = true');
-    await browser('click', '#video-transcript button');
+    await browser('click', '#video-transcript button:first-child');
     await browser('fill', '#video-cut-start', '0');
     await browser('fill', '#video-cut-end', '1');
     await browser('click', '#video-cut');
@@ -116,9 +119,11 @@ async function main() {
     assert.ok(Array.isArray(pageErrors.errors), 'Browser did not return its error report');
     assert.equal(pageErrors.errors.length, 0, JSON.stringify(pageErrors));
     await browser('set', 'viewport', '390', '844');
-    assert.equal(await value('document.getElementById("video-factory").scrollWidth <= document.getElementById("video-factory").clientWidth + 2'), true, 'Factory overflows on mobile');
     await screenshot('factory-mobile.png', '#video-factory');
     await screenshot('jobs-mobile.png', '#video-jobs');
+    const layout = await value('(() => {const box = document.getElementById("video-factory"), rect = box.getBoundingClientRect(); return {clientWidth: box.clientWidth, scrollWidth: box.scrollWidth, overflow: [...box.querySelectorAll("*")].filter(el => {const r = el.getBoundingClientRect(); return r.width > 0 && r.right > rect.right + 2;}).slice(0, 20).map(el => ({tag: el.tagName, id: el.id, class: el.className, text: el.textContent.slice(0, 120)}))};})()');
+    await fs.writeFile(path.join(output, 'mobile-layout.json'), JSON.stringify(layout, null, 2));
+    assert.ok(layout.scrollWidth <= layout.clientWidth + 2, 'Factory overflows on mobile: ' + JSON.stringify(layout));
     await fs.writeFile(path.join(output, 'browser-report.json'), JSON.stringify({pageErrors, original: original.result, clip: clipped.result, mobileWidth: 390}, null, 2));
     console.log('Real browser check passed: connect, upload, render, playable preview, transcript, portrait clip and mobile layout.');
   } catch (error) {
