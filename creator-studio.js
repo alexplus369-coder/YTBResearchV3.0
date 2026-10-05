@@ -253,9 +253,21 @@
                 if (!current()) return;
             }
             status('Generando empaquetado; las miniaturas serán conceptos y prompts…');
-            const result = await smartFetchAI(groundedPrompt(ctx) + '\nPrimero concibe el empaquetado. Devuelve JSON {variants:[{title,promise,hypothesis,thumbnail:{concept,text,elements:[],prompt}}]}. Exactamente tres variantes. Títulos de menos de 50 caracteres, con una brecha de curiosidad honesta o una solución concreta. Miniaturas de máximo tres elementos, contraste alto, texto breve que complemente y no duplique el título. Prompt en inglés, composición 16:9, deja área para texto añadido en edición. hypothesis explica por qué la audiencia podría hacer clic, sin predecir CTR. No hagas promesas financieras ni afirmaciones no verificadas.', true);
+            const packagingPrompt = groundedPrompt(ctx) + '\nPrimero concibe el empaquetado. Devuelve JSON {variants:[{title,promise,hypothesis,thumbnail:{concept,text,elements:[],prompt}}]}. Exactamente tres variantes. Cada title debe tener como máximo 49 caracteres Unicode, contados incluyendo espacios y signos, con una brecha de curiosidad honesta o una solución concreta. Miniaturas de máximo tres elementos, contraste alto, texto breve que complemente y no duplique el título. Prompt en inglés, composición 16:9, deja área para texto añadido en edición. hypothesis explica por qué la audiencia podría hacer clic, sin predecir CTR. No hagas promesas financieras ni afirmaciones no verificadas.';
+            let result = await smartFetchAI(packagingPrompt, true), nextVariants;
             if (!current()) return;
-            variants = core.validatePackaging(result); selected = 0; packageContext = ctx; renderPackaging();
+            try {
+                nextVariants = core.validatePackaging(result);
+            } catch (validationError) {
+                status('Ajustando automáticamente títulos y miniaturas…');
+                const lengths = Array.isArray(result?.variants) ? result.variants.map((v, index) => ({ index, titleCharacters: Array.from(String(v?.title || '')).length })) : [];
+                result = await smartFetchAI(packagingPrompt + '\nCORRECCIÓN ÚNICA: la respuesta anterior no pasó la validación: ' + validationError.message +
+                    '\nLongitudes recibidas: ' + JSON.stringify(lengths) + '. Cada title debe tener 1–49 caracteres Unicode.\nRespuesta anterior: ' + JSON.stringify(result) +
+                    '\nDevuelve únicamente el JSON completo corregido con tres variantes. Conserva la intención válida, acorta títulos de forma natural y corrige cualquier otro campo señalado. No expliques la corrección.', true);
+                if (!current()) return;
+                nextVariants = core.validatePackaging(result);
+            }
+            variants = nextVariants; selected = 0; packageContext = ctx; renderPackaging();
             status('Elige el título y miniatura que mejor expresen la promesa. Después genera el guion completo.');
         });
     });
@@ -285,8 +297,13 @@
             let result = await smartFetchAI(prompt, true);
             if (!current()) return;
             let validated;
+            const validatePart = value => {
+                const valueBlocks = core.validateBlocks(value, expected, ctx.sources.map(s => s.id));
+                if (part === 1 && (!value?.publishing || typeof value.publishing.description !== 'string' || typeof value.publishing.pinnedComment !== 'string' || !Array.isArray(value.publishing.checks) || value.publishing.checks.length < 5)) throw new Error('Falta el paquete de publicación y al menos cinco verificaciones.');
+                return valueBlocks;
+            };
             try {
-                validated = core.validateBlocks(result, expected, ctx.sources.map(s => s.id));
+                validated = validatePart(result);
             } catch (validationError) {
                 status('Ajustando automáticamente la extensión de los bloques ' + (part * 3 + 1) + '–' + (part * 3 + 3) + '…');
                 result = await smartFetchAI(prompt + '\nCORRECCIÓN ÚNICA: la respuesta anterior no pasó la validación: ' + validationError.message +
@@ -294,7 +311,7 @@
                     '\nRespuesta anterior: ' + JSON.stringify(result) +
                     '\nDevuelve únicamente el JSON completo corregido para los mismos tres índices. Conserva los hechos, fuentes y continuidad válidos; corrige la extensión y cualquier campo señalado. No expliques la corrección.', true);
                 if (!current()) return;
-                validated = core.validateBlocks(result, expected, ctx.sources.map(s => s.id));
+                validated = validatePart(result);
             }
             blocks.push(...validated);
             if (part === 1) publishing = result.publishing;

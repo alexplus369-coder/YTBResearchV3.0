@@ -96,6 +96,22 @@ test('missing AI and invalid model output fail visibly, unlock controls and pres
     assert.equal(a.w.localStorage.getItem('ytCreatorProductionV1'), JSON.stringify(previous));
 });
 
+test('invalid title length gets one bounded automatic packaging repair', async t => {
+    const a = app(t); a.change('creator-niche', 'Software'); a.$('geminiApiKeyInput').value = 'fake-key';
+    const calls = [];
+    a.w.smartFetchAI = async prompt => {
+        calls.push(prompt);
+        if (calls.length === 1) {
+            const invalid = structuredClone(variants); invalid[0].title = 'Este título deliberadamente supera el máximo de cincuenta caracteres';
+            return { variants: invalid };
+        }
+        return { variants: structuredClone(variants) };
+    };
+    a.$('creator-topic').value = 'Tema'; submit(a); await until(() => !a.$('creator-script-btn').disabled);
+    assert.equal(calls.length, 2); assert.match(calls[1], /CORRECCIÓN ÚNICA/); assert.match(calls[1], /titleCharacters/);
+    assert.equal(a.$('creator-packaging').querySelectorAll('input[type="radio"]').length, 3); assert.deepEqual(a.errors, []);
+});
+
 test('a short model outline cannot overwrite the completed production', async t => {
     const previous = core.validateProject(completeProject());
     const a = app(t, { ytCreatorProductionV1: JSON.stringify(previous) }); ai(a);
