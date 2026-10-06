@@ -885,6 +885,7 @@
       "kind": "image",
       "operation": "generate",
       "url": "https://replicate.com/openai/gpt-image-2",
+      "prediction_api": "official",
       "pricing": {
         "status": "verified",
         "unit": "image",
@@ -990,6 +991,7 @@
       "kind": "image",
       "operation": "generate",
       "url": "https://replicate.com/openai/gpt-image-1.5",
+      "prediction_api": "official",
       "pricing": {
         "status": "unverified",
         "unit": "image",

@@ -14,7 +14,7 @@ from .models import JobRequest, ClipRequest
 from .process import run, probe, duration, Cancelled
 
 FPS = 24
-ENGINE_VERSION = '1.4.0'
+ENGINE_VERSION = '1.4.1'
 ARTIFACTS = {'video.mp4', 'subtitles.srt', 'subtitles.ass', 'words.json', 'manifest.json', 'timeline.json', 'publication.json', 'project.zip'}
 
 

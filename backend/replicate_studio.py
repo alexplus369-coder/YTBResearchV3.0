@@ -18,6 +18,72 @@ CATALOG = json.loads(Path(__file__).with_name('replicate_catalog.json').read_tex
 MODELS = {m['id']: m for m in CATALOG['models']}
 API = 'https://api.replicate.com/v1'
 CACHE_SECONDS = 86400
+SCHEMA_CACHE_VERSION = '2'
+
+
+class ReplicateHTTPError(RuntimeError):
+    def __init__(self, status, message):
+        super().__init__(message)
+        self.status = status
+
+
+def validation_hint(field):
+    """Only show short schema constraints, never submitted values or remote messages."""
+    field = field_shape(field)
+    choices = field.get('enum', [])
+    safe = [str(v) for v in choices if isinstance(v, (str, int, float)) and
+            re.fullmatch(r'[a-zA-Z0-9 .:+-]{1,24}', str(v))]
+    if choices and len(safe) == len(choices) and len(safe) <= 12:
+        return 'Opciones: ' + ', '.join(safe) + '.'
+    limits = []
+    for key, label in [('minimum', 'mínimo'), ('maximum', 'máximo'), ('minItems', 'mínimo de archivos'),
+                       ('maxItems', 'máximo de archivos'), ('minLength', 'mínimo de caracteres'), ('maxLength', 'máximo de caracteres')]:
+        value = field.get(key)
+        if isinstance(value, (int, float)):
+            limits.append(label + ' ' + str(value)[:20])
+    return '; '.join(limits) + '.' if limits else 'Revisa este campo y su combinación con las demás opciones.'
+
+
+def validation_details(response, input_schema):
+    """Extract allowlisted field names from Replicate's string/list validation formats."""
+    if not input_schema or len(response.content) > 65536:
+        return ''
+    try:
+        body = response.json()
+    except ValueError:
+        return ''
+    if not isinstance(body, dict):
+        return ''
+    properties = input_schema.get('properties', {})
+    fields = []
+    def visit(value, depth=0):
+        if depth > 3 or len(fields) >= 6:
+            return
+        if isinstance(value, str):
+            fields.extend(re.findall(r'(?:^|\n)\s*(?:[-*]\s*)?input\.([a-zA-Z_][a-zA-Z0-9_]*)(?:[.\[]\d+\]?)?\s*:', value))
+        elif isinstance(value, list):
+            for item in value[:12]:
+                visit(item, depth + 1)
+        elif isinstance(value, dict):
+            location = value.get('loc', value.get('path', []))
+            if isinstance(location, str):
+                location = location.split('.')
+            if isinstance(location, list) and 'input' in location:
+                index = location.index('input') + 1
+                if index < len(location):
+                    fields.append(location[index])
+            for key in ('detail', 'errors', 'message', 'msg'):
+                visit(value.get(key), depth + 1)
+    visit(body)
+    names = [name for name in dict.fromkeys(name for name in fields if isinstance(name, str))
+             if name in properties and not field_shape(properties[name]).get('x-cog-secret') and
+             re.fullmatch(r'[a-zA-Z_][a-zA-Z0-9_]{0,79}', name)][:6]
+    if names:
+        return (' ' + ' '.join('Campo ' + name + ': ' + validation_hint(properties[name]) for name in names))[:1000]
+    detail = body.get('detail')
+    if isinstance(detail, str) and re.search(r'\bversion\b', detail, re.I):
+        return ' Replicate no acepta la versión enviada para este modelo.'
+    return ''
 
 
 def model_entry(model):
@@ -27,7 +93,7 @@ def model_entry(model):
     return entry
 
 
-def call(client, method, path, settings, **kwargs):
+def call(client, method, path, settings, input_schema=None, **kwargs):
     if not settings.replicate_token:
         raise ValueError('Configura REPLICATE_API_TOKEN en el servidor.')
     try:
@@ -37,7 +103,10 @@ def call(client, method, path, settings, **kwargs):
     if response.status_code not in {200, 201, 202}:
         message = {401: 'Revisa REPLICATE_API_TOKEN.', 402: 'Revisa el saldo de Replicate.', 404: 'El modelo o versión no está disponible.',
                    422: 'Replicate rechazó los parámetros.', 429: 'Se alcanzó la cuota. Espera antes de reintentar.'}
-        raise RuntimeError('Replicate respondió HTTP ' + str(response.status_code) + '. ' + message.get(response.status_code, 'Revisa el trabajo antes de reintentar.'))
+        detail = validation_details(response, input_schema) if response.status_code == 422 else ''
+        action = ' Pulsa Recargar parámetros, revisa los campos indicados y genera con los parámetros corregidos.' if response.status_code == 422 else ''
+        raise ReplicateHTTPError(response.status_code, 'Replicate respondió HTTP ' + str(response.status_code) + '. ' +
+                                 message.get(response.status_code, 'Revisa el trabajo antes de reintentar.') + detail + action)
     try:
         if len(response.content) > 2 * 1024 * 1024:
             raise ValueError()
@@ -89,17 +158,21 @@ def expand(document, value, depth=0):
     return result
 
 
-def schema(model, settings):
+def schema_record(model, settings):
+    cache = settings.root / 'provider-cache' / 'replicate'
+    key = hashlib.sha256((SCHEMA_CACHE_VERSION + settings.replicate_token + model).encode()).hexdigest()
+    return cache / (key + '.json')
+
+
+def schema(model, settings, refresh=False):
     model_entry(model)
     if not settings.replicate_token:
         raise ValueError('Configura REPLICATE_API_TOKEN en el servidor.')
-    cache = settings.root / 'provider-cache' / 'replicate'
-    cache.mkdir(parents=True, exist_ok=True, mode=0o700)
-    key = hashlib.sha256((settings.replicate_token + model).encode()).hexdigest()
-    record = cache / (key + '.json')
+    record = schema_record(model, settings)
+    record.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     try:
         saved = json.loads(record.read_text(encoding='utf-8'))
-        if 0 <= time.time() - saved['savedAt'] < CACHE_SECONDS:
+        if not refresh and 0 <= time.time() - saved['savedAt'] < CACHE_SECONDS:
             return saved['schema']
     except (OSError, ValueError, KeyError, TypeError):
         pass
@@ -174,7 +247,8 @@ def checked_inputs(inputs, input_schema):
     if error:
         # Never echo input values, URIs or remote error bodies.
         name = '.'.join(str(p) for p in error.absolute_path) or 'campos requeridos'
-        raise ValueError('Parámetro inválido: ' + name[:100] + ' (' + str(error.validator) + '). Revisa el formulario del modelo.')
+        field = properties.get(next(iter(error.absolute_path), ''), {})
+        raise ValueError('Parámetro inválido: ' + name[:100] + ' (' + str(error.validator) + '). ' + validation_hint(field))
 
 
 def prepare(selection, settings, store, texts=None):
@@ -185,8 +259,12 @@ def prepare(selection, settings, store, texts=None):
     if selection.version and selection.version != meta['version']:
         raise ValueError('La versión del modelo cambió. Vuelve a cargar sus parámetros antes de generar.')
     fields = {name: field_shape(field) for name, field in meta['input_schema']['properties'].items()}
-    inputs = {k: deepcopy(v['default']) for k, v in fields.items() if 'default' in v and not v.get('x-cog-secret')}
+    inputs = {k: deepcopy(v['default']) for k, v in fields.items() if 'default' in v and v['default'] is not None and not v.get('x-cog-secret')}
     inputs.update(selection.inputs)
+    # Older forms sent every optional null default. Omission lets Replicate apply it.
+    required = set(meta['input_schema'].get('required', []))
+    inputs = {k: v for k, v in inputs.items() if not (v is None and k not in required and
+              k in fields and fields[k].get('default', object()) is None)}
     for name, ids in selection.file_inputs.items():
         field = fields.get(name, {})
         if not file_field(field) or field.get('x-cog-secret'):
@@ -235,6 +313,8 @@ def generate(plan, folder, name, settings, store, cancelled, text=None):
     record, path = folder / (name + '.json'), folder / (name + '.media')
     state = json.loads(record.read_text()) if record.exists() else None
     if state and not state.get('id'):
+        if state.get('submission') == 'rejected':
+            raise RuntimeError(state['error'])
         raise RuntimeError('La solicitud pudo haberse enviado sin confirmar. Revisa Replicate; no se repetirá el cobro automáticamente.')
     with httpx.Client(timeout=30, trust_env=False, follow_redirects=False) as client:
         if not state:
@@ -250,10 +330,21 @@ def generate(plan, folder, name, settings, store, cancelled, text=None):
             if cancelled():
                 raise Cancelled()
             providers.atomic_json(record, {'submission': 'pending', 'model': plan['model'], 'version': plan['version']})
-            if plan.get('api_mode') == 'official':
-                value = call(client, 'POST', '/models/' + plan['model'] + '/predictions', settings, json={'input': inputs})
-            else:
-                value = call(client, 'POST', '/predictions', settings, json={'version': plan['version'], 'input': inputs})
+            try:
+                if plan.get('api_mode') == 'official':
+                    value = call(client, 'POST', '/models/' + plan['model'] + '/predictions', settings,
+                                 input_schema=plan['input_schema'], json={'input': inputs})
+                else:
+                    value = call(client, 'POST', '/predictions', settings, input_schema=plan['input_schema'],
+                                 json={'version': plan['version'], 'input': inputs})
+            except ReplicateHTTPError as error:
+                if error.status == 422:
+                    providers.atomic_json(record, {'submission': 'rejected', 'model': plan['model'], 'version': plan['version'], 'error': str(error)})
+                    try:
+                        schema_record(plan['model'], settings).unlink(missing_ok=True)
+                    except OSError:
+                        pass  # A cache cleanup failure must not hide the provider's validation error.
+                raise
             ident = value.get('id', '')
             if not re.fullmatch(r'[a-zA-Z0-9]+', ident):
                 raise RuntimeError('Predicción sin ID válido. Revisa Replicate antes de crear otra solicitud.')

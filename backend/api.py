@@ -1,5 +1,7 @@
 """Authenticated local render API and allowlisted static frontend."""
 import asyncio
+import base64
+import binascii
 from contextlib import asynccontextmanager
 import json
 from pathlib import Path
@@ -30,6 +32,13 @@ STATIC = {'index.html', 'research-core.js', 'research-workspace.js', 'creator-co
 EXTENSIONS = {'.mp4', '.mov', '.webm', '.m4a', '.wav', '.mp3', '.png', '.jpg', '.jpeg', '.webp'}
 
 
+def valid_access(headers, token):
+    # Keep the explicit production credential independent of HTTP Basic in the browser.
+    if b'x-yt-render-token' in headers:
+        return secrets.compare_digest(headers[b'x-yt-render-token'], token.encode())
+    return secrets.compare_digest(headers.get(b'authorization', b''), ('Bearer ' + token).encode())
+
+
 class UploadRequest(Contract):
     access_token: SecretStr
     made_for_kids: bool = False
@@ -42,10 +51,21 @@ class AccessAndBodyLimit:
         self.app, self.settings = app, settings
 
     async def __call__(self, scope, receive, send):
+        if scope['type'] == 'http' and self.settings.private_site and scope['path'] != '/healthz' and not scope['path'].startswith('/api/video/'):
+            header = dict(scope.get('headers', [])).get(b'authorization', b'')
+            try:
+                scheme, credential = header.split(b' ', 1)
+                received = base64.b64decode(credential, validate=True) if scheme.lower() == b'basic' else b''
+            except (ValueError, binascii.Error):
+                received = b''
+            expected = (self.settings.site_user + ':' + self.settings.token).encode('utf-8')
+            if not secrets.compare_digest(received, expected):
+                return await JSONResponse({'detail': 'Acceso privado. Introduce tu usuario y código personal.'}, status_code=401,
+                                          headers={'WWW-Authenticate': 'Basic realm="YTBResearch", charset="UTF-8"', 'Cache-Control': 'no-store'})(scope, receive, send)
         if scope['type'] != 'http' or not scope['path'].startswith('/api/video/') or scope['method'] == 'OPTIONS':
             return await self.app(scope, receive, send)
         headers = dict(scope.get('headers', []))
-        if not secrets.compare_digest(headers.get(b'authorization', b''), ('Bearer ' + self.settings.token).encode()):
+        if not valid_access(headers, self.settings.token):
             return await JSONResponse({'detail': 'Código de acceso inválido.'}, status_code=401)(scope, receive, send)
         limit = self.settings.max_upload + 1024 * 1024 if scope['path'] == '/api/video/assets' else 2 * 1024 * 1024
         try:
@@ -87,7 +107,7 @@ def create_app(settings=None, run_worker=True):
     app = FastAPI(title='YT Research Video Production', version=ENGINE_VERSION, lifespan=lifespan)
     app.state.store, app.state.settings, app.state.worker = store, settings, worker
     app.add_middleware(AccessAndBodyLimit, settings=settings)
-    app.add_middleware(CORSMiddleware, allow_origins=settings.origins, allow_methods=['GET', 'POST', 'DELETE'], allow_headers=['Authorization', 'Content-Type'])
+    app.add_middleware(CORSMiddleware, allow_origins=settings.origins, allow_methods=['GET', 'POST', 'DELETE'], allow_headers=['Authorization', 'Content-Type', 'X-YT-Render-Token'])
     # Prevent browser DNS rebinding into a loopback service. Configure a reverse proxy explicitly for remote hosting.
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=['127.0.0.1', 'localhost', 'testserver'] + [urlparse(o).hostname for o in settings.origins if urlparse(o).hostname])
 
@@ -104,11 +124,16 @@ def create_app(settings=None, run_worker=True):
         return JSONResponse(status_code=404, content={'detail': 'Trabajo o recurso no encontrado.'})
 
     def authorized(request: Request):
-        received = request.headers.get('authorization', '')
-        if not secrets.compare_digest(received.encode(), ('Bearer ' + settings.token).encode()):
+        if not valid_access(dict(request.scope.get('headers', [])), settings.token):
             raise HTTPException(401, 'Código de acceso inválido.')
 
     auth = [Depends(authorized)]
+
+    @app.get('/healthz')
+    def health_probe():
+        ready = bool(shutil.which(settings.ffmpeg) and shutil.which(settings.ffprobe))
+        ready = ready and (worker is None or bool(worker.thread and worker.thread.is_alive()))
+        return JSONResponse({'status': 'ok' if ready else 'unavailable'}, status_code=200 if ready else 503)
 
     def available():
         if len(store.active()) >= 10:
@@ -162,9 +187,9 @@ def create_app(settings=None, run_worker=True):
         return replicate_studio.CATALOG
 
     @app.get('/api/video/replicate/models/{owner}/{name}/schema', dependencies=auth)
-    def replicate_schema(owner: str, name: str):
+    def replicate_schema(owner: str, name: str, refresh: bool = False):
         try:
-            return replicate_studio.schema(owner + '/' + name, settings)
+            return replicate_studio.schema(owner + '/' + name, settings, refresh=refresh)
         except RuntimeError as error:
             raise HTTPException(502, str(error)) from None
 
@@ -319,7 +344,7 @@ def create_app(settings=None, run_worker=True):
 
     @app.get('/docs/{filename}')
     def guide(filename: str):
-        if filename not in {'video-production.md', 'third-party-notices.md'}:
+        if filename not in {'video-production.md', 'third-party-notices.md', 'render-personal.md'}:
             raise HTTPException(404, 'No encontrado.')
         return FileResponse(ROOT / 'docs' / filename, media_type='text/plain; charset=utf-8')
 

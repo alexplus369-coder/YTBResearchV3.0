@@ -26,6 +26,7 @@
         $('video-render').disabled = working || !connected || !project();
         $('video-upload').disabled = working || !connected;
         $('video-refresh').disabled = working || !connected;
+        $('video-clean-temp').disabled = working || !connected || jobs.some(j => ['queued', 'running'].includes(j.state));
         $('video-cut').disabled = working || !connected || !clipJob;
         $('video-notify').disabled = !connected || !capabilities.telegram;
         for (const button of document.querySelectorAll('[data-video-action]')) button.disabled = working || !connected;
@@ -39,7 +40,8 @@
         if (!server || !access) throw new Error('Conecta tu motor de producción.');
         const captured = version;
         const { long, ...fetchOptions } = options;
-        const response = await fetch(server + '/api/video' + path, { ...fetchOptions, headers: { Authorization: 'Bearer ' + access, ...(options.headers || {}) }, signal: AbortSignal.timeout(long ? 600000 : 30000) });
+        const transfer = binary || fetchOptions.body instanceof FormData;
+        const response = await fetch(server + '/api/video' + path, { ...fetchOptions, headers: { 'X-YT-Render-Token': access, ...(options.headers || {}) }, signal: AbortSignal.timeout(long || transfer ? 600000 : 30000) });
         if (captured !== version) throw new Error('La conexión cambió durante la solicitud.');
         if (!response.ok) {
             const body = await response.json().catch(() => ({}));
@@ -204,6 +206,26 @@
         });
     });
     $('video-refresh').addEventListener('click', () => work('Actualizando cola…', async () => { await refresh(); poll(); status('Cola actualizada.'); }));
+    $('video-clean-temp').addEventListener('click', () => work('Eliminando archivos temporales…', async () => {
+        let remaining = await request('/jobs');
+        if (remaining.some(j => ['queued', 'running'].includes(j.state))) throw new Error('Espera a que terminen los trabajos antes de limpiar los temporales.');
+        if (!window.confirm('¿Eliminar todos los trabajos terminados, fallidos o cancelados y los recursos del motor conectado? Descarga primero los archivos que quieras conservar. Esta acción no se puede deshacer.')) { status('Limpieza cancelada.'); return; }
+        while (remaining.length) {
+            if (remaining.some(j => ['queued', 'running'].includes(j.state))) throw new Error('Hay un trabajo nuevo activo. La limpieza se detuvo.');
+            for (const job of remaining) await request('/jobs/' + job.id, { method: 'DELETE' });
+            remaining = await request('/jobs');
+        }
+        let resources = await request('/assets');
+        while (resources.length) {
+            const current = await request('/jobs');
+            if (current.some(j => ['queued', 'running'].includes(j.state))) throw new Error('Hay un trabajo nuevo activo. La limpieza se detuvo.');
+            for (const asset of resources) await request('/assets/' + asset.id, { method: 'DELETE' });
+            resources = await request('/assets');
+        }
+        selectedAssets.clear(); sceneBindings = {}; pendingResources.clear(); clipJob = null; assets = [];
+        $('video-transcript').innerHTML = ''; resetPreview(); renderAssets(); await refresh();
+        status('Temporales eliminados del motor. Tu producción editorial y tus descargas locales se conservan.');
+    }));
     $('video-jobs').addEventListener('click', event => {
         const el = event.target.closest('[data-video-action]'); if (!el) return;
         const id = el.dataset.job, action = el.dataset.videoAction;
@@ -263,6 +285,6 @@
     document.addEventListener('creator-production-updated', syncProduction);
     $('creator-export-md').addEventListener('click', syncProduction);
     document.addEventListener('visibilitychange', () => { if (!document.hidden && connected) { refresh().then(poll).catch(error); } });
-    if (['localhost', '127.0.0.1'].includes(location.hostname)) $('video-server').value = location.origin;
+    if (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname)) $('video-server').value = location.origin;
     syncProduction(); lock();
 })();

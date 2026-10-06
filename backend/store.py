@@ -91,7 +91,8 @@ class Store:
 
     def list(self):
         with self.connect() as con:
-            ids = [r['id'] for r in con.execute('SELECT id FROM jobs ORDER BY created DESC LIMIT 50')]
+            # Keep older active work visible even after many newer completed jobs.
+            ids = [r['id'] for r in con.execute("SELECT id FROM jobs WHERE state IN ('queued','running') OR id IN (SELECT id FROM jobs ORDER BY created DESC LIMIT 50) ORDER BY created DESC")]
         return [self.get(ident) for ident in ids]
 
     def claim(self):
