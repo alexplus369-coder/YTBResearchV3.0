@@ -40,7 +40,8 @@
         if (!server || !access) throw new Error('Conecta tu motor de producción.');
         const captured = version;
         const { long, ...fetchOptions } = options;
-        const response = await fetch(server + '/api/video' + path, { ...fetchOptions, headers: { Authorization: 'Bearer ' + access, ...(options.headers || {}) }, signal: AbortSignal.timeout(long ? 600000 : 30000) });
+        const transfer = binary || fetchOptions.body instanceof FormData;
+        const response = await fetch(server + '/api/video' + path, { ...fetchOptions, headers: { Authorization: 'Bearer ' + access, ...(options.headers || {}) }, signal: AbortSignal.timeout(long || transfer ? 600000 : 30000) });
         if (captured !== version) throw new Error('La conexión cambió durante la solicitud.');
         if (!response.ok) {
             const body = await response.json().catch(() => ({}));
