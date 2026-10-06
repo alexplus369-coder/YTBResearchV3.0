@@ -12,7 +12,7 @@ class Settings:
     ffmpeg: str = field(default_factory=lambda: os.getenv('YT_FFMPEG', 'ffmpeg'))
     ffprobe: str = field(default_factory=lambda: os.getenv('YT_FFPROBE', 'ffprobe'))
     encoder: str = field(default_factory=lambda: os.getenv('YT_ENCODER', 'libx264'))
-    pexels_key: str = field(default_factory=lambda: os.getenv('PEXELS_API_KEY', ''))
+    pixabay_key: str = field(default_factory=lambda: os.getenv('PIXABAY_API_KEY', ''))
     replicate_token: str = field(default_factory=lambda: os.getenv('REPLICATE_API_TOKEN', ''))
     replicate_version: str = field(default_factory=lambda: os.getenv('REPLICATE_MODEL_VERSION', ''))
     replicate_input: str = field(default_factory=lambda: os.getenv('REPLICATE_INPUT_JSON') or '{}')
@@ -36,7 +36,7 @@ class Settings:
             raise ValueError('YT_ENCODER debe ser libx264, h264_nvenc o h264_videotoolbox.')
 
     def public(self):
-        return {'pexels': bool(self.pexels_key), 'replicate': bool(self.replicate_token and self.replicate_version),
+        return {'pixabay': bool(self.pixabay_key), 'replicate': bool(self.replicate_token and self.replicate_version),
                 'whisper': bool(self.whisper_cli and self.whisper_model), 'telegram': bool(self.telegram_token and self.telegram_chat),
                 'encoder': self.encoder, 'maxUploadMB': self.max_upload // 1024 // 1024}
 

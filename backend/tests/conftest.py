@@ -18,7 +18,7 @@ def wav_bytes(seconds=6, frequency=220):
 
 @pytest.fixture
 def settings(tmp_path):
-    return Settings(root=tmp_path, token='local-test-access-code-32-characters', pexels_key='', replicate_token='', replicate_version='',
+    return Settings(root=tmp_path, token='local-test-access-code-32-characters', pixabay_key='', replicate_token='', replicate_version='',
                     whisper_cli='', whisper_model='', telegram_token='', telegram_chat='')
 
 

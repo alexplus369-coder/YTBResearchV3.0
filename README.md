@@ -65,7 +65,7 @@ python -m pip install -r backend/requirements.txt
 python -m backend
 ```
 
-Abre `http://127.0.0.1:8787`, conecta el motor con el código que aparece en la terminal y genera una producción en el estudio. **Tarjetas gráficas + narración propia** permite probar sin servicios de IA. Pexels, Replicate, Whisper.cpp, avisos Telegram y subida privada con OAuth son opciones configurables. Replicate requiere activar explícitamente las generaciones de pago.
+Abre `http://127.0.0.1:8787`, conecta el motor con el código que aparece en la terminal y genera una producción en el estudio. **Tarjetas gráficas + narración propia** permite probar sin servicios de IA. Pixabay, Replicate, Whisper.cpp, avisos Telegram y subida privada con OAuth son opciones configurables. Replicate requiere activar explícitamente las generaciones de pago.
 
 Consulta [instalación en Windows/Linux, Docker, proveedores, recuperación y Remotion](docs/video-production.md) y los [avisos de terceros](docs/third-party-notices.md). La automatización no garantiza monetización; revisa originalidad, fuentes, derechos y calidad del resultado antes de publicarlo.
 

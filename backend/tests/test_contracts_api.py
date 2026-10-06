@@ -71,7 +71,7 @@ def test_api_auth_precedes_parsing_and_static_cannot_leak_data(settings, request
         assert client.post('/api/video/jobs', headers={**headers, 'Content-Length': str(3 * 1024 * 1024)}, content='{}').status_code == 413
         malformed = client.post('/api/video/jobs', headers=headers, json={'access_token': 'DO-NOT-ECHO'})
         assert malformed.status_code == 422 and 'DO-NOT-ECHO' not in malformed.text
-        request_payload['options']['materials'] = 'pexels'
+        request_payload['options']['materials'] = 'pixabay'
         assert client.post('/api/video/jobs', headers=headers, json=request_payload).status_code == 400
         assert client.get('/api/video/jobs', headers=headers).json() == []
 

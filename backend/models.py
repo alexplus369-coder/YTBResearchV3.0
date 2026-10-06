@@ -63,12 +63,20 @@ class Options(Contract):
     tts: Literal['edge', 'uploaded'] = 'edge'
     voice: str = Field(default='es-MX-DaliaNeural', pattern=r'^[a-z]{2}-[A-Z]{2}-[A-Za-z0-9]+Neural$', max_length=80)
     subtitles: Literal['tts', 'estimated', 'whisper'] = 'tts'
-    materials: Literal['own', 'cards', 'pexels', 'replicate'] = 'own'
+    materials: Literal['own', 'cards', 'pixabay', 'pixabay_images', 'replicate'] = 'own'
     clip_seconds: float = Field(default=5, ge=3, le=8)
     max_generated: int = Field(default=4, ge=1, le=8)
     music_volume: float = Field(default=.08, ge=0, le=.3)
     notify: bool = False
     paid_generation_confirmed: bool = False
+
+    @model_validator(mode='before')
+    @classmethod
+    def migrate_stock_provider(cls, value):
+        # Old queued jobs may still contain this retired provider name.
+        if isinstance(value, dict) and value.get('materials') == 'pexels':
+            return {**value, 'materials': 'pixabay'}
+        return value
 
 
 class JobRequest(Contract):

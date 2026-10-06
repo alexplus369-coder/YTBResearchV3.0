@@ -4,6 +4,8 @@ import shutil
 import time
 import uuid
 import zipfile
+import socket
+import httpx
 
 from fastapi.testclient import TestClient
 import pytest
@@ -17,6 +19,51 @@ from backend.store import Store
 from backend.tests.conftest import wav_bytes
 
 pytestmark = pytest.mark.skipif(not shutil.which('ffmpeg') or not shutil.which('ffprobe'), reason='Install FFmpeg and FFprobe to run real media tests')
+
+
+@pytest.mark.parametrize('images', [False, True])
+def test_pixabay_real_render_and_credit_bundle(settings, request_payload, monkeypatch, images):
+    settings.pixabay_key = 'mock-api-key-not-a-real-credential'
+    source = settings.root / ('source.jpg' if images else 'source.mp4')
+    if images:
+        pipeline.card(source, 'Ejemplo original', 'Recurso de prueba local', 1280, 720)
+    else:
+        pipeline.run(['ffmpeg', '-y', '-f', 'lavfi', '-i', 'color=c=blue:s=1280x720:r=24',
+                      '-t', '1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', str(source)], settings.root, lambda: False)
+    calls = []
+    def handler(request):
+        calls.append(request.url.path)
+        if request.url.host == 'cdn.pixabay.com':
+            assert 'key' not in request.url.params and 'Authorization' not in request.headers
+            return httpx.Response(200, content=source.read_bytes())
+        hit = {'id': 42, 'user': 'Fixture author', 'pageURL': 'https://pixabay.com/resource/42/'}
+        if images:
+            hit['largeImageURL'] = 'https://cdn.pixabay.com/fixture.jpg'
+        else:
+            hit['videos'] = {'small': {'url': 'https://cdn.pixabay.com/fixture.mp4', 'width': 1280, 'height': 720, 'size': source.stat().st_size}}
+        return httpx.Response(200, json={'hits': [hit]})
+    real_client = httpx.Client
+    monkeypatch.setattr(providers.httpx, 'Client', lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw))
+    monkeypatch.setattr(socket, 'getaddrinfo', lambda *a, **kw: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('8.8.8.8', 443))])
+    app = create_app(settings)
+    with TestClient(app) as client:
+        client.headers['Authorization'] = 'Bearer ' + settings.token
+        asset = client.post('/api/video/assets', files={'file': ('narracion.wav', wav_bytes(3))}).json()
+        request_payload['audio_id'] = asset['id']
+        request_payload['options'].update(materials='pixabay_images' if images else 'pixabay', max_generated=1)
+        created = client.post('/api/video/jobs', json=request_payload)
+        assert created.status_code == 202, created.text
+        ident = created.json()['id']; wait_job(client, ident)
+        folder = app.state.store.directory(ident)
+        assert abs(float(probe(folder / 'video.mp4', settings)['format']['duration']) - 3) < .15
+        materials = json.loads((folder / 'materials.json').read_text())
+        assert all(item['kind'] == ('image' if images else 'video') for item in materials.values())
+        assert len({item['path'] for item in materials.values()}) == 1
+        with zipfile.ZipFile(folder / 'project.zip') as bundle:
+            manifest = json.loads(bundle.read('manifest.json'))
+            assert 'Fixture author' in str(manifest) and 'Pixabay' in str(manifest)
+            assert settings.pixabay_key not in str(manifest)
+        assert len(calls) == 2  # One search and one download despite three scenes.
 
 
 def wait_job(client, ident):

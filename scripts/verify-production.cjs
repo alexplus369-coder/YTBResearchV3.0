@@ -17,7 +17,7 @@ const browserOptions = ['--session', 'yt-production-' + process.pid, '--json'];
 if (process.env.YT_BROWSER_BIN) browserOptions.push('--executable-path', process.env.YT_BROWSER_BIN);
 browserOptions.push('--args', '--no-sandbox,--disable-dev-shm-usage');
 const env = {...process.env, YT_RENDER_DIR: path.join(output, 'server-data'), YT_RENDER_TOKEN: token,
-  PEXELS_API_KEY: '', REPLICATE_API_TOKEN: '', WHISPER_CPP_BINARY: '', WHISPER_CPP_MODEL: '',
+  PIXABAY_API_KEY: '', REPLICATE_API_TOKEN: '', WHISPER_CPP_BINARY: '', WHISPER_CPP_MODEL: '',
   TELEGRAM_BOT_TOKEN: '', TELEGRAM_CHAT_ID: '', AGENT_BROWSER_DEFAULT_TIMEOUT: '60000'};
 
 async function command(file, args, options = {}) {
