@@ -13,7 +13,7 @@ from .models import JobRequest, ClipRequest
 from .process import run, probe, duration, Cancelled
 
 FPS = 24
-ENGINE_VERSION = '1.1.0'
+ENGINE_VERSION = '1.2.0'
 ARTIFACTS = {'video.mp4', 'subtitles.srt', 'subtitles.ass', 'words.json', 'manifest.json', 'timeline.json', 'publication.json', 'project.zip'}
 
 
@@ -130,7 +130,7 @@ class Pipeline:
                 self.step(ident, 'materials', 20 + 20 * len(result) / max(1, sum(len(b.scenes) for b in selected)))
                 asset_id = request.scene_assets.get(str(index))
                 item = saved.get(str(index))
-                remote_count = len({r['path'] for r in result if r['credit']['provider'] in {'Pexels', 'Replicate'}})
+                remote_count = len({r['path'] for r in result if r['credit']['provider'] in {'Pixabay', 'Pexels', 'Replicate'}})
                 if item and Path(item['path']).is_file():
                     result.append(item); index += 1; continue
                 if asset_id or request.options.materials == 'own':
@@ -140,13 +140,14 @@ class Pipeline:
                     path = folder / f'card-{index}.png'; card(path, request.production.packaging.title, scene.visual, width, height)
                     credit = {'provider': 'Local graphics', 'license': 'Composición original generada a partir del proyecto.'}
                 elif remote_count >= request.options.max_generated:
-                    original = next((r for r in result if r['credit']['provider'] in {'Pexels', 'Replicate'}), None)
+                    original = next((r for r in result if r['credit']['provider'] in {'Pixabay', 'Pexels', 'Replicate'}), None)
                     if not original:
                         raise ValueError('No hay recursos generados para reutilizar.')
                     path, credit = Path(original['path']), original['credit']
                 else:
-                    if request.options.materials == 'pexels':
-                        path, credit = providers.pexels(scene.stockQuery or scene.visual[:100], folder, index, self.settings, request.options.aspect, cancelled)
+                    if request.options.materials in {'pixabay', 'pixabay_images'}:
+                        path, credit = providers.pixabay(scene.stockQuery or scene.visual[:100], folder, index, self.settings,
+                                                         request.options.aspect, cancelled, images_only=request.options.materials == 'pixabay_images')
                     else:
                         path, credit = providers.replicate(scene.imagePrompt or scene.videoPrompt or scene.visual, folder, index, self.settings, cancelled)
                 metadata = probe(path, self.settings)

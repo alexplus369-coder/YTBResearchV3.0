@@ -52,7 +52,7 @@ class Worker:
             except Exception as error:
                 # Redact credentials defensively; provider errors never include response bodies.
                 message = str(error)[:1600]
-                for value in [self.settings.token, self.settings.pexels_key, self.settings.replicate_token, self.settings.telegram_token]:
+                for value in [self.settings.token, self.settings.pixabay_key, self.settings.replicate_token, self.settings.telegram_token]:
                     if value:
                         message = message.replace(value, '[redactado]')
                 self.store.update(ident, state='failed', stage='failed', error=message)

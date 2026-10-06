@@ -115,8 +115,8 @@ def create_app(settings=None, run_worker=True):
 
     def enqueue(request):
         available()
-        if request.options.materials == 'pexels' and not settings.pexels_key:
-            raise ValueError('Pexels no está configurado en el servidor.')
+        if request.options.materials in {'pixabay', 'pixabay_images'} and not settings.pixabay_key:
+            raise ValueError('Pixabay no está configurado en el servidor.')
         if request.options.materials == 'replicate' and not (settings.replicate_token and settings.replicate_version):
             raise ValueError('Replicate no está configurado en el servidor.')
         if request.options.subtitles == 'whisper' and not (settings.whisper_cli and settings.whisper_model):

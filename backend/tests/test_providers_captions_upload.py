@@ -14,27 +14,114 @@ def mocked_client(monkeypatch, module, handler):
 
 def test_download_never_forwards_credentials_or_reaches_private_networks(settings, monkeypatch):
     monkeypatch.setattr(socket, 'getaddrinfo', lambda *a, **kw: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('8.8.8.8', 443))])
-    assert providers.checked_url('https://videos.pexels.com/clip.mp4', ['pexels.com'])
-    for url in ['https://pexels.com.evil.test/clip.mp4', 'http://pexels.com/clip.mp4', 'https://user:pw@pexels.com/clip.mp4', 'https://pexels.com:1234/a']:
+    assert providers.checked_url('https://cdn.pixabay.com/clip.mp4', ['pixabay.com'])
+    for url in ['https://pixabay.com.evil.test/clip.mp4', 'http://pixabay.com/clip.mp4', 'https://user:pw@pixabay.com/clip.mp4', 'https://pixabay.com:1234/a']:
         with pytest.raises(ValueError):
-            providers.checked_url(url, ['pexels.com'])
+            providers.checked_url(url, ['pixabay.com'])
     monkeypatch.setattr(socket, 'getaddrinfo', lambda *a, **kw: [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('127.0.0.1', 443))])
     with pytest.raises(ValueError, match='privadas'):
-        providers.checked_url('https://videos.pexels.com/clip.mp4', ['pexels.com'])
+        providers.checked_url('https://cdn.pixabay.com/clip.mp4', ['pixabay.com'])
 
 
-def test_pexels_uses_official_endpoint_and_preserves_credit(settings, monkeypatch):
-    settings.pexels_key = 'server-only-pexels-secret'
+def test_pixabay_uses_official_endpoint_caches_search_and_reuses_download(settings, monkeypatch):
+    settings.pixabay_key = 'server-only-pixabay-secret'
+    calls, downloads = [], []
     def handler(request):
-        assert request.url.path == '/v1/videos/search'
-        assert request.headers['Authorization'] == settings.pexels_key
-        return httpx.Response(200, json={'videos': [{'id': 42, 'url': 'https://www.pexels.com/video/42', 'user': {'name': 'Author'},
-            'video_files': [{'file_type': 'video/mp4', 'width': 1280, 'height': 720, 'link': 'https://videos.pexels.com/42.mp4'}]}]})
+        calls.append(request)
+        assert request.url.path == '/api/videos/'
+        assert request.url.params['key'] == settings.pixabay_key
+        assert 'Authorization' not in request.headers and 'orientation' not in request.url.params
+        assert request.url.params['safesearch'] == 'true'
+        return httpx.Response(200, json={'hits': [{'id': 42, 'pageURL': 'https://pixabay.com/videos/42/', 'user': 'Author',
+            'videos': {'small': {'width': 1280, 'height': 720, 'size': 100, 'url': 'https://cdn.pixabay.com/42.mp4'},
+                       'large': {'width': 3840, 'height': 2160, 'url': 'https://cdn.pixabay.com/4k.mp4'}}}]})
     mocked_client(monkeypatch, providers, handler)
-    monkeypatch.setattr(providers, 'download', lambda url, destination, *args: destination.write_bytes(b'mocked-video'))
-    path, credit = providers.pexels('workspace', settings.root, 0, settings, 'landscape', lambda: False)
+    monkeypatch.setattr(providers, 'checked_url', lambda url, domains: url)
+    def download(url, destination, *args):
+        downloads.append(url); destination.write_bytes(b'mocked-video')
+    monkeypatch.setattr(providers, 'download', download)
+    path, credit = providers.pixabay('workspace', settings.root, 0, settings, 'landscape', lambda: False)
+    other, _ = providers.pixabay('workspace', settings.root, 1, settings, 'landscape', lambda: False)
     assert path.exists() and credit['creator'] == 'Author' and credit['id'] == '42'
-    assert settings.pexels_key not in str(credit)
+    assert path == other and len(calls) == 1 and downloads == ['https://cdn.pixabay.com/42.mp4']
+    assert credit['provider'] == 'Pixabay' and credit['type'] == 'video'
+    assert settings.pixabay_key not in str(credit)
+    record = next((settings.root / 'provider-cache' / 'pixabay').glob('*.json'))
+    assert settings.pixabay_key not in record.read_text()
+    value = json.loads(record.read_text()); value['savedAt'] -= providers.PIXABAY_CACHE_SECONDS + 1
+    providers.atomic_json(record, value)
+    providers.pixabay('workspace', settings.root, 2, settings, 'landscape', lambda: False)
+    assert len(calls) == 2 and len(downloads) == 1
+
+
+@pytest.mark.parametrize('images_only', [False, True])
+def test_pixabay_image_fallback_and_explicit_images(settings, monkeypatch, images_only):
+    settings.pixabay_key = 'test-key'
+    calls = []
+    def handler(request):
+        calls.append(request.url.path)
+        if request.url.path == '/api/videos/':
+            return httpx.Response(200, json={'hits': []})
+        assert request.url.params['orientation'] == 'vertical'
+        assert request.url.params['image_type'] == 'photo'
+        return httpx.Response(200, json={'hits': [{'id': 5, 'user': 'Photographer', 'pageURL': 'https://pixabay.com/photos/5/',
+                                                 'largeImageURL': 'https://cdn.pixabay.com/photo.jpg'}]})
+    mocked_client(monkeypatch, providers, handler)
+    monkeypatch.setattr(providers, 'checked_url', lambda url, domains: url)
+    monkeypatch.setattr(providers, 'download', lambda url, destination, *args: destination.write_bytes(b'image'))
+    path, credit = providers.pixabay('office', settings.root, 0, settings, 'portrait', lambda: False, images_only=images_only)
+    assert path.suffix == '.jpg' and credit['type'] == 'image'
+    assert calls == (['/api/'] if images_only else ['/api/videos/', '/api/'])
+
+
+@pytest.mark.parametrize('status', [400, 401, 429, 500])
+def test_pixabay_errors_are_not_cached_or_hidden_by_fallback(settings, monkeypatch, status):
+    settings.pixabay_key = 'never-expose-this-secret'
+    calls = []
+    def handler(request):
+        calls.append(request.url.path)
+        return httpx.Response(status, text=settings.pixabay_key)
+    mocked_client(monkeypatch, providers, handler)
+    with pytest.raises(RuntimeError, match='HTTP ' + str(status)) as error:
+        providers.pixabay('office', settings.root, 0, settings, 'landscape', lambda: False)
+    assert settings.pixabay_key not in str(error.value)
+    assert calls == ['/api/videos/']
+    assert not list((settings.root / 'provider-cache' / 'pixabay').glob('*.json'))
+
+
+def test_pixabay_cancelled_search_and_old_jobs(settings):
+    from backend.models import Options
+    from backend.process import Cancelled
+    assert Options(materials='pexels').materials == 'pixabay'
+    assert Options(materials='pixabay_images').materials == 'pixabay_images'
+    assert 'pixabay' in settings.public() and 'pexels' not in settings.public()
+    with pytest.raises(Cancelled):
+        providers.pixabay('office', settings.root, 0, settings, 'landscape', lambda: True)
+
+
+def test_pixabay_network_errors_hide_query_credentials(settings, monkeypatch):
+    settings.pixabay_key = 'secret-in-url'
+    def handler(request):
+        raise httpx.ConnectError(str(request.url), request=request)
+    mocked_client(monkeypatch, providers, handler)
+    with pytest.raises(RuntimeError, match='conectar') as error:
+        providers.pixabay('office', settings.root, 0, settings, 'landscape', lambda: False)
+    assert settings.pixabay_key not in str(error.value)
+
+
+def test_pixabay_cache_is_separated_by_credentials_and_query_is_bounded(settings, monkeypatch):
+    settings.pixabay_key = 'first-key'
+    calls = []
+    def handler(request):
+        calls.append(request)
+        assert len(request.url.params['q']) == 100
+        return httpx.Response(200, json={'hits': []})
+    mocked_client(monkeypatch, providers, handler)
+    providers.pixabay_search('x' * 120, settings, 'landscape', False, lambda: False)
+    providers.pixabay_search('x' * 120, settings, 'landscape', False, lambda: False)
+    settings.pixabay_key = 'second-key'
+    providers.pixabay_search('x' * 120, settings, 'landscape', False, lambda: False)
+    assert len(calls) == 2
 
 
 def test_replicate_reuses_prediction_and_refuses_ambiguous_billing(settings, monkeypatch):

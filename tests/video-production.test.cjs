@@ -39,6 +39,21 @@ function setup(t) {
     return { ...ui, calls, controls, connect, submit };
 }
 
+for (const materials of ['pixabay', 'pixabay_images']) {
+    test('Pixabay selector sends ' + materials + ' without a browser API key or paid opt-in', async t => {
+        const ui = setup(t);
+        assert.equal(ui.$('video-materials').querySelector('option[value="pexels"]'), null);
+        await ui.connect(); ui.change('video-materials', materials); ui.submit();
+        await until(() => ui.calls.some(c => c.path.endsWith('/jobs') && c.options.method === 'POST'));
+        const sent = JSON.parse(ui.calls.find(c => c.path.endsWith('/jobs') && c.options.method === 'POST').options.body);
+        assert.equal(sent.options.materials, materials);
+        assert.equal(sent.options.paid_generation_confirmed, false);
+        assert.ok(!Object.keys(sent).some(k => /key|token/i.test(k)));
+        await until(() => ui.$('video-connection').textContent.includes('Trabajo aaaaaaaa'));
+        ui.$('video-disconnect').click();
+    });
+}
+
 test('renderer stays opt-in and posts the saved production once with explicit costs and no persisted credentials', async t => {
     const ui = setup(t); assert.equal(ui.calls.length, 0); assert.equal(ui.$('video-render').disabled, true);
     await ui.connect(); assert.equal(ui.$('video-render').disabled, false);

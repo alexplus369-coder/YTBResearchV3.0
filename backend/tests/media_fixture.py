@@ -16,7 +16,7 @@ from backend.tests.conftest import wav_bytes
 
 def create(output: Path):
     output.mkdir(parents=True, exist_ok=True)
-    settings = Settings(root=output / 'data', token='offline-test-fixture-access-code', pexels_key='', replicate_token='',
+    settings = Settings(root=output / 'data', token='offline-test-fixture-access-code', pixabay_key='', replicate_token='',
                         replicate_version='', whisper_cli='', whisper_model='', telegram_token='', telegram_chat='')
     store = Store(settings.root)
     def asset(name, data=None):

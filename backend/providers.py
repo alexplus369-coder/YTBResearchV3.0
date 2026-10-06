@@ -2,6 +2,7 @@
 import asyncio
 from dataclasses import asdict
 import ipaddress
+import hashlib
 import json
 from pathlib import Path
 import socket
@@ -86,25 +87,89 @@ def synthesize(text, voice, destination, cancelled):
         raise RuntimeError('No se pudo conectar con Edge TTS. Reintenta o utiliza tu propio audio.') from None
 
 
-def pexels(query, folder, index, settings, aspect, cancelled):
-    if not settings.pexels_key:
-        raise ValueError('Configura PEXELS_API_KEY en el servidor.')
-    with httpx.Client(timeout=30, trust_env=False) as client:
-        response = client.get('https://api.pexels.com/v1/videos/search', headers={'Authorization': settings.pexels_key},
-                              params={'query': query[:120], 'orientation': 'portrait' if aspect == 'portrait' else 'landscape', 'per_page': 5})
+PIXABAY_CACHE_SECONDS = 24 * 60 * 60
+
+
+def pixabay_search(query, settings, aspect, images, cancelled):
+    if cancelled():
+        raise Cancelled()
+    if not settings.pixabay_key:
+        raise ValueError('Configura PIXABAY_API_KEY en el servidor.')
+    params = {'q': query.strip()[:100], 'per_page': 5, 'safesearch': 'true'}
+    if not params['q']:
+        raise ValueError('La escena necesita una consulta de búsqueda para Pixabay.')
+    endpoint = 'https://pixabay.com/api/' if images else 'https://pixabay.com/api/videos/'
+    if images:
+        params.update(image_type='photo', orientation={'portrait': 'vertical', 'landscape': 'horizontal'}.get(aspect, 'all'))
+    # Cache namespace includes a key fingerprint, never the credential itself.
+    fingerprint = hashlib.sha256(settings.pixabay_key.encode()).hexdigest()
+    digest = hashlib.sha256(json.dumps([endpoint, params, fingerprint], sort_keys=True).encode()).hexdigest()
+    cache = settings.root / 'provider-cache' / 'pixabay'
+    cache.mkdir(parents=True, exist_ok=True, mode=0o700)
+    record = cache / (digest + '.json')
+    try:
+        saved = json.loads(record.read_text(encoding='utf-8'))
+        age = time.time() - saved['savedAt']
+        if 0 <= age < PIXABAY_CACHE_SECONDS and isinstance(saved['hits'], list):
+            return saved['hits']
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    try:
+        with httpx.Client(timeout=30, trust_env=False, follow_redirects=False) as client:
+            response = client.get(endpoint, params={**params, 'key': settings.pixabay_key})
+    except httpx.HTTPError:
+        # HTTPX errors can include URLs containing the key: never propagate them.
+        raise RuntimeError('No se pudo conectar con Pixabay. Reintenta más tarde.') from None
     if response.status_code != 200:
-        raise RuntimeError('Pexels no respondió a la búsqueda (HTTP ' + str(response.status_code) + ').')
-    videos = response.json().get('videos', [])
-    for video in videos:
-        candidates = [f for f in video.get('video_files', []) if f.get('file_type') == 'video/mp4' and f.get('width', 0) <= 1920 and f.get('height', 0) <= 1920]
-        if not candidates:
+        detail = {400: 'Revisa PIXABAY_API_KEY y la consulta.', 401: 'Revisa PIXABAY_API_KEY.',
+                  403: 'Revisa el acceso de tu cuenta.', 429: 'Se alcanzó el límite de solicitudes; espera antes de reintentar.'}
+        raise RuntimeError('Pixabay rechazó la búsqueda (HTTP ' + str(response.status_code) + '). ' + detail.get(response.status_code, 'Reintenta más tarde.'))
+    try:
+        hits = response.json()['hits']
+        if not isinstance(hits, list):
+            raise ValueError()
+    except (ValueError, KeyError, TypeError):
+        raise RuntimeError('Pixabay devolvió una respuesta no válida.') from None
+    if cancelled():
+        raise Cancelled()
+    atomic_json(record, {'savedAt': time.time(), 'hits': hits})
+    return hits
+
+
+def pixabay(query, folder, index, settings, aspect, cancelled, images_only=False):
+    target_ratio = {'portrait': 9 / 16, 'landscape': 16 / 9, 'square': 1}[aspect]
+    for images in ([True] if images_only else [False, True]):
+        hits = pixabay_search(query, settings, aspect, images, cancelled)
+        choices = []
+        for hit in hits:
+            if images:
+                url = hit.get('largeImageURL')
+                if url:
+                    choices.append((hit, url, '.jpg'))
+            else:
+                candidates = [v for v in hit.get('videos', {}).values() if v.get('url') and
+                              0 < v.get('width', 0) <= 1920 and 0 < v.get('height', 0) <= 1920 and
+                              0 <= v.get('size', 0) <= settings.max_download]
+                if candidates:
+                    candidate = min(candidates, key=lambda v: (abs(v['width'] / v['height'] - target_ratio),
+                                                              abs(max(v['width'], v['height']) - 1280)))
+                    choices.append((hit, candidate['url'], '.mp4'))
+        if not choices:
             continue
-        candidate = min(candidates, key=lambda f: abs(max(f.get('width', 0), f.get('height', 0)) - 1280))
-        path = folder / f'material-{index}.mp4'
-        download(candidate['link'], path, settings, ['pexels.com', 'player.vimeo.com'], cancelled)
-        return path, {'provider': 'Pexels', 'query': query, 'creator': video.get('user', {}).get('name', ''),
-                      'source': video.get('url', ''), 'license': 'https://www.pexels.com/license/', 'id': str(video.get('id', ''))}
-    raise ValueError('Pexels no encontró clips adecuados para: ' + query[:120] + '. Usa recursos propios o ajusta la escena.')
+        hit, url, suffix = choices[index % len(choices)]
+        if cancelled():
+            raise Cancelled()
+        checked_url(url, ['pixabay.com'])
+        # One download per public resource per job; retries retain completed media.
+        path = folder / ('pixabay-' + hashlib.sha256(url.encode()).hexdigest() + suffix)
+        if not path.is_file() or not path.stat().st_size:
+            if settings.storage_used() + settings.max_download > settings.max_storage:
+                raise ValueError('No hay espacio disponible para descargar el recurso.')
+            download(url, path, settings, ['pixabay.com'], cancelled)
+        return path, {'provider': 'Pixabay', 'query': query[:100], 'creator': hit.get('user', ''),
+                      'source': hit.get('pageURL', ''), 'license': 'https://pixabay.com/service/license-summary/',
+                      'id': str(hit.get('id', '')), 'type': 'image' if images else 'video'}
+    raise ValueError('Pixabay no encontró recursos adecuados para: ' + query[:100] + '. Usa recursos propios o ajusta la escena.')
 
 
 def replicate(prompt, folder, index, settings, cancelled):

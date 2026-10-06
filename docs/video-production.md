@@ -35,7 +35,7 @@ Abre **http://127.0.0.1:8787**. El servidor muestra un código temporal en la te
 1. Genera una producción completa o recupera su JSON desde el estudio.
 2. Selecciona los bloques que quieres producir. Puedes hacer una prueba de un bloque antes del video completo.
 3. Elige horizontal, vertical o cuadrado, y 720p o 1080p.
-4. Usa **Tarjetas gráficas** para una primera prueba, recursos propios, Pexels o Replicate. Las tarjetas son composiciones originales simples con texto; revisa su presentación antes de publicar.
+4. Usa **Tarjetas gráficas** para una primera prueba, recursos propios, Pixabay o Replicate. Las tarjetas son composiciones originales simples con texto; revisa su presentación antes de publicar.
 5. Usa Edge TTS o sube tu narración. Con audio propio, el texto del guion debe corresponder a lo que se escucha.
 6. Pulsa **Generar MP4**. La cola continúa mientras usas el estudio. Al terminar, revisa el video y descarga MP4, SRT o proyecto editable.
 
@@ -57,7 +57,7 @@ Los archivos y la cola se conservan en `render-data/`. El puerto se publica úni
 | MoneyPrinterTurbo / ShortGPT | Flujo equivalente escrito para este estudio: trabajos, escenas, voz, recursos, subtítulos y MP4. |
 | FFmpeg | Motor principal real: recortes, escala/crop, zoom de imágenes, unión, mezcla de música, volumen, subtítulos ASS y H.264/AAC. Procesa segmentos sin mantener el video completo en RAM. |
 | Edge TTS | Voces español/inglés, audio por bloque y marcas de palabra cuando el servicio las entrega. Requiere internet; no requiere una API key. Puedes usar audio propio. |
-| Pexels | Búsqueda oficial de videos de stock y créditos con autor, enlace y licencia por recurso. |
+| Pixabay | Búsqueda oficial de videos e imágenes de stock, caché de búsquedas de 24 horas y créditos con autor, enlace y licencia por recurso. |
 | Replicate | Adaptador configurable para modelos que devuelven una URL de imagen/video. Generación de pago activada por el usuario y limitada a un máximo de recursos distintos por trabajo. |
 | Whisper.cpp | Transcripción local opcional, unión de subpalabras y marcas de tiempo. No instala ni descarga modelos automáticamente. |
 | Remotion | Composición React editable alimentada por `remotion-input.json`, con recursos, voz, subtítulos y barras de datos opcionales. Es una alternativa de edición/render separada del motor principal. |
@@ -73,12 +73,16 @@ El estudio existente ya coordina Gemini/DeepSeek para el empaquetado y el guion 
 Las claves de proveedores se configuran en el **servidor**, nunca en el panel de producción ni en el ZIP. Por ejemplo en Bash:
 
 ```bash
-export PEXELS_API_KEY='tu-clave'
+export PIXABAY_API_KEY='tu-clave'
 export YT_RENDER_TOKEN='un-codigo-propio-largo-de-al-menos-24-caracteres'
 python -m backend
 ```
 
-En PowerShell usa `$env:PEXELS_API_KEY = 'tu-clave'`. `.env.example` enumera las variables. Cambios de proveedor requieren reiniciar el servidor; vuelve a conectar el panel para actualizar capacidades.
+En PowerShell usa `$env:PIXABAY_API_KEY = 'tu-clave'`. `.env.example` enumera las variables. Cambios de proveedor requieren reiniciar el servidor; vuelve a conectar el panel para actualizar capacidades.
+
+En **Recursos visuales** elige **Pixabay: videos (imágenes si no hay clips)** o **Pixabay: solo imágenes**. El primer modo busca clips; si no hay candidatos adecuados, busca fotografías. Los errores de autenticación o cuota no se ocultan con una búsqueda adicional. Se prefieren clips cercanos a 720p y se excluyen variantes mayores de 1920 píxeles por lado para reducir descargas. El render puede reencuadrar el material al formato elegido.
+
+Las búsquedas se guardan 24 horas en `render-data/provider-cache/pixabay`, siguiendo la [documentación de Pixabay](https://pixabay.com/api/docs/). Un recurso ya descargado en un trabajo se reutiliza sin otra descarga, también al reintentar. No se garantiza que una primera consulta sea más rápida que otro proveedor: depende de tu conexión y de Pixabay. La clave no se guarda en la caché ni en los créditos. Se conservan los créditos históricos de Pexels y los trabajos pendientes con su antiguo selector se migran a Pixabay; requieren la nueva clave para buscar recursos nuevos. `PEXELS_API_KEY` ya no se utiliza.
 
 | Variable | Uso |
 |---|---|
@@ -87,7 +91,7 @@ En PowerShell usa `$env:PEXELS_API_KEY = 'tu-clave'`. `.env.example` enumera las
 | `YT_RENDER_ORIGINS` | Orígenes CORS exactos separados por comas. Por defecto localhost y 127.0.0.1 en 8787. |
 | `YT_FFMPEG`, `YT_FFPROBE` | Rutas alternativas a los ejecutables. |
 | `YT_ENCODER` | `libx264` por defecto; `h264_nvenc` y `h264_videotoolbox` opcionales si tu instalación los soporta. No se presume disponibilidad de hardware. |
-| `PEXELS_API_KEY` | Clave de la [API oficial](https://www.pexels.com/api/documentation/). Se utilizan hasta cinco candidatos por búsqueda. |
+| `PIXABAY_API_KEY` | Clave de la [API oficial](https://pixabay.com/api/docs/). Se utilizan hasta cinco candidatos por búsqueda. |
 | `REPLICATE_API_TOKEN` | Token de la cuenta que pagará las generaciones. |
 | `REPLICATE_MODEL_VERSION` | ID exacto de versión del modelo, 64 caracteres hexadecimales. |
 | `REPLICATE_INPUT_JSON` | Objeto de parámetros específicos del modelo; el servidor añade/reemplaza `prompt`. |
@@ -100,7 +104,7 @@ Sube imágenes PNG/JPG/WebP, videos MP4/MOV/WebM y audio WAV/MP3/M4A. El servido
 
 Marca imágenes/videos propios para formar un conjunto; se distribuyen entre escenas. También puedes asignar un recurso concreto a cada escena. La asignación tiene prioridad sobre el proveedor automático. Si no marcas un conjunto en modo propio, asigna todas las escenas de los bloques elegidos. Selecciona por separado narración y música; la música se repite, se mezcla a volumen reducido y la salida se normaliza.
 
-Pexels y Replicate generan/descargan hasta el **límite de recursos nuevos** configurado (1–8). Las escenas posteriores reutilizan recursos disponibles. Esto limita las solicitudes, no fija un presupuesto monetario: los precios y permisos dependen del proveedor/modelo. El adaptador Replicate acepta modelos por versión cuyo input incluya `prompt` y cuya salida sea una URL o lista de URLs; no sirve para todo modelo alojado sin ajustar su contrato. Devuelve créditos y versión para revisión.
+Pixabay y Replicate generan/descargan hasta el **límite de recursos nuevos** configurado (1–8). Las escenas posteriores reutilizan recursos disponibles. Esto limita las solicitudes, no fija un presupuesto monetario: los precios y permisos dependen del proveedor/modelo. El adaptador Replicate acepta modelos por versión cuyo input incluya `prompt` y cuya salida sea una URL o lista de URLs; no sirve para todo modelo alojado sin ajustar su contrato. Devuelve créditos y versión para revisión.
 
 Si se recibió un ID de predicción, un reintento consulta **esa misma predicción**. Si el POST quedó sin confirmación, el trabajo falla y requiere que revises tu cuenta; no repite automáticamente una solicitud de cobro incierta. Crear otro trabajo nuevo sí puede generar un cobro adicional. No se configuran proveedores ni se realizan llamadas de pago durante las pruebas.
 
