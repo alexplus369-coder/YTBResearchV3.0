@@ -22,10 +22,10 @@ if (Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue) {
 
 $files = @(
     'index.html', 'research-core.js', 'research-workspace.js', 'creator-core.js',
-    'creator-studio.js', 'replicate-studio.js', 'video-production.js',
+    'creator-studio.js', 'replicate-catalog.js', 'replicate-value.js', 'replicate-studio.js', 'video-production.js',
     'backend/__init__.py', 'backend/__main__.py', 'backend/api.py', 'backend/captions.py',
     'backend/config.py', 'backend/models.py', 'backend/pipeline.py', 'backend/process.py',
-    'backend/providers.py', 'backend/replicate_catalog.json', 'backend/replicate_studio.py',
+    'backend/providers.py', 'backend/replicate_catalog.json', 'backend/replicate_studio.py', 'backend/svg_media.py',
     'backend/store.py', 'backend/uploader.py', 'backend/worker.py', 'backend/requirements.txt',
     'docs/video-production.md', 'docs/third-party-notices.md'
 )

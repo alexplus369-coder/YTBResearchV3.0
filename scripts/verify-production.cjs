@@ -67,6 +67,9 @@ async function main() {
     }
     await browser('open', base);
     await wait('document.body.innerText.length > 100 && typeof window.getCreatorProduction === "function"');
+    const comparison = await value('({images: document.getElementById("replicate-value-rows-image").children.length, videos: document.getElementById("replicate-value-rows-video").children.length, position: getComputedStyle(document.getElementById("replicate-value-panel")).position, hiddenAncestor: !!document.getElementById("replicate-value-panel").closest(".hidden")})');
+    assert.deepEqual(comparison, {images:29, videos:47, position:'fixed', hiddenAncestor:false});
+    await screenshot('model-comparison-desktop.png', '#replicate-value-panel');
     await fs.writeFile(path.join(output, 'page-snapshot.json'), JSON.stringify(await browser('snapshot', '-i'), null, 2));
     assert.equal(await value('!!document.querySelector("[data-nextjs-dialog], .vite-error-overlay")'), false);
     await value('localStorage.setItem("ytCreatorProductionV1", ' + JSON.stringify(JSON.stringify(core.validateProject(completeProject()))) + ')');
@@ -119,6 +122,11 @@ async function main() {
     assert.ok(Array.isArray(pageErrors.errors), 'Browser did not return its error report');
     assert.equal(pageErrors.errors.length, 0, JSON.stringify(pageErrors));
     await browser('set', 'viewport', '390', '844');
+    const comparisonLayout = await value('(() => {const p = document.getElementById("replicate-value-panel"), r = p.getBoundingClientRect(); const lists = [...p.querySelectorAll(".value-scroll")].map(el => ({height: el.clientHeight, clientWidth: el.clientWidth, scrollWidth: el.scrollWidth})); return {left:r.left, right:r.right, bottom:r.bottom, lists};})()');
+    assert.ok(comparisonLayout.left >= 0 && comparisonLayout.right <= 390 && comparisonLayout.bottom <= 844);
+    assert.ok(comparisonLayout.lists.every(l => l.height > 20 && l.scrollWidth <= l.clientWidth + 2), 'Permanent model lists must remain visible without overflow on mobile: ' + JSON.stringify(comparisonLayout));
+    await fs.writeFile(path.join(output, 'model-comparison-layout.json'), JSON.stringify(comparisonLayout, null, 2));
+    await screenshot('model-comparison-mobile.png', '#replicate-value-panel');
     await screenshot('factory-mobile.png', '#video-factory');
     await screenshot('jobs-mobile.png', '#video-jobs');
     const layout = await value('(() => {const box = document.getElementById("video-factory"), rect = box.getBoundingClientRect(); return {clientWidth: box.clientWidth, scrollWidth: box.scrollWidth, overflow: [...box.querySelectorAll("*")].filter(el => {const r = el.getBoundingClientRect(); return r.width > 0 && r.right > rect.right + 2;}).slice(0, 20).map(el => ({tag: el.tagName, id: el.id, class: el.className, text: el.textContent.slice(0, 120)}))};})()');

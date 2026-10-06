@@ -14,7 +14,7 @@ from .models import JobRequest, ClipRequest
 from .process import run, probe, duration, Cancelled
 
 FPS = 24
-ENGINE_VERSION = '1.3.0'
+ENGINE_VERSION = '1.4.0'
 ARTIFACTS = {'video.mp4', 'subtitles.srt', 'subtitles.ass', 'words.json', 'manifest.json', 'timeline.json', 'publication.json', 'project.zip'}
 
 
@@ -272,8 +272,14 @@ class Pipeline:
             if self.settings.storage_used() + path.stat().st_size > self.settings.max_storage:
                 raise ValueError('No hay espacio para guardar el recurso generado.')
             temporary = target.with_suffix(target.suffix + '.part'); shutil.copyfile(path, temporary); temporary.replace(target)
+            if credit.get('vectorOriginal'):
+                original = folder / 'replicate-resource.media'
+                if self.settings.storage_used() + original.stat().st_size > self.settings.max_storage:
+                    raise ValueError('No hay espacio para guardar el SVG original.')
+                vector = target.with_suffix('.svg'); partial = vector.with_suffix('.svg.part')
+                shutil.copyfile(original, partial); partial.replace(vector)
             asset = self.store.add_asset(target, plan['kind'] + ' · ' + plan['model'], 'audio' if plan['kind'] in {'voice', 'music'} else plan['kind'], credit)
-        return {'assetId': asset['id'], 'resourceKind': plan['kind'], 'model': plan['model'], 'credit': credit, 'fileName': Path(asset['path']).name, 'artifacts': []}
+        return {'assetId': asset['id'], 'resourceKind': plan['kind'], 'model': plan['model'], 'credit': credit, 'fileName': Path(asset['path']).name, 'vectorOriginal': bool(credit.get('vectorOriginal')), 'artifacts': []}
 
     def bundle(self, folder, media, width, height, timeline, voice, words, music=None):
         unique = {m['path']: m for m in media}
@@ -290,6 +296,12 @@ class Pipeline:
                 archive.write(folder / filename, filename)
             for path, name in names.items():
                 archive.write(path, name)
+                if unique[path]['credit'].get('vectorOriginal'):
+                    original = Path(path).with_suffix('.svg')
+                    if not original.is_file():
+                        original = Path(path).with_suffix('.media')
+                    if original.is_file():
+                        archive.write(original, name.rsplit('.', 1)[0] + '.svg')
             if music and music['path'] not in names:
                 archive.write(music['path'], music_name)
             archive.writestr('remotion-input.json', json.dumps(props, ensure_ascii=False, indent=2))

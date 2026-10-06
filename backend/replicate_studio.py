@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 import httpx
 from jsonschema import Draft7Validator, SchemaError
 
-from . import providers
+from . import providers, svg_media
 from .process import Cancelled, probe, duration
 
 CATALOG = json.loads(Path(__file__).with_name('replicate_catalog.json').read_text(encoding='utf-8'))
@@ -107,8 +107,10 @@ def schema(model, settings):
         data = call(client, 'GET', '/models/' + model, settings)
     version = data.get('latest_version') or {}
     ident = version.get('id', '')
+    ident = ident if isinstance(ident, str) else ''
     document = version.get('openapi_schema') or {}
-    if not re.fullmatch(r'[a-f0-9]{64}', ident):
+    official = model_entry(model).get('prediction_api') == 'official'
+    if not re.fullmatch(r'[a-f0-9]{64}', ident) and not official:
         raise ValueError('El modelo no publica un esquema/version identificable. No se habilita la generación a ciegas.')
     input_schema = expand(document, document.get('components', {}).get('schemas', {}).get('Input', {}))
     if not input_schema.get('properties') or len(json.dumps(input_schema)) > 500000:
@@ -123,7 +125,10 @@ def schema(model, settings):
             field.pop('default', None)
             for part in field.get('allOf', []):
                 part.pop('default', None)
-    result = {'model': model, 'version': ident, 'input_schema': input_schema, 'kind': model_entry(model)['kind'],
+    # Official models can hide their version ID. A schema digest still detects form changes.
+    if not re.fullmatch(r'[a-f0-9]{64}', ident):
+        ident = hashlib.sha256(json.dumps(input_schema, sort_keys=True).encode()).hexdigest()
+    result = {'model': model, 'version': ident, 'api_mode': 'official' if official else 'version', 'input_schema': input_schema, 'kind': model_entry(model)['kind'],
               'model_url': 'https://replicate.com/' + model}
     providers.atomic_json(record, {'savedAt': time.time(), 'schema': result})
     return result
@@ -201,7 +206,7 @@ def prepare(selection, settings, store, texts=None):
     else:
         checked_inputs(inputs, meta['input_schema'])
     # Placeholder URLs are replaced only with uploaded assets inside the worker.
-    return {'model': selection.model, 'kind': selection.kind, 'version': meta['version'], 'input_schema': meta['input_schema'],
+    return {'model': selection.model, 'kind': selection.kind, 'version': meta['version'], 'api_mode': meta.get('api_mode', 'version'), 'input_schema': meta['input_schema'],
             'inputs': inputs, 'file_inputs': selection.file_inputs, 'text_field': text_field}
 
 
@@ -245,8 +250,10 @@ def generate(plan, folder, name, settings, store, cancelled, text=None):
             if cancelled():
                 raise Cancelled()
             providers.atomic_json(record, {'submission': 'pending', 'model': plan['model'], 'version': plan['version']})
-            # The version endpoint accepts pinned community and official models.
-            value = call(client, 'POST', '/predictions', settings, json={'version': plan['version'], 'input': inputs})
+            if plan.get('api_mode') == 'official':
+                value = call(client, 'POST', '/models/' + plan['model'] + '/predictions', settings, json={'input': inputs})
+            else:
+                value = call(client, 'POST', '/predictions', settings, json={'version': plan['version'], 'input': inputs})
             ident = value.get('id', '')
             if not re.fullmatch(r'[a-zA-Z0-9]+', ident):
                 raise RuntimeError('Predicción sin ID válido. Revisa Replicate antes de crear otra solicitud.')
@@ -265,7 +272,7 @@ def generate(plan, folder, name, settings, store, cancelled, text=None):
             if value.get('status') == 'succeeded':
                 output = value.get('output')
                 # Only URL outputs are supported; text, archives and 3D stay out of the video pipeline.
-                urls = [output] if isinstance(output, str) else output if isinstance(output, list) else [output.get(k) for k in ('image', 'video', 'audio', 'url')] if isinstance(output, dict) else []
+                urls = [output] if isinstance(output, str) else output if isinstance(output, list) else [output.get(k) for k in ('image', 'svg', 'video', 'audio', 'url')] if isinstance(output, dict) else []
                 url = next((u for u in urls if isinstance(u, str) and u.startswith('https://')), None)
                 if not url:
                     raise ValueError('El modelo no devolvió una URL de imagen, video o audio compatible.')
@@ -286,6 +293,12 @@ def generate(plan, folder, name, settings, store, cancelled, text=None):
         if settings.storage_used() + settings.max_download > settings.max_storage:
             raise ValueError('No hay espacio para descargar el recurso generado.')
         providers.download(state['output_url'], path, settings, ['replicate.delivery'], cancelled)
+    vector = model_entry(plan['model']).get('output_format') == 'svg'
+    if vector:
+        png = folder / (name + '.png')
+        if not png.is_file():
+            svg_media.rasterize(path, png)
+        path = png
     metadata = probe(path, settings)
     streams = metadata['streams']
     video = next((s for s in streams if s.get('codec_type') == 'video'), None)
@@ -297,6 +310,8 @@ def generate(plan, folder, name, settings, store, cancelled, text=None):
         raise ValueError('El recurso devuelto no corresponde al tipo seleccionado. Conservamos la predicción; no se genera otra al reintentar.')
     if actual != 'image':
         duration(path, settings)
-    return path, {'provider': 'Replicate', 'model': plan['model'], 'modelVersion': plan['version'], 'predictionId': state['id'],
-                  'type': plan['kind'], 'source': 'https://replicate.com/' + plan['model'],
+    return path, {'provider': 'Replicate', 'model': plan['model'],
+                  'modelVersion': 'provider-managed' if plan.get('api_mode') == 'official' else plan['version'],
+                  'schemaVersion': plan['version'], 'predictionApi': plan.get('api_mode', 'version'), 'predictionId': state['id'],
+                  'type': plan['kind'], 'source': 'https://replicate.com/' + plan['model'], 'vectorOriginal': vector,
                   'license': model_entry(plan['model']).get('license_warning') or 'Revisar licencia y permisos comerciales del modelo y de los recursos de referencia.'}

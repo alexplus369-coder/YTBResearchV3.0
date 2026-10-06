@@ -33,6 +33,14 @@ jobs:
       - name: Validate ZIP updater with isolated fixtures
         shell: pwsh
         run: .\scripts\test-update-replicate-studio.ps1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify Windows SVG wheel and PNG conversion
+        shell: pwsh
+        run: |
+          python -m pip install --only-binary=:all: resvg_py==0.5.0
+          python -c 'import resvg_py; data = resvg_py.svg_to_bytes(svg_string="<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><rect width=\"16\" height=\"16\" fill=\"red\"/></svg>"); assert data[:8] == bytes([137,80,78,71,13,10,26,10])'
   production:
     runs-on: ubuntu-latest
     timeout-minutes: 15

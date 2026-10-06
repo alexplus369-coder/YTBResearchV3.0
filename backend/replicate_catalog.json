@@ -8,15 +8,31 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/kwaivgi/kling-v3-video"
+      "url": "https://replicate.com/kwaivgi/kling-v3-video",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/kwaivgi/kling-v3-video",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "kwaivgi/kling-v3-motion-control",
       "label": "Kling V3 Motion Ctrl",
       "category": "🎬 Video",
       "kind": "video",
-      "operation": "generate",
-      "url": "https://replicate.com/kwaivgi/kling-v3-motion-control"
+      "operation": "transform",
+      "url": "https://replicate.com/kwaivgi/kling-v3-motion-control",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/kwaivgi/kling-v3-motion-control",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "kwaivgi/kling-v3-omni-video",
@@ -24,7 +40,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/kwaivgi/kling-v3-omni-video"
+      "url": "https://replicate.com/kwaivgi/kling-v3-omni-video",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/kwaivgi/kling-v3-omni-video",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "minimax/hailuo-2.3-fast",
@@ -32,7 +56,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/minimax/hailuo-2.3-fast"
+      "url": "https://replicate.com/minimax/hailuo-2.3-fast",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/minimax/hailuo-2.3-fast",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "minimax/video-01-live",
@@ -40,7 +72,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/minimax/video-01-live"
+      "url": "https://replicate.com/minimax/video-01-live",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/minimax/video-01-live",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "wavespeedai/wan-2.1-i2v-480p",
@@ -48,7 +88,21 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/wavespeedai/wan-2.1-i2v-480p"
+      "url": "https://replicate.com/wavespeedai/wan-2.1-i2v-480p",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/pricing",
+        "variants": [
+          {
+            "usd": 0.09,
+            "conditions": "480p · requiere imagen de entrada",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "google/veo-3.1-fast",
@@ -56,7 +110,30 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/google/veo-3.1-fast"
+      "url": "https://replicate.com/google/veo-3.1-fast",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/google/veo-3.1-fast",
+        "variants": [
+          {
+            "usd": 0.1,
+            "conditions": "Sin audio",
+            "match": {
+              "generate_audio": false
+            }
+          },
+          {
+            "usd": 0.15,
+            "conditions": "Con audio",
+            "match": {
+              "generate_audio": true
+            }
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "google/veo-3.1-lite",
@@ -64,7 +141,30 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/google/veo-3.1-lite"
+      "url": "https://replicate.com/google/veo-3.1-lite",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/google/veo-3.1-lite",
+        "variants": [
+          {
+            "usd": 0.05,
+            "conditions": "720p",
+            "match": {
+              "resolution": "720p"
+            }
+          },
+          {
+            "usd": 0.08,
+            "conditions": "1080p",
+            "match": {
+              "resolution": "1080p"
+            }
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "google/veo-3",
@@ -72,7 +172,30 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/google/veo-3"
+      "url": "https://replicate.com/google/veo-3",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/google/veo-3",
+        "variants": [
+          {
+            "usd": 0.2,
+            "conditions": "Sin audio",
+            "match": {
+              "generate_audio": false
+            }
+          },
+          {
+            "usd": 0.4,
+            "conditions": "Con audio",
+            "match": {
+              "generate_audio": true
+            }
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "bytedance/seedance-1-lite",
@@ -80,7 +203,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/bytedance/seedance-1-lite"
+      "url": "https://replicate.com/bytedance/seedance-1-lite",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/bytedance/seedance-1-lite",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "bytedance/seedance-1.5-pro",
@@ -88,7 +219,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/bytedance/seedance-1.5-pro"
+      "url": "https://replicate.com/bytedance/seedance-1.5-pro",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/bytedance/seedance-1.5-pro",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "bytedance/seedance-2.0-mini",
@@ -96,7 +235,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/bytedance/seedance-2.0-mini"
+      "url": "https://replicate.com/bytedance/seedance-2.0-mini",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/bytedance/seedance-2.0-mini",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "bytedance/seedance-2.0",
@@ -104,7 +251,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/bytedance/seedance-2.0"
+      "url": "https://replicate.com/bytedance/seedance-2.0",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/bytedance/seedance-2.0",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "bytedance/seedance-2.0-fast",
@@ -112,7 +267,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/bytedance/seedance-2.0-fast"
+      "url": "https://replicate.com/bytedance/seedance-2.0-fast",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/bytedance/seedance-2.0-fast",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "xai/grok-imagine-video",
@@ -120,7 +283,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/xai/grok-imagine-video"
+      "url": "https://replicate.com/xai/grok-imagine-video",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/xai/grok-imagine-video",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "xai/grok-imagine-video-3s",
@@ -128,7 +299,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/xai/grok-imagine-video-3s"
+      "url": "https://replicate.com/xai/grok-imagine-video-3s",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/xai/grok-imagine-video-3s",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "xai/grok-imagine-video-1.5",
@@ -136,7 +315,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/xai/grok-imagine-video-1.5"
+      "url": "https://replicate.com/xai/grok-imagine-video-1.5",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/xai/grok-imagine-video-1.5",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "xai/grok-imagine-image-quality",
@@ -144,7 +331,30 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/xai/grok-imagine-image-quality"
+      "url": "https://replicate.com/xai/grok-imagine-image-quality",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/xai/grok-imagine-image-quality",
+        "variants": [
+          {
+            "usd": 0.05,
+            "conditions": "1k · generación sin imagen de entrada",
+            "match": {
+              "resolution": "1k"
+            }
+          },
+          {
+            "usd": 0.07,
+            "conditions": "2k · generación sin imagen de entrada",
+            "match": {
+              "resolution": "2k"
+            }
+          }
+        ],
+        "notes": "La edición añade US$0,01 por megapíxel de imagen de entrada; no se incluye en la clasificación de generación."
+      }
     },
     {
       "id": "prunaai/p-video",
@@ -152,7 +362,48 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/prunaai/p-video"
+      "url": "https://replicate.com/prunaai/p-video",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/prunaai/p-video",
+        "variants": [
+          {
+            "usd": 0.005,
+            "conditions": "720p · borrador",
+            "match": {
+              "resolution": "720p",
+              "draft": true
+            }
+          },
+          {
+            "usd": 0.01,
+            "conditions": "1080p · borrador",
+            "match": {
+              "resolution": "1080p",
+              "draft": true
+            }
+          },
+          {
+            "usd": 0.02,
+            "conditions": "720p · estándar",
+            "match": {
+              "resolution": "720p",
+              "draft": false
+            }
+          },
+          {
+            "usd": 0.04,
+            "conditions": "1080p · estándar",
+            "match": {
+              "resolution": "1080p",
+              "draft": false
+            }
+          }
+        ],
+        "notes": "El borrador es más barato y de menor calidad; no se activa automáticamente."
+      }
     },
     {
       "id": "alibaba/happyhorse-1.1",
@@ -160,7 +411,30 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/alibaba/happyhorse-1.1"
+      "url": "https://replicate.com/alibaba/happyhorse-1.1",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/alibaba/happyhorse-1.1",
+        "variants": [
+          {
+            "usd": 0.14,
+            "conditions": "720p",
+            "match": {
+              "resolution": "720p"
+            }
+          },
+          {
+            "usd": 0.18,
+            "conditions": "1080p",
+            "match": {
+              "resolution": "1080p"
+            }
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "lightricks/ltx-2-distilled",
@@ -168,7 +442,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/lightricks/ltx-2-distilled"
+      "url": "https://replicate.com/lightricks/ltx-2-distilled",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/lightricks/ltx-2-distilled",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "lightricks/ltx-2-fast",
@@ -176,7 +458,37 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/lightricks/ltx-2-fast"
+      "url": "https://replicate.com/lightricks/ltx-2-fast",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/lightricks/ltx-2-fast",
+        "variants": [
+          {
+            "usd": 0.04,
+            "conditions": "1080p",
+            "match": {
+              "resolution": "1080p"
+            }
+          },
+          {
+            "usd": 0.08,
+            "conditions": "2k",
+            "match": {
+              "resolution": "2k"
+            }
+          },
+          {
+            "usd": 0.16,
+            "conditions": "4k",
+            "match": {
+              "resolution": "4k"
+            }
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "lightricks/ltx-2.3-fast",
@@ -184,7 +496,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/lightricks/ltx-2.3-fast"
+      "url": "https://replicate.com/lightricks/ltx-2.3-fast",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/lightricks/ltx-2.3-fast",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "lightricks/ltx-2.3-pro",
@@ -192,15 +512,37 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/lightricks/ltx-2.3-pro"
+      "url": "https://replicate.com/lightricks/ltx-2.3-pro",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/lightricks/ltx-2.3-pro",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "lightricks/ltx-2-retake",
       "label": "LTX-2 Retake",
       "category": "🎬 Video",
       "kind": "video",
-      "operation": "generate",
-      "url": "https://replicate.com/lightricks/ltx-2-retake"
+      "operation": "transform",
+      "url": "https://replicate.com/lightricks/ltx-2-retake",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/lightricks/ltx-2-retake",
+        "variants": [
+          {
+            "usd": 0.1,
+            "conditions": "Edición de video existente",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "lightricks/audio-to-video",
@@ -208,7 +550,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/lightricks/audio-to-video"
+      "url": "https://replicate.com/lightricks/audio-to-video",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/lightricks/audio-to-video",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "openai/sora-2-pro",
@@ -216,7 +566,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/openai/sora-2-pro"
+      "url": "https://replicate.com/openai/sora-2-pro",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/openai/sora-2-pro",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "openai/sora-2",
@@ -224,7 +582,21 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/openai/sora-2"
+      "url": "https://replicate.com/openai/sora-2",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/openai/sora-2",
+        "variants": [
+          {
+            "usd": 0.1,
+            "conditions": "Calidad estándar · pago por Replicate",
+            "match": {}
+          }
+        ],
+        "notes": "Traer una clave propia no elimina el coste de OpenAI. Las claves propias no se admiten en el formulario."
+      }
     },
     {
       "id": "pixverse/pixverse-v6",
@@ -232,7 +604,56 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/pixverse/pixverse-v6"
+      "url": "https://replicate.com/pixverse/pixverse-v6",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/pixverse/pixverse-v6",
+        "variants": [
+          {
+            "usd": 0.05,
+            "conditions": "360p · sin audio",
+            "match": {}
+          },
+          {
+            "usd": 0.07,
+            "conditions": "360p · con audio",
+            "match": {}
+          },
+          {
+            "usd": 0.07,
+            "conditions": "540p · sin audio",
+            "match": {}
+          },
+          {
+            "usd": 0.09,
+            "conditions": "540p · con audio",
+            "match": {}
+          },
+          {
+            "usd": 0.09,
+            "conditions": "720p · sin audio",
+            "match": {}
+          },
+          {
+            "usd": 0.12,
+            "conditions": "720p · con audio",
+            "match": {}
+          },
+          {
+            "usd": 0.18,
+            "conditions": "1080p · sin audio",
+            "match": {}
+          },
+          {
+            "usd": 0.23,
+            "conditions": "1080p · con audio",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "kwaivgi/kling-v1.6-standard",
@@ -240,7 +661,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/kwaivgi/kling-v1.6-standard"
+      "url": "https://replicate.com/kwaivgi/kling-v1.6-standard",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/kwaivgi/kling-v1.6-standard",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "veed/fabric-1.0",
@@ -248,7 +677,15 @@
       "category": "🎬 Video",
       "kind": "video",
       "operation": "generate",
-      "url": "https://replicate.com/veed/fabric-1.0"
+      "url": "https://replicate.com/veed/fabric-1.0",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/veed/fabric-1.0",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "zsxkib/film-frame-interpolation-for-large-motion",
@@ -256,7 +693,16 @@
       "category": "🔧 Post-video",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/zsxkib/film-frame-interpolation-for-large-motion"
+      "url": "https://replicate.com/zsxkib/film-frame-interpolation-for-large-motion",
+      "pricing": {
+        "status": "runtime",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/zsxkib/film-frame-interpolation-for-large-motion",
+        "variants": [],
+        "notes": "Replicate publica aproximadamente US$0.11 por ejecución de ejemplo, variable con la entrada. No equivale a un coste fijo por imagen ni por segundo de video y no permite un rendimiento fiable por dólar.",
+        "runtime_example_usd": 0.11
+      }
     },
     {
       "id": "arielreplicate/deoldify_video",
@@ -264,7 +710,16 @@
       "category": "🔧 Post-video",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/arielreplicate/deoldify_video"
+      "url": "https://replicate.com/arielreplicate/deoldify_video",
+      "pricing": {
+        "status": "runtime",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/arielreplicate/deoldify_video",
+        "variants": [],
+        "notes": "Replicate publica aproximadamente US$0.06 por ejecución de ejemplo, variable con la entrada. No equivale a un coste fijo por imagen ni por segundo de video y no permite un rendimiento fiable por dólar.",
+        "runtime_example_usd": 0.06
+      }
     },
     {
       "id": "xai/grok-imagine-video-extension",
@@ -272,7 +727,15 @@
       "category": "🔧 Post-video",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/xai/grok-imagine-video-extension"
+      "url": "https://replicate.com/xai/grok-imagine-video-extension",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/xai/grok-imagine-video-extension",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "topazlabs/video-upscale",
@@ -280,7 +743,15 @@
       "category": "🔧 Post-video",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/topazlabs/video-upscale"
+      "url": "https://replicate.com/topazlabs/video-upscale",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/topazlabs/video-upscale",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "heygen/lipsync-speed",
@@ -288,7 +759,21 @@
       "category": "🔧 Post-video",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/heygen/lipsync-speed"
+      "url": "https://replicate.com/heygen/lipsync-speed",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/heygen/lipsync-speed",
+        "variants": [
+          {
+            "usd": 0.0333,
+            "conditions": "Sincronización labial · requiere video y audio",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "pixverse/lipsync",
@@ -296,7 +781,15 @@
       "category": "🔧 Post-video",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/pixverse/lipsync"
+      "url": "https://replicate.com/pixverse/lipsync",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/pixverse/lipsync",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "luma/reframe-video",
@@ -304,7 +797,15 @@
       "category": "🔧 Post-video",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/luma/reframe-video"
+      "url": "https://replicate.com/luma/reframe-video",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/luma/reframe-video",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "shreejalmaharjan-27/tiktok-short-captions",
@@ -312,7 +813,16 @@
       "category": "🔧 Post-video",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/shreejalmaharjan-27/tiktok-short-captions"
+      "url": "https://replicate.com/shreejalmaharjan-27/tiktok-short-captions",
+      "pricing": {
+        "status": "runtime",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/shreejalmaharjan-27/tiktok-short-captions",
+        "variants": [],
+        "notes": "Replicate publica aproximadamente US$0.1 por ejecución de ejemplo, variable con la entrada. No equivale a un coste fijo por imagen ni por segundo de video y no permite un rendimiento fiable por dólar.",
+        "runtime_example_usd": 0.1
+      }
     },
     {
       "id": "bytedance/video-upscaler",
@@ -320,7 +830,15 @@
       "category": "🔧 Post-video",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/bytedance/video-upscaler"
+      "url": "https://replicate.com/bytedance/video-upscaler",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/bytedance/video-upscaler",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "runwayml/aleph-2",
@@ -328,7 +846,15 @@
       "category": "🔧 Post-video",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/runwayml/aleph-2"
+      "url": "https://replicate.com/runwayml/aleph-2",
+      "pricing": {
+        "status": "unverified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/runwayml/aleph-2",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "google/imagen-4-ultra",
@@ -336,7 +862,21 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/google/imagen-4-ultra"
+      "url": "https://replicate.com/google/imagen-4-ultra",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/google/imagen-4-ultra",
+        "variants": [
+          {
+            "usd": 0.06,
+            "conditions": "Por imagen de salida",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "openai/gpt-image-2",
@@ -344,7 +884,44 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/openai/gpt-image-2"
+      "url": "https://replicate.com/openai/gpt-image-2",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/openai/gpt-image-2",
+        "variants": [
+          {
+            "usd": 0.012,
+            "conditions": "Calidad low",
+            "match": {
+              "quality": "low"
+            }
+          },
+          {
+            "usd": 0.047,
+            "conditions": "Calidad medium",
+            "match": {
+              "quality": "medium"
+            }
+          },
+          {
+            "usd": 0.128,
+            "conditions": "Calidad high / auto",
+            "match": {
+              "quality": "auto"
+            }
+          },
+          {
+            "usd": 0.128,
+            "conditions": "Calidad high",
+            "match": {
+              "quality": "high"
+            }
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "xai/grok-imagine-image",
@@ -352,7 +929,21 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/xai/grok-imagine-image"
+      "url": "https://replicate.com/xai/grok-imagine-image",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/xai/grok-imagine-image",
+        "variants": [
+          {
+            "usd": 0.02,
+            "conditions": "Por imagen de salida",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "bytedance/seedream-4",
@@ -360,7 +951,15 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/bytedance/seedream-4"
+      "url": "https://replicate.com/bytedance/seedream-4",
+      "pricing": {
+        "status": "unverified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/bytedance/seedream-4",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "bytedance/seedream-4.5",
@@ -368,7 +967,21 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/bytedance/seedream-4.5"
+      "url": "https://replicate.com/bytedance/seedream-4.5",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/bytedance/seedream-4.5",
+        "variants": [
+          {
+            "usd": 0.04,
+            "conditions": "Por imagen de salida",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "openai/gpt-image-1.5",
@@ -376,7 +989,15 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/openai/gpt-image-1.5"
+      "url": "https://replicate.com/openai/gpt-image-1.5",
+      "pricing": {
+        "status": "unverified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/openai/gpt-image-1.5",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "black-forest-labs/flux-2-pro",
@@ -384,7 +1005,21 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/black-forest-labs/flux-2-pro"
+      "url": "https://replicate.com/black-forest-labs/flux-2-pro",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/black-forest-labs/flux-2-pro",
+        "variants": [
+          {
+            "usd": 0.03,
+            "conditions": "1 MP de salida · sin imágenes de entrada",
+            "match": {}
+          }
+        ],
+        "notes": "US$0,015 por ejecución + US$0,015/MP de salida; se suman US$0,015/MP de entrada si editas. No se clasifica usando solo el cargo base."
+      }
     },
     {
       "id": "black-forest-labs/flux-2-flex",
@@ -392,7 +1027,15 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/black-forest-labs/flux-2-flex"
+      "url": "https://replicate.com/black-forest-labs/flux-2-flex",
+      "pricing": {
+        "status": "unverified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/black-forest-labs/flux-2-flex",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "prunaai/z-image-turbo",
@@ -400,7 +1043,41 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/prunaai/z-image-turbo"
+      "url": "https://replicate.com/prunaai/z-image-turbo",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/prunaai/z-image-turbo",
+        "variants": [
+          {
+            "usd": 0.00125,
+            "conditions": "≈0,5 MP · US$2,50/1.000 MP de salida",
+            "match": {}
+          },
+          {
+            "usd": 0.005,
+            "conditions": "≈1 MP · US$5/1.000 MP de salida",
+            "match": {}
+          },
+          {
+            "usd": 0.02,
+            "conditions": "≈2 MP · US$0,01/MP de salida",
+            "match": {}
+          },
+          {
+            "usd": 0.045,
+            "conditions": "≈3 MP · US$0,015/MP de salida",
+            "match": {}
+          },
+          {
+            "usd": 0.08,
+            "conditions": "≈4 MP · US$0,02/MP de salida",
+            "match": {}
+          }
+        ],
+        "notes": "Estimación por megapíxeles reales de salida. El tamaño exacto y el redondeo de facturación pueden reducir el número de imágenes."
+      }
     },
     {
       "id": "google/nano-banana-pro",
@@ -408,7 +1085,37 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/google/nano-banana-pro"
+      "url": "https://replicate.com/google/nano-banana-pro",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/google/nano-banana-pro",
+        "variants": [
+          {
+            "usd": 0.15,
+            "conditions": "1K",
+            "match": {
+              "resolution": "1K"
+            }
+          },
+          {
+            "usd": 0.15,
+            "conditions": "2K",
+            "match": {
+              "resolution": "2K"
+            }
+          },
+          {
+            "usd": 0.3,
+            "conditions": "4K",
+            "match": {
+              "resolution": "4K"
+            }
+          }
+        ],
+        "notes": "La tarifa fallback de US$0,035 corresponde a otro comportamiento/modelo de respaldo; no cuenta como generación Pro."
+      }
     },
     {
       "id": "google/nano-banana-2-lite",
@@ -416,7 +1123,21 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/google/nano-banana-2-lite"
+      "url": "https://replicate.com/google/nano-banana-2-lite",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/google/nano-banana-2-lite",
+        "variants": [
+          {
+            "usd": 0.034,
+            "conditions": "1K",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "google/nano-banana-2",
@@ -424,7 +1145,37 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/google/nano-banana-2"
+      "url": "https://replicate.com/google/nano-banana-2",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/google/nano-banana-2",
+        "variants": [
+          {
+            "usd": 0.067,
+            "conditions": "1K",
+            "match": {
+              "resolution": "1K"
+            }
+          },
+          {
+            "usd": 0.101,
+            "conditions": "2K",
+            "match": {
+              "resolution": "2K"
+            }
+          },
+          {
+            "usd": 0.151,
+            "conditions": "4K",
+            "match": {
+              "resolution": "4K"
+            }
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "bytedance/seedream-5-pro",
@@ -432,7 +1183,30 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/bytedance/seedream-5-pro"
+      "url": "https://replicate.com/bytedance/seedream-5-pro",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/bytedance/seedream-5-pro",
+        "variants": [
+          {
+            "usd": 0.045,
+            "conditions": "1K",
+            "match": {
+              "resolution": "1K"
+            }
+          },
+          {
+            "usd": 0.09,
+            "conditions": "2K",
+            "match": {
+              "resolution": "2K"
+            }
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "ideogram-ai/ideogram-v4-quality",
@@ -440,7 +1214,21 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/ideogram-ai/ideogram-v4-quality"
+      "url": "https://replicate.com/ideogram-ai/ideogram-v4-quality",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/ideogram-ai/ideogram-v4-quality",
+        "variants": [
+          {
+            "usd": 0.1,
+            "conditions": "Calidad quality",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "ideogram-ai/ideogram-v4-balanced",
@@ -448,7 +1236,21 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/ideogram-ai/ideogram-v4-balanced"
+      "url": "https://replicate.com/ideogram-ai/ideogram-v4-balanced",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/ideogram-ai/ideogram-v4-balanced",
+        "variants": [
+          {
+            "usd": 0.06,
+            "conditions": "Calidad balanced",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "zedge/stable-diffusion",
@@ -456,7 +1258,16 @@
       "category": "🖼️ Imagen",
       "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/zedge/stable-diffusion"
+      "url": "https://replicate.com/zedge/stable-diffusion",
+      "pricing": {
+        "status": "runtime",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/zedge/stable-diffusion",
+        "variants": [],
+        "notes": "Replicate publica aproximadamente US$0.0054 por ejecución de ejemplo, variable con la entrada. No equivale a un coste fijo por imagen ni por segundo de video y no permite un rendimiento fiable por dólar.",
+        "runtime_example_usd": 0.0054
+      }
     },
     {
       "id": "flux-kontext-apps/multi-image-kontext-pro",
@@ -464,7 +1275,21 @@
       "category": "🛠️ Restauración",
       "kind": "image",
       "operation": "transform",
-      "url": "https://replicate.com/flux-kontext-apps/multi-image-kontext-pro"
+      "url": "https://replicate.com/flux-kontext-apps/multi-image-kontext-pro",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/flux-kontext-apps/multi-image-kontext-pro",
+        "variants": [
+          {
+            "usd": 0.04,
+            "conditions": "Combinar dos imágenes de entrada",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "flux-kontext-apps/restore-image",
@@ -472,7 +1297,15 @@
       "category": "🛠️ Restauración",
       "kind": "image",
       "operation": "transform",
-      "url": "https://replicate.com/flux-kontext-apps/restore-image"
+      "url": "https://replicate.com/flux-kontext-apps/restore-image",
+      "pricing": {
+        "status": "unverified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/flux-kontext-apps/restore-image",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
     },
     {
       "id": "851-labs/background-remover",
@@ -480,7 +1313,16 @@
       "category": "🛠️ Restauración",
       "kind": "image",
       "operation": "transform",
-      "url": "https://replicate.com/851-labs/background-remover"
+      "url": "https://replicate.com/851-labs/background-remover",
+      "pricing": {
+        "status": "runtime",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/851-labs/background-remover",
+        "variants": [],
+        "notes": "Replicate publica aproximadamente US$0.00052 por ejecución de ejemplo, variable con la entrada. No equivale a un coste fijo por imagen ni por segundo de video y no permite un rendimiento fiable por dólar.",
+        "runtime_example_usd": 0.00052
+      }
     },
     {
       "id": "prunaai/p-image-upscale",
@@ -488,7 +1330,46 @@
       "category": "🛠️ Restauración",
       "kind": "image",
       "operation": "transform",
-      "url": "https://replicate.com/prunaai/p-image-upscale"
+      "url": "https://replicate.com/prunaai/p-image-upscale",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/prunaai/p-image-upscale",
+        "variants": [
+          {
+            "usd": 0.005,
+            "conditions": "Hasta 4 MP · ampliación",
+            "match": {}
+          },
+          {
+            "usd": 0.01,
+            "conditions": "4–8 MP · ampliación",
+            "match": {}
+          },
+          {
+            "usd": 0.02,
+            "conditions": "8–16 MP · ampliación",
+            "match": {}
+          },
+          {
+            "usd": 0.04,
+            "conditions": "16–32 MP · ampliación",
+            "match": {}
+          },
+          {
+            "usd": 0.06,
+            "conditions": "32–64 MP · ampliación",
+            "match": {}
+          },
+          {
+            "usd": 0.12,
+            "conditions": "64–128 MP · ampliación",
+            "match": {}
+          }
+        ],
+        "notes": "Amplía imágenes existentes; no crea imágenes desde un prompt."
+      }
     },
     {
       "id": "piddnad/ddcolor",
@@ -496,7 +1377,16 @@
       "category": "🛠️ Restauración",
       "kind": "image",
       "operation": "transform",
-      "url": "https://replicate.com/piddnad/ddcolor"
+      "url": "https://replicate.com/piddnad/ddcolor",
+      "pricing": {
+        "status": "runtime",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/piddnad/ddcolor",
+        "variants": [],
+        "notes": "Replicate publica aproximadamente US$0.00098 por ejecución de ejemplo, variable con la entrada. No equivale a un coste fijo por imagen ni por segundo de video y no permite un rendimiento fiable por dólar.",
+        "runtime_example_usd": 0.00098
+      }
     },
     {
       "id": "google/upscaler",
@@ -504,7 +1394,21 @@
       "category": "🛠️ Restauración",
       "kind": "image",
       "operation": "transform",
-      "url": "https://replicate.com/google/upscaler"
+      "url": "https://replicate.com/google/upscaler",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/google/upscaler",
+        "variants": [
+          {
+            "usd": 0.02,
+            "conditions": "Ampliación 2× / 4×",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "meta/musicgen",
@@ -624,17 +1528,49 @@
       "id": "recraft-ai/recraft-v4.1-svg",
       "label": "Recraft V4.1 SVG",
       "category": "🎨 SVG",
-      "kind": null,
+      "kind": "image",
       "operation": "generate",
-      "url": "https://replicate.com/recraft-ai/recraft-v4.1-svg"
+      "url": "https://replicate.com/recraft-ai/recraft-v4.1-svg",
+      "output_format": "svg",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/recraft-ai/recraft-v4.1-svg",
+        "variants": [
+          {
+            "usd": 0.04,
+            "conditions": "SVG vectorial editable",
+            "match": {}
+          }
+        ],
+        "notes": ""
+      }
     },
     {
       "id": "recraft-ai/recraft-vectorize",
       "label": "Recraft Vectorize",
       "category": "🎨 SVG",
-      "kind": null,
-      "operation": "generate",
-      "url": "https://replicate.com/recraft-ai/recraft-vectorize"
+      "kind": "image",
+      "operation": "transform",
+      "url": "https://replicate.com/recraft-ai/recraft-vectorize",
+      "output_format": "svg",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/recraft-ai/recraft-vectorize",
+        "variants": [
+          {
+            "usd": 0.01,
+            "conditions": "Vectorización · requiere imagen",
+            "match": {}
+          }
+        ],
+        "notes": "Son imágenes convertidas, no generación desde un prompt."
+      }
     },
     {
       "id": "anthropic/claude-opus-4.6",
@@ -690,7 +1626,445 @@
       "category": "👤 Avatar",
       "kind": "video",
       "operation": "transform",
-      "url": "https://replicate.com/prunaai/p-video-avatar"
+      "url": "https://replicate.com/prunaai/p-video-avatar",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/prunaai/p-video-avatar",
+        "variants": [
+          {
+            "usd": 0.025,
+            "conditions": "720p · avatar con imagen y audio",
+            "match": {
+              "resolution": "720p"
+            }
+          },
+          {
+            "usd": 0.045,
+            "conditions": "1080p · avatar con imagen y audio",
+            "match": {
+              "resolution": "1080p"
+            }
+          }
+        ],
+        "notes": ""
+      }
+    },
+    {
+      "id": "alibaba/wan-3",
+      "label": "Wan 3.0",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/alibaba/wan-3",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/alibaba/wan-3",
+        "variants": [
+          {
+            "usd": 0.05,
+            "conditions": "480p · tarifa base sin promoción",
+            "match": {
+              "resolution": "480p"
+            }
+          },
+          {
+            "usd": 0.1,
+            "conditions": "720p · tarifa base sin promoción",
+            "match": {
+              "resolution": "720p"
+            }
+          },
+          {
+            "usd": 0.2,
+            "conditions": "1080p · tarifa base sin promoción",
+            "match": {
+              "resolution": "1080p"
+            }
+          }
+        ],
+        "notes": "El banner de descuento termina el 30 de agosto. La tabla aún muestra 50% menos que el README: usamos la tarifa base, no la promoción vencida. Confirma el precio al generar."
+      }
+    },
+    {
+      "id": "prunaai/p-video-2-pro",
+      "label": "P-Video 2 Pro",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/prunaai/p-video-2-pro",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/prunaai/p-video-2-pro",
+        "variants": [
+          {
+            "usd": 0.01,
+            "conditions": "480p · modo cost",
+            "match": {
+              "resolution": "480p",
+              "mode": "cost"
+            }
+          },
+          {
+            "usd": 0.025,
+            "conditions": "768p · modo cost",
+            "match": {
+              "resolution": "768p",
+              "mode": "cost"
+            }
+          },
+          {
+            "usd": 0.02,
+            "conditions": "480p · modo speed",
+            "match": {
+              "resolution": "480p",
+              "mode": "speed"
+            }
+          },
+          {
+            "usd": 0.04,
+            "conditions": "480p · modo quality",
+            "match": {
+              "resolution": "480p",
+              "mode": "quality"
+            }
+          },
+          {
+            "usd": 0.035,
+            "conditions": "768p · modo speed",
+            "match": {
+              "resolution": "768p",
+              "mode": "speed"
+            }
+          },
+          {
+            "usd": 0.075,
+            "conditions": "768p · modo quality",
+            "match": {
+              "resolution": "768p",
+              "mode": "quality"
+            }
+          }
+        ],
+        "notes": ""
+      }
+    },
+    {
+      "id": "prunaai/p-video-edit",
+      "label": "P-Video Edit",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/prunaai/p-video-edit",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/prunaai/p-video-edit",
+        "variants": [
+          {
+            "usd": 0.025,
+            "conditions": "Borrador · requiere video de entrada",
+            "match": {
+              "draft": true
+            }
+          },
+          {
+            "usd": 0.045,
+            "conditions": "Calidad completa · requiere video de entrada",
+            "match": {
+              "draft": false
+            }
+          }
+        ],
+        "notes": "Son segundos editados, no video creado desde cero. La duración del clip de entrada determina el coste."
+      }
+    },
+    {
+      "id": "openai/gpt-image-2.5-flare",
+      "label": "GPT Image 2.5 Flare",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/openai/gpt-image-2.5-flare",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/openai/gpt-image-2.5-flare",
+        "variants": [
+          {
+            "usd": 0.012,
+            "conditions": "Calidad low",
+            "match": {
+              "quality": "low"
+            }
+          },
+          {
+            "usd": 0.047,
+            "conditions": "Calidad medium",
+            "match": {
+              "quality": "medium"
+            }
+          },
+          {
+            "usd": 0.128,
+            "conditions": "Calidad high",
+            "match": {
+              "quality": "high"
+            }
+          },
+          {
+            "usd": 0.25,
+            "conditions": "Calidad xhigh / auto",
+            "match": {
+              "quality": "auto"
+            }
+          },
+          {
+            "usd": 0.25,
+            "conditions": "Calidad xhigh",
+            "match": {
+              "quality": "xhigh"
+            }
+          },
+          {
+            "usd": 0.5,
+            "conditions": "Calidad max",
+            "match": {
+              "quality": "max"
+            }
+          }
+        ],
+        "notes": "El valor predeterminado auto es más caro que low. No se aplica el perfil económico automáticamente."
+      }
+    },
+    {
+      "id": "openai/gpt-image-2.5-sunburst",
+      "label": "GPT Image 2.5 Sunburst",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/openai/gpt-image-2.5-sunburst",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "unverified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/openai/gpt-image-2.5-sunburst",
+        "variants": [],
+        "notes": "Tarifa de salida pendiente de verificación; consulta la ficha antes de generar. No se infieren imágenes ni segundos a partir de un coste por ejecución o GPU."
+      }
+    },
+    {
+      "id": "black-forest-labs/flux-3-image",
+      "label": "FLUX 3 Image",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/black-forest-labs/flux-3-image",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/black-forest-labs/flux-3-image",
+        "variants": [
+          {
+            "usd": 0.0205,
+            "conditions": "768sq",
+            "match": {
+              "resolution": "768sq"
+            }
+          },
+          {
+            "usd": 0.024,
+            "conditions": "1k",
+            "match": {
+              "resolution": "1k"
+            }
+          },
+          {
+            "usd": 0.035,
+            "conditions": "1.5k",
+            "match": {
+              "resolution": "1.5k"
+            }
+          },
+          {
+            "usd": 0.05,
+            "conditions": "2k",
+            "match": {
+              "resolution": "2k"
+            }
+          },
+          {
+            "usd": 0.3035,
+            "conditions": "4k",
+            "match": {
+              "resolution": "4k"
+            }
+          }
+        ],
+        "notes": "Comparación de generación sin referencias adicionales."
+      }
+    },
+    {
+      "id": "recraft-ai/recraft-v4-styles-pro-svg",
+      "label": "Recraft V4 Styles Pro SVG",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/recraft-ai/recraft-v4-styles-pro-svg",
+      "prediction_api": "official",
+      "output_format": "svg",
+      "pricing": {
+        "status": "verified",
+        "unit": "image",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/recraft-ai/recraft-v4-styles-pro-svg",
+        "variants": [
+          {
+            "usd": 0.12,
+            "conditions": "SVG vectorial editable",
+            "match": {}
+          }
+        ],
+        "notes": "Conserva el SVG original y crea un PNG para el MP4."
+      }
+    },
+    {
+      "id": "bytedance/seedance-2.5",
+      "label": "Seedance 2.5",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/bytedance/seedance-2.5",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/bytedance/seedance-2.5",
+        "variants": [
+          {
+            "usd": 0.1028,
+            "conditions": "480p · sin video de referencia",
+            "match": {}
+          },
+          {
+            "usd": 0.2312,
+            "conditions": "720p · sin video de referencia",
+            "match": {}
+          },
+          {
+            "usd": 0.4304,
+            "conditions": "480p · con video de referencia",
+            "match": {}
+          },
+          {
+            "usd": 0.9676,
+            "conditions": "720p · con video de referencia",
+            "match": {}
+          }
+        ],
+        "notes": "Los videos de referencia cambian la tarifa; los tiempos de GPU no son la duración generada."
+      }
+    },
+    {
+      "id": "google/gemini-omni-1.1",
+      "label": "Gemini Omni 1.1 Flash",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/google/gemini-omni-1.1",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/google/gemini-omni-1.1",
+        "variants": [
+          {
+            "usd": 0.05,
+            "conditions": "360p",
+            "match": {
+              "resolution": "360p"
+            }
+          }
+        ],
+        "notes": "Tarifa verificada para 360p. Consulta la ficha para 720p, 1080p y 4K."
+      }
+    },
+    {
+      "id": "lightricks/ltx-2.5-fast",
+      "label": "LTX 2.5 Fast",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/lightricks/ltx-2.5-fast",
+      "prediction_api": "official",
+      "pricing": {
+        "status": "verified",
+        "unit": "second",
+        "checked_at": "2026-10-06",
+        "source": "https://replicate.com/lightricks/ltx-2.5-fast",
+        "variants": [
+          {
+            "usd": 0.03,
+            "conditions": "720p",
+            "match": {
+              "resolution": "720p"
+            }
+          },
+          {
+            "usd": 0.06,
+            "conditions": "1080p",
+            "match": {
+              "resolution": "1080p"
+            }
+          },
+          {
+            "usd": 0.12,
+            "conditions": "2k",
+            "match": {
+              "resolution": "2k"
+            }
+          },
+          {
+            "usd": 0.24,
+            "conditions": "4k",
+            "match": {
+              "resolution": "4k"
+            }
+          }
+        ],
+        "notes": ""
+      }
     }
-  ]
+  ],
+  "catalog_updated_at": "2026-10-06",
+  "requested_models": [
+    "alibaba/wan-3",
+    "prunaai/p-video-2-pro",
+    "prunaai/p-video-edit",
+    "openai/gpt-image-2.5-flare",
+    "openai/gpt-image-2.5-sunburst",
+    "black-forest-labs/flux-3-image",
+    "recraft-ai/recraft-v4-styles-pro-svg",
+    "bytedance/seedance-2.5",
+    "google/gemini-omni-1.1",
+    "lightricks/ltx-2.5-fast"
+  ],
+  "pricing_checked_at": "2026-10-06",
+  "pricing_currency": "USD"
 }

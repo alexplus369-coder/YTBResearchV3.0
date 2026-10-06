@@ -59,7 +59,7 @@
         finally { working = false; lock(); }
     }
     function actions(job) {
-        if (job.kind === 'resource' && job.state === 'completed') return '<button type="button" data-video-action="use-resource" data-job="' + h(job.id) + '" class="text-xs font-bold border rounded-lg px-3 py-2">Usar recurso</button><button type="button" data-video-action="download-resource" data-job="' + h(job.id) + '" class="text-xs font-bold border rounded-lg px-3 py-2">Descargar recurso</button><button type="button" data-video-action="delete" data-job="' + h(job.id) + '" class="text-xs border rounded-lg px-3 py-2">Borrar trabajo (conservar recurso)</button>';
+        if (job.kind === 'resource' && job.state === 'completed') return '<button type="button" data-video-action="use-resource" data-job="' + h(job.id) + '" class="text-xs font-bold border rounded-lg px-3 py-2">Usar recurso</button><button type="button" data-video-action="download-resource" data-job="' + h(job.id) + '" class="text-xs font-bold border rounded-lg px-3 py-2">Descargar recurso</button>' + (job.result.vectorOriginal ? '<button type="button" data-video-action="download-vector" data-job="' + h(job.id) + '" class="text-xs font-bold border rounded-lg px-3 py-2">Descargar SVG original</button>' : '') + '<button type="button" data-video-action="delete" data-job="' + h(job.id) + '" class="text-xs border rounded-lg px-3 py-2">Borrar trabajo (conservar recurso)</button>';
         const button = (action, label) => '<button type="button" data-video-action="' + action + '" data-job="' + h(job.id) + '" class="text-xs font-bold border rounded-lg px-3 py-2">' + label + '</button>';
         if (job.state === 'completed') return button('preview', 'Ver MP4') + button('video.mp4', 'Descargar MP4') + button('subtitles.srt', 'SRT') + (job.result.artifacts.includes('project.zip') ? button('project.zip', 'Proyecto editable / Remotion') : '') + (job.result.canClip ? button('transcript', 'Transcripción / recortar') : '') + button('youtube', 'Subir privado a YouTube') + button('delete', 'Borrar render');
         if (job.state === 'queued' || job.state === 'running') return button('cancel', 'Cancelar');
@@ -209,10 +209,11 @@
         const id = el.dataset.job, action = el.dataset.videoAction;
         work('Procesando video ' + id.slice(0, 8) + '…', async () => {
             if (action === 'use-resource') { assets = await request('/assets'); renderAssets(); useResource(jobs.find(j => j.id === id)); status('Recurso seleccionado. Revisa su contenido antes de producir el MP4.'); return; }
-            if (action === 'download-resource') {
+            if (action === 'download-resource' || action === 'download-vector') {
                 const assetId = jobs.find(j => j.id === id).result.assetId;
-                const blob = await request('/assets/' + assetId + '/file', {}, true), url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = jobs.find(j => j.id === id).result.fileName || assetId.slice(0, 8) + '-recurso'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); status('Recurso descargado.'); return;
+                const vector = action === 'download-vector';
+                const blob = await request('/assets/' + assetId + (vector ? '/original' : '/file'), {}, true), url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = vector ? assetId + '.svg' : jobs.find(j => j.id === id).result.fileName || assetId.slice(0, 8) + '-recurso'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); status('Recurso descargado.'); return;
             }
             if (action === 'cancel' || action === 'retry') { await post('/jobs/' + id + '/' + action, {}); await refresh(); poll(); status('Trabajo actualizado.'); return; }
             if (action === 'delete') { const isResource = jobs.find(j => j.id === id)?.kind === 'resource'; await request('/jobs/' + id, { method: 'DELETE' }); pendingResources.delete(id); await refresh(); resetPreview(); status(isResource ? 'Trabajo eliminado. El recurso generado sigue en Mis recursos.' : 'Render y archivos eliminados.'); return; }

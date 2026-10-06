@@ -80,6 +80,25 @@ test('catalog and schema load only on request, categories filter and unsafe text
     assert.ok(!JSON.stringify({ ...ui.w.localStorage }).includes('render-access-code'));
 });
 
+test('permanent comparison chooses a new model, opens Studio and loads parameters without payment', async t => {
+    const ui = setup(t); await ui.connect();
+    ui.$('creator-tab-keywords').click();
+    const id = 'prunaai/p-video-2-pro';
+    ui.$('replicate-value-panel').querySelector('[data-value-select="' + id + '"]').click();
+    await until(() => !ui.$('replicate-apply').disabled);
+    assert.equal(ui.$('creator-panel-studio').classList.contains('hidden'), false);
+    assert.equal(ui.$('replicate-panel').classList.contains('hidden'), false);
+    assert.equal(ui.$('replicate-kind').value, 'video');
+    assert.equal(ui.$('replicate-model').value, id);
+    assert.ok(ui.calls.some(c => c.url.pathname.endsWith('/' + id + '/schema')));
+    assert.equal(ui.paidCalls().length, 0);
+    assert.equal(ui.$('replicate-paid').checked, false);
+    ui.$('video-disconnect').click();
+    assert.equal(ui.$('replicate-value-rows-image').children.length, 29);
+    assert.equal(ui.$('replicate-value-rows-video').children.length, 47);
+    assert.ok([...ui.$('replicate-value-panel').querySelectorAll('button')].every(b => b.disabled));
+});
+
 test('image, voice and music models keep independent parameters and require an explicit render submission', async t => {
     const ui = setup(t); await ui.connect(); await ui.select('image');
     ui.input('steps', '7'); ui.input('output_format', '"jpeg"');
