@@ -49,7 +49,7 @@ while True:
 
 request('/', auth=None, expected=401)
 request('/replicate-catalog.js', auth=None, expected=401)
-assert b'F\xc3\xa1brica de videos' in request('/', auth='site')
+assert b'id="video-factory"' in request('/', auth='site')
 request('/api/video/health', auth='site', expected=401)
 health = request('/api/video/health')
 assert health['worker'] and health['ready'] and health['providers']['encoder'] == 'libx264'

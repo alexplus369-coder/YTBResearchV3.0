@@ -39,6 +39,8 @@ Fuentes: [precios](https://render.com/pricing), [planes de cómputo](https://ren
 
 Render proporciona `PORT` y `RENDER_EXTERNAL_URL` automáticamente. El servidor escucha en `0.0.0.0:PORT`; admite únicamente el origen HTTPS del servicio y los orígenes que configuraste, además de localhost para uso local. Para Docker fuera de Render, el puerto sigue siendo 8787. `python -m backend` no carga `.env` por sí mismo.
 
+Las claves de YouTube y de los proveedores de guiones se introducen en el panel como en tu instalación local; no se trasladan con los respaldos JSON. Si tu clave de Google tiene restricciones de sitio web, añade tu dirección HTTPS de Render a los referentes permitidos. Para Analytics o subida a YouTube, configura también ese origen en el OAuth Client ID Web; consulta [la guía de producción](video-production.md#subida-a-youtube) y [las instrucciones de Google](https://developers.google.com/youtube/v3/getting-started).
+
 ## Generar, descargar y eliminar
 
 1. Genera el recurso o el MP4. En una instancia de pago activa, una tarea ya enviada a la cola sigue en el servidor aunque cierres la tablet; un reinicio o redeploy puede interrumpirla.
