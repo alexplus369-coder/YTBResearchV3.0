@@ -17,6 +17,7 @@ const browserOptions = ['--session', 'yt-production-' + process.pid, '--json'];
 if (process.env.YT_BROWSER_BIN) browserOptions.push('--executable-path', process.env.YT_BROWSER_BIN);
 browserOptions.push('--args', '--no-sandbox,--disable-dev-shm-usage');
 const env = {...process.env, YT_RENDER_DIR: path.join(output, 'server-data'), YT_RENDER_TOKEN: token,
+  PORT: '8787', YT_RENDER_HOST: '127.0.0.1', RENDER_EXTERNAL_URL: '', YT_SITE_PRIVATE: 'true', YT_SITE_USER: 'alejandro',
   PIXABAY_API_KEY: '', REPLICATE_API_TOKEN: '', WHISPER_CPP_BINARY: '', WHISPER_CPP_MODEL: '',
   TELEGRAM_BOT_TOKEN: '', TELEGRAM_CHAT_ID: '', AGENT_BROWSER_DEFAULT_TIMEOUT: '60000'};
 
@@ -65,6 +66,9 @@ async function main() {
       if (server.exitCode !== null || Date.now() - started > 20000) throw new Error('Backend failed to start: ' + serverLog);
       await new Promise(resolve => setTimeout(resolve, 100));
     }
+    assert.equal((await fetch(base + '/healthz')).status, 200);
+    assert.equal((await fetch(base)).status, 401);
+    await browser('set', 'credentials', 'alejandro', token);
     await browser('open', base);
     await wait('document.body.innerText.length > 100 && typeof window.getCreatorProduction === "function"');
     const comparison = await value('({images: document.getElementById("replicate-value-rows-image").children.length, videos: document.getElementById("replicate-value-rows-video").children.length, position: getComputedStyle(document.getElementById("replicate-value-panel")).position, hiddenAncestor: !!document.getElementById("replicate-value-panel").closest(".hidden")})');
@@ -80,7 +84,7 @@ async function main() {
     await wait('getComputedStyle(document.getElementById("video-factory")).borderTopWidth === "1px"');
     assert.equal((await api('/health')).worker, true);
     assert.equal((await api('/jobs')).length, 0);
-    assert.ok((await fetch(base + '/docs/video-production.md')).ok);
+    assert.ok((await fetch(base + '/docs/video-production.md', {headers: {Authorization: 'Basic ' + Buffer.from('alejandro:' + token).toString('base64')}})).ok);
 
     await browser('click', '#video-render-form details summary');
     const assets = path.join(fixture, 'data', 'assets');
@@ -133,7 +137,15 @@ async function main() {
     await fs.writeFile(path.join(output, 'mobile-layout.json'), JSON.stringify(layout, null, 2));
     assert.ok(layout.scrollWidth <= layout.clientWidth + 2, 'Factory overflows on mobile: ' + JSON.stringify(layout));
     await fs.writeFile(path.join(output, 'browser-report.json'), JSON.stringify({pageErrors, original: original.result, clip: clipped.result, mobileWidth: 390}, null, 2));
-    console.log('Real browser check passed: connect, upload, render, playable preview, transcript, portrait clip and mobile layout.');
+    await value('window.confirm = () => true; true');
+    await browser('click', '#video-clean-temp');
+    await wait('document.getElementById("video-connection").textContent.includes("Temporales eliminados")');
+    assert.equal((await api('/jobs')).length, 0); assert.equal((await api('/assets')).length, 0);
+    assert.equal((await fs.readdir(path.join(output, 'server-data', 'jobs'))).length, 0);
+    assert.equal((await fs.readdir(path.join(output, 'server-data', 'assets'))).length, 0);
+    assert.ok(await value('!!window.getCreatorProduction()'));
+    assert.equal((await browser('errors')).errors.length, 0);
+    console.log('Real browser check passed: private site, connect, upload, render, playable preview, transcript, portrait clip, mobile layout and temporary-file cleanup.');
   } catch (error) {
     await fs.writeFile(path.join(output, 'server.log'), serverLog);
     await browser('screenshot', path.join(output, 'error.png')).catch(() => {});

@@ -27,7 +27,7 @@ $files = @(
     'backend/config.py', 'backend/models.py', 'backend/pipeline.py', 'backend/process.py',
     'backend/providers.py', 'backend/replicate_catalog.json', 'backend/replicate_studio.py', 'backend/svg_media.py',
     'backend/store.py', 'backend/uploader.py', 'backend/worker.py', 'backend/requirements.txt',
-    'docs/video-production.md', 'docs/third-party-notices.md'
+    'docs/video-production.md', 'docs/third-party-notices.md', 'docs/render-personal.md'
 )
 $runName = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N')
 $runRoot = Join-Path (Join-Path $projectRoot 'update-backups') $runName

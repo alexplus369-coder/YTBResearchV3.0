@@ -1,0 +1,30 @@
+# A free instance previews the panel. Choose paid compute in Render for production.
+# No persistent disk, external database, GPU or separate worker is provisioned.
+services:
+  - type: web
+    name: ytb-research-personal
+    runtime: docker
+    plan: free
+    region: oregon
+    numInstances: 1
+    autoDeployTrigger: "off"
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    envVars:
+      - key: YT_RENDER_HOST
+        value: 0.0.0.0
+      - key: YT_RENDER_DIR
+        value: /data
+      - key: YT_ENCODER
+        value: libx264
+      - key: YT_RENDER_TOKEN
+        generateValue: true
+      - key: YT_SITE_PRIVATE
+        value: "true"
+      - key: YT_SITE_USER
+        value: alejandro
+      - key: PIXABAY_API_KEY
+        sync: false
+      - key: REPLICATE_API_TOKEN
+        sync: false

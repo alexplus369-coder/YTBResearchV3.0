@@ -1,5 +1,7 @@
 """Authenticated local render API and allowlisted static frontend."""
 import asyncio
+import base64
+import binascii
 from contextlib import asynccontextmanager
 import json
 from pathlib import Path
@@ -42,6 +44,17 @@ class AccessAndBodyLimit:
         self.app, self.settings = app, settings
 
     async def __call__(self, scope, receive, send):
+        if scope['type'] == 'http' and self.settings.private_site and scope['path'] != '/healthz' and not scope['path'].startswith('/api/video/'):
+            header = dict(scope.get('headers', [])).get(b'authorization', b'')
+            try:
+                scheme, credential = header.split(b' ', 1)
+                received = base64.b64decode(credential, validate=True) if scheme.lower() == b'basic' else b''
+            except (ValueError, binascii.Error):
+                received = b''
+            expected = (self.settings.site_user + ':' + self.settings.token).encode('utf-8')
+            if not secrets.compare_digest(received, expected):
+                return await JSONResponse({'detail': 'Acceso privado. Introduce tu usuario y código personal.'}, status_code=401,
+                                          headers={'WWW-Authenticate': 'Basic realm="YTBResearch", charset="UTF-8"', 'Cache-Control': 'no-store'})(scope, receive, send)
         if scope['type'] != 'http' or not scope['path'].startswith('/api/video/') or scope['method'] == 'OPTIONS':
             return await self.app(scope, receive, send)
         headers = dict(scope.get('headers', []))
@@ -109,6 +122,12 @@ def create_app(settings=None, run_worker=True):
             raise HTTPException(401, 'Código de acceso inválido.')
 
     auth = [Depends(authorized)]
+
+    @app.get('/healthz')
+    def health_probe():
+        ready = bool(shutil.which(settings.ffmpeg) and shutil.which(settings.ffprobe))
+        ready = ready and (worker is None or bool(worker.thread and worker.thread.is_alive()))
+        return JSONResponse({'status': 'ok' if ready else 'unavailable'}, status_code=200 if ready else 503)
 
     def available():
         if len(store.active()) >= 10:
@@ -319,7 +338,7 @@ def create_app(settings=None, run_worker=True):
 
     @app.get('/docs/{filename}')
     def guide(filename: str):
-        if filename not in {'video-production.md', 'third-party-notices.md'}:
+        if filename not in {'video-production.md', 'third-party-notices.md', 'render-personal.md'}:
             raise HTTPException(404, 'No encontrado.')
         return FileResponse(ROOT / 'docs' / filename, media_type='text/plain; charset=utf-8')
 

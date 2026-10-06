@@ -13,7 +13,7 @@ function setup(t) {
     const calls = [], controls = { jobs: [], assets: [], holdSchema: false, releaseSchema: null, holdResource: false, releaseResource: null };
     ui.w.fetch = async (input, options = {}) => {
         const url = new URL(input); calls.push({ url, options });
-        assert.equal(url.hostname, '127.0.0.1');
+        assert.equal(url.origin, ui.w.location.origin);
         assert.equal(options.headers.Authorization, 'Bearer render-access-code');
         const result = data => ({ ok: true, status: 200, json: async () => data, blob: async () => new Blob(['fixture']) });
         if (url.pathname.endsWith('/health')) return result({ ready: true, worker: true, providers: { encoder: 'libx264', replicate: true, replicateCatalog: true, replicateLegacy: false } });

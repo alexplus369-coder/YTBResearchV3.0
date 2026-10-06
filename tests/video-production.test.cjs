@@ -5,17 +5,19 @@ const { completeProject } = require('./helpers/creator-fixtures.cjs');
 
 function setup(t) {
     const ui = app(t, { ytCreatorProductionV1: JSON.stringify(completeProject()) });
-    const calls = [], controls = Object.assign(ui.controls, { jobs: [], holdPost: false, release: null, unauthorized: false, holdJobsBody: false, jobsRelease: null });
+    const calls = [], controls = Object.assign(ui.controls, { jobs: [], assets: [], holdPost: false, release: null, unauthorized: false, holdJobsBody: false, jobsRelease: null });
     const normalFetch = ui.w.fetch;
     ui.w.fetch = async (input, options = {}) => {
         const url = new URL(input);
-        if (url.hostname !== '127.0.0.1') return normalFetch(input, options);
-        calls.push({ path: url.pathname, options });
+        if (url.hostname !== '127.0.0.1' && url.origin !== ui.w.location.origin) return normalFetch(input, options);
+        calls.push({ path: url.pathname, origin: url.origin, options });
         assert.equal(options.headers.Authorization, 'Bearer session-render-token');
         const result = (data, status = 200) => ({ ok: status < 400, status, json: async () => data, blob: async () => new Blob(['MP4']) });
         if (controls.unauthorized) return result({ detail: 'Código de acceso inválido.' }, 401);
         if (url.pathname.endsWith('/health')) return result({ ready: true, worker: true, providers: { encoder: 'libx264', maxUploadMB: 200, telegram: false, replicate: true } });
-        if (url.pathname.endsWith('/assets')) return result([]);
+        if (options.method === 'DELETE' && /\/jobs\/[^/]+$/.test(url.pathname)) { controls.jobs = controls.jobs.filter(j => !url.pathname.endsWith('/' + j.id)); return result({ deleted: true }); }
+        if (options.method === 'DELETE' && /\/assets\/[^/]+$/.test(url.pathname)) { controls.assets = controls.assets.filter(a => !url.pathname.endsWith('/' + a.id)); return result({ deleted: true }); }
+        if (url.pathname.endsWith('/assets')) return result(controls.assets.slice(0, 100));
         if (url.pathname.endsWith('/jobs') && options.method === 'POST') {
             if (controls.holdPost) await new Promise(resolve => { controls.release = resolve; });
             const job = { id: 'a'.repeat(32), title: '<img src=x onerror=alert(1)>', state: 'queued', stage: 'queued', progress: 0, created: '2026-10-05T12:00:00Z', result: {} };
@@ -23,7 +25,7 @@ function setup(t) {
         }
         if (url.pathname.endsWith('/jobs')) return { ...result(controls.jobs), json: async () => {
             if (controls.holdJobsBody) await new Promise(resolve => { controls.jobsRelease = resolve; });
-            return controls.jobs;
+            return controls.jobs.slice(0, 50);
         } };
         if (url.pathname.endsWith('/files/words.json')) return result([{ text: '<b>Palabra</b>', start: 4, end: 5 }]);
         if (url.pathname.endsWith('/clips')) return result({ id: 'c'.repeat(32), state: 'queued' }, 202);
@@ -69,6 +71,47 @@ test('renderer stays opt-in and posts the saved production once with explicit co
     assert.ok(!JSON.stringify({ ...ui.w.localStorage }).includes('session-render-token'));
     ui.$('video-disconnect').click(); assert.equal(ui.$('video-render').disabled, true); assert.equal(ui.$('video-access').value, '');
     assert.deepEqual(ui.errors, []);
+});
+
+test('an HTTPS tablet connects to the site motor without changing its URL or storing credentials', async t => {
+    const ui = setup(t);
+    assert.equal(ui.$('video-server').value, ui.w.location.origin);
+    assert.equal(ui.calls.length, 0);
+    await ui.connect();
+    assert.ok(ui.calls.every(c => c.origin === ui.w.location.origin));
+    assert.ok(!ui.calls.some(c => c.options.method === 'POST' || c.options.method === 'DELETE'));
+    assert.equal(ui.$('video-clean-temp').disabled, false);
+    assert.ok(!JSON.stringify({ ...ui.w.localStorage }).includes('session-render-token'));
+});
+
+test('cleanup removes all pages of finished jobs and assets only after confirmation, preserving the editorial project', async t => {
+    const ui = setup(t);
+    ui.controls.jobs = Array.from({ length: 51 }, (_, i) => ({ id: i.toString(16).padStart(32, '0'), kind: 'resource', state: 'completed', stage: 'completed', progress: 100, created: '2026-10-06T12:00:00Z', result: { assetId: 'f'.repeat(32) } }));
+    ui.controls.assets = Array.from({ length: 101 }, (_, i) => ({ id: i.toString(16).padStart(32, '0'), name: 'Image ' + i, kind: 'image', size: 2048 }));
+    await ui.connect();
+    const saved = ui.w.localStorage.getItem('ytCreatorProductionV1');
+    ui.w.confirm = () => true;
+    ui.$('video-clean-temp').click(); ui.$('video-clean-temp').click();
+    await until(() => ui.$('video-connection').textContent.includes('Temporales eliminados'));
+    const deletes = ui.calls.filter(c => c.options.method === 'DELETE');
+    assert.equal(deletes.filter(c => c.path.includes('/jobs/')).length, 51);
+    assert.equal(deletes.filter(c => c.path.includes('/assets/')).length, 101);
+    assert.equal(ui.controls.jobs.length, 0); assert.equal(ui.controls.assets.length, 0);
+    assert.equal(ui.w.localStorage.getItem('ytCreatorProductionV1'), saved);
+    assert.equal(ui.downloads.length, 0);
+    assert.ok(!ui.calls.some(c => c.options.method === 'POST'));
+});
+
+test('cleanup cancellation deletes nothing and a newly active job blocks deletion', async t => {
+    const ui = setup(t); await ui.connect();
+    ui.w.confirm = () => false; ui.$('video-clean-temp').click();
+    await until(() => ui.$('video-connection').textContent.includes('Limpieza cancelada'));
+    assert.ok(!ui.calls.some(c => c.options.method === 'DELETE'));
+    ui.controls.jobs = [{ id: 'a'.repeat(32), state: 'running', result: {} }];
+    ui.w.confirm = () => { throw new Error('Must reject before confirmation'); };
+    ui.$('video-clean-temp').click();
+    await until(() => ui.$('video-error').textContent.includes('Espera a que terminen'));
+    assert.ok(!ui.calls.some(c => c.options.method === 'DELETE'));
 });
 
 test('completed video downloads, word selection and recuts share one concrete source job', async t => {

@@ -73,6 +73,8 @@ El **panel permanente de rendimiento por dólar** muestra todos los modelos de i
 
 Consulta [instalación en Windows/Linux, Docker, proveedores, recuperación y Remotion](docs/video-production.md) y los [avisos de terceros](docs/third-party-notices.md). La automatización no garantiza monetización; revisa originalidad, fuentes, derechos y calidad del resultado antes de publicarlo.
 
+Para usar la herramienta desde una tablet con la computadora apagada, consulta [Render para uso personal](docs/render-personal.md). Un solo servicio Docker ejecuta el panel y FFmpeg, con acceso por código y archivos temporales descargables. El Blueprint no añade disco permanente ni una base de datos externa. **Eliminar temporales** borra los trabajos y recursos del motor conectado después de confirmar; conserva tu producción editorial y los archivos que ya descargaste.
+
 ### Monetización y auditoría
 
 El estudio permite calcular un escenario de publicidad, afiliación, patrocinio y producto propio. Solo la publicidad usa el RPM elegido; clics, conversiones, comisiones, leads e ingresos acordados son supuestos manuales que parten de cero. No predice ingresos reales. Las URLs configuradas y la divulgación de afiliación se añaden al inicio de la descripción y al comentario fijado; el patrocinio incluye divulgación y una verificación del acuerdo.

@@ -169,7 +169,7 @@ Al generar, las referencias locales seleccionadas se **envían a Replicate** con
 
 ### Recursos y costes
 
-Sube imágenes PNG/JPG/WebP, videos MP4/MOV/WebM y audio WAV/MP3/M4A. El servidor comprueba el recurso con FFprobe. Máximo **200 MB por subida**, **150 MB por descarga**, **17 megapíxeles por imagen/frame**, **20 minutos de narración/recurso** y **20 GB de almacenamiento**. La cola admite diez trabajos activos y procesa uno a la vez. El historial visible contiene los últimos 50; elimina renders terminados desde el panel cuando ya los respaldaste.
+Sube imágenes PNG/JPG/WebP, videos MP4/MOV/WebM y audio WAV/MP3/M4A. El servidor comprueba el recurso con FFprobe. Máximo **200 MB por subida**, **150 MB por descarga**, **17 megapíxeles por imagen/frame**, **20 minutos de narración/recurso** y **20 GB de almacenamiento**. La cola admite diez trabajos activos y procesa uno a la vez. El historial visible contiene los últimos 50 y todos los trabajos activos, aunque sean anteriores; elimina renders terminados desde el panel cuando ya los respaldaste.
 
 Marca imágenes/videos propios para formar un conjunto; se distribuyen entre escenas. También puedes asignar un recurso concreto a cada escena. La asignación tiene prioridad sobre el proveedor automático. Si no marcas un conjunto en modo propio, asigna todas las escenas de los bloques elegidos. Selecciona por separado narración y música; la música se repite, se mezcla a volumen reducido y la salida se normaliza.
 
@@ -231,7 +231,9 @@ Las subidas son siempre **privadas**, sin programación ni publicación automát
 
 Ejecuta **una instancia por directorio**, sin `--reload` ni varios workers Uvicorn. Un bloqueo del sistema impide que dos workers recuperen y procesen la misma cola. El servidor local escucha en 127.0.0.1; CORS y hosts son explícitos, todas las rutas de producción exigen un código y no se sirve el directorio de datos. Las llamadas a FFmpeg usan listas de argumentos sin shell. Descargas remotas admiten solo HTTPS de los proveedores autorizados, con límites y comprobación de red privada.
 
-La aplicación está pensada para un creador con acceso local. El código compartido es una credencial, no autenticación multiusuario. Para alojarla remotamente necesitas HTTPS, un proxy y aislamiento de cuentas/archivos. No publiques `render-data/`: contiene guiones, voces, recursos y sesiones de subida pendientes. Con un frontend HTTPS y backend local HTTP, el navegador puede bloquear contenido mixto; abrir la interfaz desde el servidor local evita esa combinación.
+La aplicación está pensada para un creador. El código compartido es una credencial, no autenticación multiusuario. Para un despliegue personal remoto, consulta [la guía de Render](render-personal.md): el proxy de Render proporciona HTTPS y una sola instancia mantiene la cola y los archivos temporales. Para varias personas necesitas aislamiento de cuentas/archivos. No publiques `render-data/`: contiene guiones, voces, recursos y sesiones de subida pendientes. Con un frontend HTTPS y backend local HTTP, el navegador puede bloquear contenido mixto; servir ambos desde el mismo origen evita esa combinación.
+
+**Eliminar temporales** solicita confirmación y elimina los trabajos terminados/fallidos/cancelados y los recursos del motor conectado mediante sus rutas autenticadas. Se bloquea si hay trabajos activos. Descarga antes los archivos que quieras conservar; la acción no comprueba que hayas guardado una descarga. La limpieza es manual, no se ejecuta al descargar ni al cerrar la página. No modifica tus guiones/perfiles guardados en el navegador ni tus archivos locales. Después de limpiar, otra generación de IA vuelve a consumir créditos.
 
 ## Calidad y monetización
 
