@@ -6,7 +6,7 @@ import math
 import struct
 import subprocess
 import time
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 import wave
 
@@ -42,7 +42,7 @@ while True:
     try:
         if request('/healthz', auth=None) == {'status': 'ok'}:
             break
-    except (URLError, AssertionError, TimeoutError):
+    except (OSError, AssertionError):
         if time.monotonic() >= deadline:
             raise
         time.sleep(.25)
