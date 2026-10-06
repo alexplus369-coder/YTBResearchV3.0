@@ -1,0 +1,696 @@
+{
+  "source_repository": "alexplus369-coder/frameshift",
+  "source_commit": "1255f06f55b41940d5430b7e65f83490f8187499",
+  "models": [
+    {
+      "id": "kwaivgi/kling-v3-video",
+      "label": "Kling V3 Video",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/kwaivgi/kling-v3-video"
+    },
+    {
+      "id": "kwaivgi/kling-v3-motion-control",
+      "label": "Kling V3 Motion Ctrl",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/kwaivgi/kling-v3-motion-control"
+    },
+    {
+      "id": "kwaivgi/kling-v3-omni-video",
+      "label": "Kling V3 Omni Video",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/kwaivgi/kling-v3-omni-video"
+    },
+    {
+      "id": "minimax/hailuo-2.3-fast",
+      "label": "Hailuo 2.3 Fast",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/minimax/hailuo-2.3-fast"
+    },
+    {
+      "id": "minimax/video-01-live",
+      "label": "MiniMax Video-01",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/minimax/video-01-live"
+    },
+    {
+      "id": "wavespeedai/wan-2.1-i2v-480p",
+      "label": "Wan 2.1 I2V 480p",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/wavespeedai/wan-2.1-i2v-480p"
+    },
+    {
+      "id": "google/veo-3.1-fast",
+      "label": "Veo 3.1 Fast",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/google/veo-3.1-fast"
+    },
+    {
+      "id": "google/veo-3.1-lite",
+      "label": "Veo 3.1 Lite",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/google/veo-3.1-lite"
+    },
+    {
+      "id": "google/veo-3",
+      "label": "Veo 3",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/google/veo-3"
+    },
+    {
+      "id": "bytedance/seedance-1-lite",
+      "label": "Seedance 1 Lite",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/bytedance/seedance-1-lite"
+    },
+    {
+      "id": "bytedance/seedance-1.5-pro",
+      "label": "Seedance 1.5 Pro",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/bytedance/seedance-1.5-pro"
+    },
+    {
+      "id": "bytedance/seedance-2.0-mini",
+      "label": "Seedance 2.0 Mini",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/bytedance/seedance-2.0-mini"
+    },
+    {
+      "id": "bytedance/seedance-2.0",
+      "label": "Seedance 2.0",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/bytedance/seedance-2.0"
+    },
+    {
+      "id": "bytedance/seedance-2.0-fast",
+      "label": "Seedance 2.0 Fast",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/bytedance/seedance-2.0-fast"
+    },
+    {
+      "id": "xai/grok-imagine-video",
+      "label": "Grok 5s",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/xai/grok-imagine-video"
+    },
+    {
+      "id": "xai/grok-imagine-video-3s",
+      "label": "Grok 3s",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/xai/grok-imagine-video-3s"
+    },
+    {
+      "id": "xai/grok-imagine-video-1.5",
+      "label": "Grok 1.5",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/xai/grok-imagine-video-1.5"
+    },
+    {
+      "id": "xai/grok-imagine-image-quality",
+      "label": "Grok Image Qual.",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/xai/grok-imagine-image-quality"
+    },
+    {
+      "id": "prunaai/p-video",
+      "label": "P-Video",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/prunaai/p-video"
+    },
+    {
+      "id": "alibaba/happyhorse-1.1",
+      "label": "HappyHorse 1.1",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/alibaba/happyhorse-1.1"
+    },
+    {
+      "id": "lightricks/ltx-2-distilled",
+      "label": "LTX-2 Distilled",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/lightricks/ltx-2-distilled"
+    },
+    {
+      "id": "lightricks/ltx-2-fast",
+      "label": "LTX-2 Fast",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/lightricks/ltx-2-fast"
+    },
+    {
+      "id": "lightricks/ltx-2.3-fast",
+      "label": "LTX 2.3 Fast",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/lightricks/ltx-2.3-fast"
+    },
+    {
+      "id": "lightricks/ltx-2.3-pro",
+      "label": "LTX 2.3 Pro",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/lightricks/ltx-2.3-pro"
+    },
+    {
+      "id": "lightricks/ltx-2-retake",
+      "label": "LTX-2 Retake",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/lightricks/ltx-2-retake"
+    },
+    {
+      "id": "lightricks/audio-to-video",
+      "label": "Audio-to-Video",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/lightricks/audio-to-video"
+    },
+    {
+      "id": "openai/sora-2-pro",
+      "label": "Sora 2 Pro",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/openai/sora-2-pro"
+    },
+    {
+      "id": "openai/sora-2",
+      "label": "Sora 2",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/openai/sora-2"
+    },
+    {
+      "id": "pixverse/pixverse-v6",
+      "label": "PixVerse V6",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/pixverse/pixverse-v6"
+    },
+    {
+      "id": "kwaivgi/kling-v1.6-standard",
+      "label": "Kling 1.6 Standard",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/kwaivgi/kling-v1.6-standard"
+    },
+    {
+      "id": "veed/fabric-1.0",
+      "label": "Fabric 1.0",
+      "category": "🎬 Video",
+      "kind": "video",
+      "operation": "generate",
+      "url": "https://replicate.com/veed/fabric-1.0"
+    },
+    {
+      "id": "zsxkib/film-frame-interpolation-for-large-motion",
+      "label": "FILM Interpolation",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/zsxkib/film-frame-interpolation-for-large-motion"
+    },
+    {
+      "id": "arielreplicate/deoldify_video",
+      "label": "DeOldify Video",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/arielreplicate/deoldify_video"
+    },
+    {
+      "id": "xai/grok-imagine-video-extension",
+      "label": "Grok Video Extension",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/xai/grok-imagine-video-extension"
+    },
+    {
+      "id": "topazlabs/video-upscale",
+      "label": "Topaz Upscale",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/topazlabs/video-upscale"
+    },
+    {
+      "id": "heygen/lipsync-speed",
+      "label": "HeyGen Lipsync",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/heygen/lipsync-speed"
+    },
+    {
+      "id": "pixverse/lipsync",
+      "label": "PixVerse Lipsync",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/pixverse/lipsync"
+    },
+    {
+      "id": "luma/reframe-video",
+      "label": "Luma Reframe",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/luma/reframe-video"
+    },
+    {
+      "id": "shreejalmaharjan-27/tiktok-short-captions",
+      "label": "Subtítulos TikTok",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/shreejalmaharjan-27/tiktok-short-captions"
+    },
+    {
+      "id": "bytedance/video-upscaler",
+      "label": "Video Upscaler",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/bytedance/video-upscaler"
+    },
+    {
+      "id": "runwayml/aleph-2",
+      "label": "Aleph 2",
+      "category": "🔧 Post-video",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/runwayml/aleph-2"
+    },
+    {
+      "id": "google/imagen-4-ultra",
+      "label": "Imagen 4 Ultra",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/google/imagen-4-ultra"
+    },
+    {
+      "id": "openai/gpt-image-2",
+      "label": "GPT Image 2",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/openai/gpt-image-2"
+    },
+    {
+      "id": "xai/grok-imagine-image",
+      "label": "Grok Imagine Image",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/xai/grok-imagine-image"
+    },
+    {
+      "id": "bytedance/seedream-4",
+      "label": "Seedream 4",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/bytedance/seedream-4"
+    },
+    {
+      "id": "bytedance/seedream-4.5",
+      "label": "Seedream 4.5",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/bytedance/seedream-4.5"
+    },
+    {
+      "id": "openai/gpt-image-1.5",
+      "label": "GPT Image 1.5",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/openai/gpt-image-1.5"
+    },
+    {
+      "id": "black-forest-labs/flux-2-pro",
+      "label": "FLUX 2 Pro",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/black-forest-labs/flux-2-pro"
+    },
+    {
+      "id": "black-forest-labs/flux-2-flex",
+      "label": "FLUX 2 Flex",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/black-forest-labs/flux-2-flex"
+    },
+    {
+      "id": "prunaai/z-image-turbo",
+      "label": "Z-Image Turbo",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/prunaai/z-image-turbo"
+    },
+    {
+      "id": "google/nano-banana-pro",
+      "label": "Nano Banana Pro",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/google/nano-banana-pro"
+    },
+    {
+      "id": "google/nano-banana-2-lite",
+      "label": "Nano Banana 2 Lite",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/google/nano-banana-2-lite"
+    },
+    {
+      "id": "google/nano-banana-2",
+      "label": "Nano Banana 2",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/google/nano-banana-2"
+    },
+    {
+      "id": "bytedance/seedream-5-pro",
+      "label": "Seedream 5 Pro",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/bytedance/seedream-5-pro"
+    },
+    {
+      "id": "ideogram-ai/ideogram-v4-quality",
+      "label": "Ideogram v4 Q.",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/ideogram-ai/ideogram-v4-quality"
+    },
+    {
+      "id": "ideogram-ai/ideogram-v4-balanced",
+      "label": "Ideogram v4 Bal.",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/ideogram-ai/ideogram-v4-balanced"
+    },
+    {
+      "id": "zedge/stable-diffusion",
+      "label": "Stable Diffusion",
+      "category": "🖼️ Imagen",
+      "kind": "image",
+      "operation": "generate",
+      "url": "https://replicate.com/zedge/stable-diffusion"
+    },
+    {
+      "id": "flux-kontext-apps/multi-image-kontext-pro",
+      "label": "Multi-Image Kontext",
+      "category": "🛠️ Restauración",
+      "kind": "image",
+      "operation": "transform",
+      "url": "https://replicate.com/flux-kontext-apps/multi-image-kontext-pro"
+    },
+    {
+      "id": "flux-kontext-apps/restore-image",
+      "label": "Restore Image",
+      "category": "🛠️ Restauración",
+      "kind": "image",
+      "operation": "transform",
+      "url": "https://replicate.com/flux-kontext-apps/restore-image"
+    },
+    {
+      "id": "851-labs/background-remover",
+      "label": "Background Remover",
+      "category": "🛠️ Restauración",
+      "kind": "image",
+      "operation": "transform",
+      "url": "https://replicate.com/851-labs/background-remover"
+    },
+    {
+      "id": "prunaai/p-image-upscale",
+      "label": "P-Image Upscale",
+      "category": "🛠️ Restauración",
+      "kind": "image",
+      "operation": "transform",
+      "url": "https://replicate.com/prunaai/p-image-upscale"
+    },
+    {
+      "id": "piddnad/ddcolor",
+      "label": "DDColor",
+      "category": "🛠️ Restauración",
+      "kind": "image",
+      "operation": "transform",
+      "url": "https://replicate.com/piddnad/ddcolor"
+    },
+    {
+      "id": "google/upscaler",
+      "label": "Google Upscaler",
+      "category": "🛠️ Restauración",
+      "kind": "image",
+      "operation": "transform",
+      "url": "https://replicate.com/google/upscaler"
+    },
+    {
+      "id": "meta/musicgen",
+      "label": "Meta MusicGen",
+      "category": "🎵 Música",
+      "kind": "music",
+      "operation": "generate",
+      "url": "https://replicate.com/meta/musicgen",
+      "license_warning": "Pesos con licencia CC-BY-NC 4.0 (no comercial). No usar para monetización sin permisos adicionales.",
+      "license_url": "https://github.com/facebookresearch/audiocraft/blob/main/LICENSE_weights"
+    },
+    {
+      "id": "minimax/music-1.5",
+      "label": "MiniMax Music 1.5",
+      "category": "🎵 Música",
+      "kind": "music",
+      "operation": "generate",
+      "url": "https://replicate.com/minimax/music-1.5"
+    },
+    {
+      "id": "minimax/music-2.6",
+      "label": "MiniMax Music 2.6",
+      "category": "🎵 Música",
+      "kind": "music",
+      "operation": "generate",
+      "url": "https://replicate.com/minimax/music-2.6"
+    },
+    {
+      "id": "google/lyria-3-pro",
+      "label": "Lyria 3 Pro",
+      "category": "🎵 Música",
+      "kind": "music",
+      "operation": "generate",
+      "url": "https://replicate.com/google/lyria-3-pro"
+    },
+    {
+      "id": "google/lyria-3",
+      "label": "Lyria 3",
+      "category": "🎵 Música",
+      "kind": "music",
+      "operation": "generate",
+      "url": "https://replicate.com/google/lyria-3"
+    },
+    {
+      "id": "elevenlabs/v2-multilingual",
+      "label": "ElevenLabs v2",
+      "category": "🗣️ TTS",
+      "kind": "voice",
+      "operation": "generate",
+      "url": "https://replicate.com/elevenlabs/v2-multilingual"
+    },
+    {
+      "id": "elevenlabs/v3",
+      "label": "ElevenLabs v3",
+      "category": "🗣️ TTS",
+      "kind": "voice",
+      "operation": "generate",
+      "url": "https://replicate.com/elevenlabs/v3"
+    },
+    {
+      "id": "minimax/speech-02-turbo",
+      "label": "MiniMax Speech-02",
+      "category": "🗣️ TTS",
+      "kind": "voice",
+      "operation": "generate",
+      "url": "https://replicate.com/minimax/speech-02-turbo"
+    },
+    {
+      "id": "minimax/voice-cloning",
+      "label": "MiniMax Voice Cloning",
+      "category": "🗣️ TTS",
+      "kind": "voice",
+      "operation": "generate",
+      "url": "https://replicate.com/minimax/voice-cloning"
+    },
+    {
+      "id": "fermatresearch/spanish-f5-tts",
+      "label": "Spanish F5-TTS",
+      "category": "🗣️ TTS",
+      "kind": "voice",
+      "operation": "generate",
+      "url": "https://replicate.com/fermatresearch/spanish-f5-tts"
+    },
+    {
+      "id": "google/gemini-3.1-flash-tts",
+      "label": "Gemini 3.1 Flash TTS",
+      "category": "🗣️ TTS",
+      "kind": "voice",
+      "operation": "generate",
+      "url": "https://replicate.com/google/gemini-3.1-flash-tts"
+    },
+    {
+      "id": "tencent/hunyuan-3d-3.1",
+      "label": "Hunyuan 3D 3.1",
+      "category": "🧊 3D",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/tencent/hunyuan-3d-3.1"
+    },
+    {
+      "id": "adirik/text2tex",
+      "label": "Text2Tex",
+      "category": "🧊 3D",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/adirik/text2tex"
+    },
+    {
+      "id": "hyper3d/rodin",
+      "label": "Rodin Gen-2",
+      "category": "🧊 3D",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/hyper3d/rodin"
+    },
+    {
+      "id": "recraft-ai/recraft-v4.1-svg",
+      "label": "Recraft V4.1 SVG",
+      "category": "🎨 SVG",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/recraft-ai/recraft-v4.1-svg"
+    },
+    {
+      "id": "recraft-ai/recraft-vectorize",
+      "label": "Recraft Vectorize",
+      "category": "🎨 SVG",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/recraft-ai/recraft-vectorize"
+    },
+    {
+      "id": "anthropic/claude-opus-4.6",
+      "label": "Claude Opus 4.6",
+      "category": "🧠 LLM",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/anthropic/claude-opus-4.6"
+    },
+    {
+      "id": "anthropic/claude-fable-5",
+      "label": "Claude Fable 5",
+      "category": "🧠 LLM",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/anthropic/claude-fable-5"
+    },
+    {
+      "id": "anthropic/claude-sonnet-4.6",
+      "label": "Claude Sonnet 4.6",
+      "category": "🧠 LLM",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/anthropic/claude-sonnet-4.6"
+    },
+    {
+      "id": "anthropic/claude-opus-4.7",
+      "label": "Claude Opus 4.7",
+      "category": "🧠 LLM",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/anthropic/claude-opus-4.7"
+    },
+    {
+      "id": "openai/gpt-5.4",
+      "label": "GPT 5.4",
+      "category": "🧠 LLM",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/openai/gpt-5.4"
+    },
+    {
+      "id": "openai/gpt-4o-mini-transcribe",
+      "label": "GPT-4o Mini Transcribe",
+      "category": "📝 Transcripción",
+      "kind": null,
+      "operation": "generate",
+      "url": "https://replicate.com/openai/gpt-4o-mini-transcribe"
+    },
+    {
+      "id": "prunaai/p-video-avatar",
+      "label": "P-Video Avatar",
+      "category": "👤 Avatar",
+      "kind": "video",
+      "operation": "transform",
+      "url": "https://replicate.com/prunaai/p-video-avatar"
+    }
+  ]
+}

@@ -36,7 +36,8 @@ class Settings:
             raise ValueError('YT_ENCODER debe ser libx264, h264_nvenc o h264_videotoolbox.')
 
     def public(self):
-        return {'pixabay': bool(self.pixabay_key), 'replicate': bool(self.replicate_token and self.replicate_version),
+        return {'pixabay': bool(self.pixabay_key), 'replicate': bool(self.replicate_token), 'replicateCatalog': True,
+                'replicateLegacy': bool(self.replicate_token and self.replicate_version),
                 'whisper': bool(self.whisper_cli and self.whisper_model), 'telegram': bool(self.telegram_token and self.telegram_chat),
                 'encoder': self.encoder, 'maxUploadMB': self.max_upload // 1024 // 1024}
 

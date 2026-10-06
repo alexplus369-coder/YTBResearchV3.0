@@ -36,10 +36,28 @@ Abre **http://127.0.0.1:8787**. El servidor muestra un código temporal en la te
 2. Selecciona los bloques que quieres producir. Puedes hacer una prueba de un bloque antes del video completo.
 3. Elige horizontal, vertical o cuadrado, y 720p o 1080p.
 4. Usa **Tarjetas gráficas** para una primera prueba, recursos propios, Pixabay o Replicate. Las tarjetas son composiciones originales simples con texto; revisa su presentación antes de publicar.
-5. Usa Edge TTS o sube tu narración. Con audio propio, el texto del guion debe corresponder a lo que se escucha.
+5. Usa Edge TTS, voz Replicate o sube tu narración. Con audio propio, el texto del guion debe corresponder a lo que se escucha.
 6. Pulsa **Generar MP4**. La cola continúa mientras usas el estudio. Al terminar, revisa el video y descarga MP4, SRT o proyecto editable.
 
 La duración se calcula a partir del audio, no del presupuesto del guion. Una producción escrita para nueve minutos puede durar más o menos con tu voz. El resultado muestra la duración real y si alcanza ocho minutos; esto no confirma elegibilidad ni inserta anuncios.
+
+### Actualizar una instalación ZIP en Windows
+
+Detén el servidor con **Ctrl+C** antes de cambiar archivos. Conserva tu JSON editorial y, para un respaldo completo, la carpeta `render-data`. No necesitas recrear `.venv` ni reinstalar FFmpeg. El script `scripts/update-replicate-studio.ps1` descarga todos los archivos de ejecución de **un commit exacto** antes de reemplazarlos, guarda copias en `update-backups` y restaura los archivos si falla la copia. Actualiza también las correcciones anteriores de guiones y Pixabay. No toca `render-data`, `.venv` ni `.env`, ni ejecuta generaciones o subidas.
+
+Descarga el script desde el mismo commit del PR que deseas instalar (sustituye el marcador por los 40 caracteres del commit) y ejecuta desde la carpeta actual del proyecto:
+
+```powershell
+$revision = 'COMMIT_DE_40_CARACTERES_DEL_PR'
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/alexplus369-coder/YTBResearchV3.0/$revision/scripts/update-replicate-studio.ps1" -OutFile '.\update-replicate-studio.ps1'
+.\update-replicate-studio.ps1 -Revision $revision
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
+.\.venv\Scripts\python.exe -m backend
+```
+
+Actualizar solo JavaScript **no es suficiente**: el catálogo, las rutas, la cola y la nueva dependencia `jsonschema` están en Python. Los comandos explícitos de `.venv` evitan el error `No module named uvicorn` por usar otro intérprete. Tras reiniciar, usa **Ctrl+F5** y conecta con el código nuevo de la terminal. Mantén esta misma ventana de PowerShell si ya contiene tus variables de Pixabay/Replicate.
+
+El actualizador sobrescribe esos archivos de código, conservando las versiones anteriores en la ruta que muestra al terminar. Si tienes personalizaciones, revísalas en esa copia antes de reemplazarlas; no sobrescribe archivos ajenos a su lista. Un check de CI en Windows prueba sintaxis, descarga completa, respaldo y restauración con archivos/descargas simulados; no sustituye probar el render y los proveedores en tu equipo. Para instalaciones Git sin cambios propios, después de integrar el PR actualiza `main`, instala de nuevo `backend/requirements.txt` y reinicia.
 
 ### Docker opcional
 
@@ -58,7 +76,7 @@ Los archivos y la cola se conservan en `render-data/`. El puerto se publica úni
 | FFmpeg | Motor principal real: recortes, escala/crop, zoom de imágenes, unión, mezcla de música, volumen, subtítulos ASS y H.264/AAC. Procesa segmentos sin mantener el video completo en RAM. |
 | Edge TTS | Voces español/inglés, audio por bloque y marcas de palabra cuando el servicio las entrega. Requiere internet; no requiere una API key. Puedes usar audio propio. |
 | Pixabay | Búsqueda oficial de videos e imágenes de stock, caché de búsquedas de 24 horas y créditos con autor, enlace y licencia por recurso. |
-| Replicate | Adaptador configurable para modelos que devuelven una URL de imagen/video. Generación de pago activada por el usuario y limitada a un máximo de recursos distintos por trabajo. |
+| Replicate Studio | Catálogo de FrameShift, formularios del esquema real y generación de imagen, video, música y voz. Recursos individuales reutilizables o modelos independientes para el MP4; pago confirmado y predicciones reanudables. |
 | Whisper.cpp | Transcripción local opcional, unión de subpalabras y marcas de tiempo. No instala ni descarga modelos automáticamente. |
 | Remotion | Composición React editable alimentada por `remotion-input.json`, con recursos, voz, subtítulos y barras de datos opcionales. Es una alternativa de edición/render separada del motor principal. |
 | YouTube Data API | Subida manual privada con OAuth, sesión reanudable y prevención de duplicados por trabajo. |
@@ -84,6 +102,36 @@ En **Recursos visuales** elige **Pixabay: videos (imágenes si no hay clips)** o
 
 Las búsquedas se guardan 24 horas en `render-data/provider-cache/pixabay`, siguiendo la [documentación de Pixabay](https://pixabay.com/api/docs/). Un recurso ya descargado en un trabajo se reutiliza sin otra descarga, también al reintentar. No se garantiza que una primera consulta sea más rápida que otro proveedor: depende de tu conexión y de Pixabay. La clave no se guarda en la caché ni en los créditos. Se conservan los créditos históricos de Pexels y los trabajos pendientes con su antiguo selector se migran a Pixabay; requieren la nueva clave para buscar recursos nuevos. `PEXELS_API_KEY` ya no se utiliza.
 
+### Habilitar Replicate
+
+Para el selector nuevo solo necesitas `REPLICATE_API_TOKEN`. No hace falta rellenar `REPLICATE_MODEL_VERSION` ni `REPLICATE_INPUT_JSON`: quedan disponibles únicamente para el adaptador visual antiguo. Desde la misma ventana de PowerShell donde arrancarás el backend, introduce el token como contraseña, sin escribirlo en el comando ni compartirlo en el chat:
+
+```powershell
+$replicateCredential = Get-Credential -UserName 'Replicate' -Message 'Introduce tu token de Replicate en el campo de contraseña'
+$env:REPLICATE_API_TOKEN = $replicateCredential.GetNetworkCredential().Password
+Remove-Variable replicateCredential
+.\.venv\Scripts\python.exe -m backend
+```
+
+Detén primero cualquier instancia anterior. La variable solo existe en ese proceso de PowerShell y sus hijos: si abres otra ventana tendrás que definirla allí. El código local de acceso al panel es distinto del token de Replicate. El navegador recibe un catálogo y esquemas, nunca el token del proveedor.
+
+### Usar Replicate Studio
+
+1. Conecta el motor y pulsa **Abrir Replicate Studio** en la Fábrica de videos.
+2. Selecciona **Imagen**, **Video**, **Música** o **Voz / narración**, y después el modelo del menú. Se consultan sus parámetros a Replicate sin iniciar una predicción. Si el modelo se retiró, tu cuenta no tiene acceso o no publica un esquema compatible, se muestra el error y no se genera a ciegas.
+3. Completa los campos. El **formato de imagen**, relación de aspecto, resolución, duración, semilla, etc. se muestran solo cuando ese modelo los admite; no hay un formato universal. Los campos de referencia permiten elegir recursos subidos a tu biblioteca o URLs HTTPS. Los arrays/objetos genéricos usan JSON. Los campos secretos no se aceptan.
+4. **Copiar prompt / guion** usa la producción actual: prompt de imagen/video de la escena de destino, prompt de miniatura, texto de narración o propuesta de música. Edita el texto y comprueba límites y derechos.
+5. Elige uno de estos dos flujos:
+   - **Recurso individual**: selecciona biblioteca, escena, miniatura, música o narración; confirma el coste y pulsa **Generar recurso individual**. La cola guarda el resultado en **Mis recursos**, con descarga y uso sin repetir la predicción. La miniatura se descarga para revisión, no se sube automáticamente. Si cambias la producción mientras se genera, el recurso se guarda pero no se asigna automáticamente al proyecto nuevo.
+   - **MP4 automático**: pulsa **Usar modelo en MP4** para cada tarea deseada. Puedes combinar un modelo de imagen **o** video para escenas, otro de voz y otro de música. Configurar no genera contenido. La voz usa el guion de cada bloque seleccionado; las imágenes/videos usan su prompt por escena; la música mantiene el prompt que configuraste. Después confirma las generaciones en el formulario principal y pulsa **Generar MP4**. Los campos se validan antes de poner el trabajo en cola. Un modelo sin campo de texto compatible se utiliza como recurso individual.
+6. Revisa el resultado y sus créditos antes de publicar. Los modelos de restauración, postproducción y avatar suelen necesitar recursos de referencia adicionales; no son reemplazos directos de un generador texto→imagen/video. No uses voces, rostros o recursos de terceros sin permiso.
+
+El catálogo contiene **86 entradas** de la instantánea de FrameShift: **75 habilitadas** (23 imagen/restauración, 41 video/postproducción/avatar, 5 música, 6 voz). Las otras 11 —3D, SVG, LLM y transcripción— permanecen identificadas, pero no se muestran como generadores de recursos para este flujo. No hay sincronización automática de nuevos modelos añadidos después a FrameShift. Cada esquema se consulta al seleccionar el modelo y se reutiliza hasta 24 horas; los trabajos conservan la versión exacta y sus parámetros.
+
+**Monetización y licencias:** figurar en FrameShift o pagar Replicate no acredita permiso comercial. Se muestra la ficha del modelo para revisar licencia y precios. MusicGen tiene una advertencia específica de pesos **CC-BY-NC 4.0**, según su [ficha oficial](https://replicate.com/meta/musicgen) y la [licencia de pesos](https://github.com/facebookresearch/audiocraft/blob/main/LICENSE_weights); no se recomienda para monetización sin permisos adicionales. Las demás opciones también requieren revisión, no una presunción de licencia comercial. No se copian estimaciones de precios del catálogo antiguo.
+
+Al generar, las referencias locales seleccionadas se **envían a Replicate** con su API de archivos. Solo se usan recursos existentes en tu biblioteca; no se aceptan rutas locales arbitrarias del cliente. Se conserva temporalmente su URL privada en la carpeta del trabajo para recuperarlo. No selecciones archivos confidenciales y no publiques `render-data`. Los resultados admitidos son URLs de recursos en `replicate.delivery` (una URL, lista o campos `image`/`video`/`audio`/`url`); si un modelo devuelve varias, se guarda la primera compatible. No se admiten salidas de texto, archivos 3D ni descargas de hosts desconocidos.
+
 | Variable | Uso |
 |---|---|
 | `YT_RENDER_DIR` | Carpeta privada de archivos y SQLite; `render-data` por defecto. Conserva la carpeta entera para respaldar trabajos. |
@@ -93,8 +141,8 @@ Las búsquedas se guardan 24 horas en `render-data/provider-cache/pixabay`, sigu
 | `YT_ENCODER` | `libx264` por defecto; `h264_nvenc` y `h264_videotoolbox` opcionales si tu instalación los soporta. No se presume disponibilidad de hardware. |
 | `PIXABAY_API_KEY` | Clave de la [API oficial](https://pixabay.com/api/docs/). Se utilizan hasta cinco candidatos por búsqueda. |
 | `REPLICATE_API_TOKEN` | Token de la cuenta que pagará las generaciones. |
-| `REPLICATE_MODEL_VERSION` | ID exacto de versión del modelo, 64 caracteres hexadecimales. |
-| `REPLICATE_INPUT_JSON` | Objeto de parámetros específicos del modelo; el servidor añade/reemplaza `prompt`. |
+| `REPLICATE_MODEL_VERSION` | Solo adaptador visual antiguo: ID exacto de versión, 64 caracteres hexadecimales. El selector no lo necesita. |
+| `REPLICATE_INPUT_JSON` | Solo adaptador antiguo: parámetros de ese modelo; se añade/reemplaza `prompt`. El selector envía campos validados por el esquema. |
 | `WHISPER_CPP_BINARY`, `WHISPER_CPP_MODEL` | Ejecutable `whisper-cli` y modelo GGML ya instalado. |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Bot y chat de destino para trabajos con avisos activados. |
 
@@ -104,13 +152,13 @@ Sube imágenes PNG/JPG/WebP, videos MP4/MOV/WebM y audio WAV/MP3/M4A. El servido
 
 Marca imágenes/videos propios para formar un conjunto; se distribuyen entre escenas. También puedes asignar un recurso concreto a cada escena. La asignación tiene prioridad sobre el proveedor automático. Si no marcas un conjunto en modo propio, asigna todas las escenas de los bloques elegidos. Selecciona por separado narración y música; la música se repite, se mezcla a volumen reducido y la salida se normaliza.
 
-Pixabay y Replicate generan/descargan hasta el **límite de recursos nuevos** configurado (1–8). Las escenas posteriores reutilizan recursos disponibles. Esto limita las solicitudes, no fija un presupuesto monetario: los precios y permisos dependen del proveedor/modelo. El adaptador Replicate acepta modelos por versión cuyo input incluya `prompt` y cuya salida sea una URL o lista de URLs; no sirve para todo modelo alojado sin ajustar su contrato. Devuelve créditos y versión para revisión.
+Pixabay y Replicate generan/descargan hasta el **límite de recursos visuales nuevos** configurado (1–8). Las escenas posteriores reutilizan recursos disponibles. La voz Replicate añade **una predicción por bloque seleccionado** y la música **una por trabajo**, si las activas. Un recurso individual envía una predicción, pero algunos modelos producen varias salidas o cobran por duración. Estos límites no fijan un presupuesto monetario: los precios y permisos dependen del proveedor/modelo. El manifiesto conserva modelo, versión y predicción para revisar procedencia.
 
-Si se recibió un ID de predicción, un reintento consulta **esa misma predicción**. Si el POST quedó sin confirmación, el trabajo falla y requiere que revises tu cuenta; no repite automáticamente una solicitud de cobro incierta. Crear otro trabajo nuevo sí puede generar un cobro adicional. No se configuran proveedores ni se realizan llamadas de pago durante las pruebas.
+Si se recibió un ID de predicción, un reintento consulta **esa misma predicción**. Si el POST quedó sin confirmación, el trabajo falla y requiere que revises tu cuenta; no repite automáticamente una solicitud de cobro incierta. Una solicitud idéntica de pago reutiliza también el trabajo fallido/cancelado: pulsa **Reintentar** sobre él para consultarlo de nuevo. Una predicción ya fallida o cancelada en Replicate no se sustituye por otra al reintentar. Para volver a generar después de revisar tu cuenta, envía parámetros distintos o elimina el trabajo anterior conscientemente; perder su registro y crear otro puede cobrar otra vez. No se configuran proveedores ni se realizan llamadas de pago durante las pruebas.
 
 ### Subtítulos
 
-**Desde voz** usa las marcas de Edge cuando están disponibles. **Estimados** reparte palabras según longitud del texto sobre el audio; no es una transcripción ni sincronización exacta. Con narración propia, la opción desde voz también es estimada. El manifiesto distingue los orígenes, incluido un bloque de TTS sin marcas.
+**Desde voz** usa las marcas de Edge cuando están disponibles. **Estimados** reparte palabras según longitud del texto sobre el audio; no es una transcripción ni sincronización exacta. Con narración propia o voz Replicate, la opción desde voz también es estimada. El manifiesto distingue los orígenes, incluido `estimated-from-replicate-voice`. Whisper.cpp es una alternativa de transcripción sobre el audio ya generado.
 
 Para mayor ajuste con audio propio, instala [Whisper.cpp](https://github.com/ggml-org/whisper.cpp), su modelo multilingüe y configura sus dos variables. Se convierte el audio a 16 kHz, se ejecuta `whisper-cli -l es -ojf -ml 1` y se leen offsets en milisegundos. La alineación por palabra es experimental; revisa los tiempos. Si solo hay segmentos, se indica `estimated-from-whisper-segments`. Actualmente la transcripción se ejecuta en español. Edge permite elegir voces de otros idiomas, pero para su transcripción usa marcas TTS o estimaciones.
 
@@ -126,7 +174,7 @@ El recorte usa el video limpio del render original, reutiliza su audio final y r
 
 El ZIP incluye narración WAV, música opcional, recursos utilizados, línea de tiempo por frames, subtítulos, créditos, metadatos y `remotion-input.json`. La composición conserva el volumen de música elegido y el punto de inicio de cada recurso de video. Es un paquete de montaje; conserva además el JSON editorial del estudio para recuperar el guion completo y sus fuentes.
 
-El manifiesto distingue los tiempos de subtítulos de los tiempos por bloque. Edge TTS mide cada bloque al generar su voz; con narración propia, los límites de bloques se estiman según el guion aunque Whisper mida los subtítulos. Los recortes expresan ambos tiempos respecto al inicio del clip.
+El manifiesto distingue los tiempos de subtítulos de los tiempos por bloque. Edge TTS y voz Replicate miden cada bloque al generar su voz; con narración propia, los límites de bloques se estiman según el guion aunque Whisper mida los subtítulos. Los recortes expresan ambos tiempos respecto al inicio del clip.
 
 Desde la raíz:
 
@@ -181,7 +229,7 @@ npm run check --prefix remotion
 npm run bundle --prefix remotion
 ```
 
-Las pruebas incluyen renders **reales** FFmpeg con audio WAV de prueba, H.264/AAC, SRT/ASS, ZIP editable con música, recursos propios, selección de bloques, recorte vertical y reanudación tras un fallo. Los adaptadores online, OAuth, avisos y subida se prueban con respuestas simuladas: no gastan créditos, no suben videos y no envían mensajes.
+Las pruebas incluyen renders **reales** FFmpeg con audio WAV de prueba, H.264/AAC, SRT/ASS, ZIP editable con música, recursos propios, selección de bloques, recorte vertical y reanudación tras un fallo. Replicate Studio prueba filtros de catálogo, formularios tipados, referencias, opt-in, versiones, recursos de los cuatro tipos, voz por bloque, música y reutilización de predicciones. Los adaptadores online, OAuth, avisos y subida se prueban con respuestas simuladas: no gastan créditos, no suben videos y no envían mensajes. No acreditan disponibilidad, precio, licencia ni calidad de cada modelo real.
 
 Con Chrome/Chromium compatible instalado, ejecuta también `npm run test:production`. Puedes indicar el ejecutable mediante `YT_BROWSER_BIN`. Este check crea recursos originales de prueba, abre la interfaz con `agent-browser`, conecta el motor, carga voz/video/música, genera un MP4, comprueba su vista previa y crea un recorte vertical desde la transcripción. Captura el panel en escritorio y móvil y comprueba errores del navegador. Después renderiza el ZIP con Remotion y verifica dimensiones, duración, audio y presencia de la música elegida.
 

@@ -398,14 +398,35 @@
                             <label class="text-xs font-bold">Formato<select id="video-aspect" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="landscape">Horizontal · 16:9</option><option value="portrait">Vertical · 9:16</option><option value="square">Cuadrado · 1:1</option></select></label>
                             <label class="text-xs font-bold">Resolución<select id="video-resolution" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="720">720p</option><option value="1080">1080p</option></select></label>
                             <label class="text-xs font-bold">Recursos visuales<select id="video-materials" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="cards">Tarjetas gráficas originales</option><option value="own">Mis imágenes y clips</option><option value="pixabay">Pixabay: videos (imágenes si no hay clips)</option><option value="pixabay_images">Pixabay: solo imágenes</option><option value="replicate">Generación con Replicate (pago)</option></select></label>
-                            <label class="text-xs font-bold">Narración<select id="video-tts" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="edge">Voz de Edge TTS</option><option value="uploaded">Audio propio</option></select></label>
+                            <label class="text-xs font-bold">Narración<select id="video-tts" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="edge">Voz de Edge TTS</option><option value="uploaded">Audio propio</option><option value="replicate">Voz con Replicate (pago)</option></select></label>
                             <label class="text-xs font-bold">Voz<select id="video-voice" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="es-MX-DaliaNeural">Español México · Dalia</option><option value="es-MX-JorgeNeural">Español México · Jorge</option><option value="es-ES-ElviraNeural">Español España · Elvira</option><option value="es-ES-AlvaroNeural">Español España · Álvaro</option><option value="en-US-AriaNeural">English · Aria</option></select></label>
                             <label class="text-xs font-bold">Subtítulos<select id="video-subtitles" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="tts">Marcas TTS / estimación para audio propio</option><option value="whisper">Alinear con Whisper.cpp local</option><option value="estimated">Estimar a partir del guion</option></select></label>
                             <label class="text-xs font-bold">Cambio visual cada (s)<input id="video-clip-seconds" type="number" min="3" max="8" value="5" class="block w-full mt-1 p-2 border rounded-lg font-normal"></label>
                             <label class="text-xs font-bold">Máximo de recursos de proveedor<input id="video-max-generated" type="number" min="1" max="8" value="4" class="block w-full mt-1 p-2 border rounded-lg font-normal"></label>
                             <label class="text-xs font-bold">Volumen de música (0–0.30)<input id="video-music-volume" type="number" min="0" max=".3" step=".01" value=".08" class="block w-full mt-1 p-2 border rounded-lg font-normal"></label>
                         </div>
-                        <label id="video-paid-label" class="hidden text-xs text-slate-600 flex gap-2 items-start"><input id="video-paid" type="checkbox">Activar generación de pago para este trabajo, hasta el máximo de recursos elegido. El coste depende del modelo configurado en mi servidor.</label>
+                        <label class="block text-xs font-bold">Origen de la música<select id="video-music-source" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="uploaded">Mis recursos (o sin música)</option><option value="none">Sin música</option><option value="replicate">Generar con Replicate (pago)</option></select></label>
+                        <button id="replicate-open" type="button" disabled class="text-xs font-bold border rounded-lg px-3 py-2 disabled:opacity-40">Abrir Replicate Studio · imágenes, video, música y voz</button>
+                        <section id="replicate-panel" class="hidden bg-white border border-indigo-200 rounded-xl p-4 space-y-3">
+                            <h4 class="font-bold">Replicate Studio · catálogo de FrameShift</h4>
+                            <p class="text-xs text-slate-500">Configura un modelo para el MP4 o genera un recurso individual para revisarlo antes. La clave permanece en el servidor. Las referencias locales seleccionadas se enviarán a Replicate al generar.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <label class="text-xs font-bold">Tipo de recurso<select id="replicate-kind" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="image">Imagen</option><option value="video">Video</option><option value="music">Música</option><option value="voice">Voz / narración</option></select></label>
+                                <label class="text-xs font-bold">Modelo<select id="replicate-model" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="">Seleccionar modelo</option></select></label>
+                            </div>
+                            <p id="replicate-catalog-state" class="text-xs text-slate-500"></p>
+                            <p id="replicate-license-state" class="text-xs text-amber-800 break-words"></p>
+                            <div class="flex flex-wrap gap-2"><button id="replicate-load" type="button" disabled class="text-xs border rounded-lg px-3 py-2">Recargar parámetros</button><button id="replicate-prompt" type="button" disabled class="text-xs border rounded-lg px-3 py-2">Copiar prompt / guion de la producción</button></div>
+                            <p id="replicate-schema-state" role="status" aria-live="polite" class="text-xs text-indigo-700">Selecciona un modelo y carga sus parámetros.</p>
+                            <div id="replicate-fields" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[520px] overflow-y-auto"></div>
+                            <button id="replicate-apply" type="button" disabled class="bg-indigo-600 text-white text-xs font-bold rounded-lg px-3 py-2">Usar modelo en MP4 (configurar, no generar)</button>
+                            <div class="border-t pt-3 space-y-2">
+                                <label class="text-xs font-bold">Destino del recurso individual<select id="replicate-destination" class="block w-full mt-1 p-2 border rounded-lg font-normal"><option value="library">Guardar en mis recursos</option></select></label>
+                                <label class="text-xs flex gap-2"><input id="replicate-paid" type="checkbox">Confirmo el coste de una predicción individual. Algunos modelos devuelven varias salidas o cobran por duración; revisa sus precios y licencia.</label>
+                                <button id="replicate-generate" type="button" disabled class="bg-slate-900 text-white text-xs font-bold rounded-lg px-3 py-2">Generar recurso individual</button>
+                            </div>
+                        </section>
+                        <label id="video-paid-label" class="hidden text-xs text-slate-600 flex gap-2 items-start"><input id="video-paid" type="checkbox">Confirmo generaciones de pago: hasta el límite de recursos visuales, una predicción de voz por bloque seleccionado y una de música si las activo. El coste depende de cada modelo; este límite no es un presupuesto monetario.</label>
                         <details class="bg-white border rounded-xl p-3"><summary class="text-sm font-bold cursor-pointer">Mis recursos y asignación de escenas</summary>
                             <label class="block text-xs font-bold mt-3">Subir imágenes, videos, narración o música<input id="video-upload" type="file" multiple accept=".mp4,.mov,.webm,.wav,.mp3,.m4a,.png,.jpg,.jpeg,.webp" class="block w-full mt-2 text-xs"></label>
                             <div id="video-assets" class="space-y-2 mt-3"></div>
@@ -2945,6 +2966,7 @@ COMENTARIOS (JSON): ${JSON.stringify(fuente)}`;
     <script src="research-workspace.js"></script>
     <script src="creator-core.js"></script>
     <script src="creator-studio.js"></script>
+    <script src="replicate-studio.js"></script>
     <script src="video-production.js"></script>
 </body>
 </html>

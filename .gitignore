@@ -2,6 +2,7 @@ node_modules/
 coverage/
 test-results/
 render-data/
+update-backups/
 .venv/
 __pycache__/
 .pytest_cache/

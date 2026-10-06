@@ -5,15 +5,16 @@ from pathlib import Path
 import shutil
 import textwrap
 import zipfile
+from urllib.parse import urlparse
 
 from PIL import Image, ImageDraw, ImageFont
 
-from . import captions, providers
+from . import captions, providers, replicate_studio
 from .models import JobRequest, ClipRequest
 from .process import run, probe, duration, Cancelled
 
 FPS = 24
-ENGINE_VERSION = '1.2.0'
+ENGINE_VERSION = '1.3.0'
 ARTIFACTS = {'video.mp4', 'subtitles.srt', 'subtitles.ass', 'words.json', 'manifest.json', 'timeline.json', 'publication.json', 'project.zip'}
 
 
@@ -72,7 +73,7 @@ class Pipeline:
             raise ValueError('El recurso seleccionado no es del tipo requerido.')
         return Path(asset['path']), asset
 
-    def voice(self, request, folder, cancelled):
+    def voice(self, request, folder, cancelled, plan=None):
         record = folder / 'voice.json'
         if record.exists() and (folder / 'narration.wav').is_file():
             data = json.loads(record.read_text())
@@ -97,10 +98,17 @@ class Pipeline:
                 if voice_file.exists() and meta.exists():
                     local_words = [captions.Word(**w) for w in json.loads(meta.read_text())]
                 else:
-                    mp3 = folder / f'voice-{b.index}.mp3'
-                    local_words = providers.synthesize(b.narration, request.options.voice, mp3, cancelled)
-                    run(base(self.settings) + ['-i', mp3, '-ac', '1', '-ar', '24000', voice_file.name], folder, cancelled)
-                    providers.atomic_json(meta, [asdict(w) for w in local_words]); mp3.unlink(missing_ok=True)
+                    if request.options.tts == 'replicate':
+                        mp3, credit = replicate_studio.generate(plan, folder, f'replicate-voice-{b.index}', self.settings, self.store, cancelled, text=b.narration)
+                        providers.atomic_json(folder / f'voice-credit-{b.index}.json', credit)
+                        local_words = []
+                    else:
+                        mp3 = folder / f'voice-{b.index}.mp3'
+                        local_words = providers.synthesize(b.narration, request.options.voice, mp3, cancelled)
+                    run(base(self.settings) + ['-i', mp3, '-vn', '-ac', '1', '-ar', '24000', voice_file.name], folder, cancelled)
+                    providers.atomic_json(meta, [asdict(w) for w in local_words])
+                    if request.options.tts != 'replicate':
+                        mp3.unlink(missing_ok=True)
                 length = duration(voice_file, self.settings)
                 if not local_words:
                     local_words = captions.estimate(b.narration, length)
@@ -112,12 +120,12 @@ class Pipeline:
                 concat.append("file '" + voice_file.name + "'")
             (folder / 'voice-concat.txt').write_text('\n'.join(concat))
             run(base(self.settings) + ['-f', 'concat', '-safe', '1', '-i', 'voice-concat.txt', '-c', 'copy', 'narration.wav'], folder, cancelled)
-            source = 'edge-with-estimated-blocks' if estimated else 'edge-word-boundaries'
+            source = 'estimated-from-replicate-voice' if request.options.tts == 'replicate' else 'edge-with-estimated-blocks' if estimated else 'edge-word-boundaries'
         data = {'duration': duration(folder / 'narration.wav', self.settings), 'blocks': timings, 'words': words, 'source': source}
         providers.atomic_json(record, data)
         return data
 
-    def materials(self, ident, request, folder, width, height, cancelled):
+    def materials(self, ident, request, folder, width, height, cancelled, plan=None):
         record = folder / 'materials.json'
         saved = json.loads(record.read_text()) if record.exists() else {}
         selected = [b for b in request.production.blocks if not request.block_indexes or b.index in request.block_indexes]
@@ -135,7 +143,7 @@ class Pipeline:
                     result.append(item); index += 1; continue
                 if asset_id or request.options.materials == 'own':
                     path, asset = self.asset(asset_id or source_ids[index % len(source_ids)], {'image', 'video'})
-                    credit = {'provider': 'Creator upload', 'name': asset['name'], 'assetId': asset['id'], 'license': 'Verificar derechos del recurso aportado.'}
+                    credit = asset.get('credit') or {'provider': 'Creator upload', 'name': asset['name'], 'assetId': asset['id'], 'license': 'Verificar derechos del recurso aportado.'}
                 elif request.options.materials == 'cards':
                     path = folder / f'card-{index}.png'; card(path, request.production.packaging.title, scene.visual, width, height)
                     credit = {'provider': 'Local graphics', 'license': 'Composición original generada a partir del proyecto.'}
@@ -148,6 +156,9 @@ class Pipeline:
                     if request.options.materials in {'pixabay', 'pixabay_images'}:
                         path, credit = providers.pixabay(scene.stockQuery or scene.visual[:100], folder, index, self.settings,
                                                          request.options.aspect, cancelled, images_only=request.options.materials == 'pixabay_images')
+                    elif plan:
+                        text = (scene.imagePrompt if plan['kind'] == 'image' else scene.videoPrompt) or scene.visual
+                        path, credit = replicate_studio.generate(plan, folder, f'replicate-visual-{index}', self.settings, self.store, cancelled, text=text)
                     else:
                         path, credit = providers.replicate(scene.imagePrompt or scene.videoPrompt or scene.visual, folder, index, self.settings, cancelled)
                 metadata = probe(path, self.settings)
@@ -155,19 +166,20 @@ class Pipeline:
                 if not has_video:
                     raise ValueError('La escena requiere una imagen o un video.')
                 length = float(metadata.get('format', {}).get('duration', 0) or 0)
-                kind = 'video' if length > 0 and path.suffix.lower() not in {'.png', '.jpg', '.jpeg', '.webp'} else 'image'
+                kind = 'video' if length > 0 and path.suffix.lower() not in {'.png', '.jpg', '.jpeg', '.webp'} and has_video.get('codec_name') not in {'png', 'mjpeg', 'webp', 'gif', 'bmp'} else 'image'
                 item = {'index': index, 'block': b.index, 'visual': scene.visual, 'path': str(path), 'kind': kind,
                         'mediaDuration': length, 'credit': credit}
                 saved[str(index)] = item; providers.atomic_json(record, saved)
                 result.append(item); index += 1
         return result
 
-    def render(self, ident, payload):
+    def render(self, ident, payload, plans=None):
+        plans = plans or {}
         request = JobRequest.model_validate(payload)
         folder = self.store.directory(ident); cancelled = lambda: self.cancelled(ident)
         width, height = dimensions(request.options.aspect, request.options.resolution)
         self.step(ident, 'voice', 5)
-        voice = self.voice(request, folder, cancelled)
+        voice = self.voice(request, folder, cancelled, plans.get('voice'))
         self.step(ident, 'captions', 18)
         if request.options.subtitles == 'whisper':
             words = captions.whisper(folder / 'narration.wav', folder, self.settings, cancelled)
@@ -178,7 +190,7 @@ class Pipeline:
         else:
             words = [captions.Word(**w) for w in voice['words']]; timing_source = voice['source']
         captions.export(words, folder, width, height)
-        media = self.materials(ident, request, folder, width, height, cancelled)
+        media = self.materials(ident, request, folder, width, height, cancelled, plans.get('visual'))
         timeline, segments, position = [], [], 0
         for block in voice['blocks']:
             scenes = [m for m in media if m['block'] == block['index']]
@@ -210,9 +222,13 @@ class Pipeline:
         (folder / 'silent.part.mp4').replace(folder / 'silent.mp4')
         args = base(self.settings) + ['-i', 'silent.mp4', '-i', 'narration.wav']
         music_track = None
-        if request.music_id:
-            music, _ = self.asset(request.music_id, {'audio', 'video'})
-            music_track = {'path': str(music), 'durationSeconds': duration(music, self.settings), 'volume': request.options.music_volume}
+        if request.options.music_source == 'replicate' or (request.music_id and request.options.music_source == 'uploaded'):
+            if request.options.music_source == 'replicate':
+                music, credit = replicate_studio.generate(plans['music'], folder, 'replicate-music', self.settings, self.store, cancelled)
+            else:
+                music, asset = self.asset(request.music_id, {'audio', 'video'})
+                credit = asset.get('credit') or {'provider': 'Creator upload', 'name': asset['name'], 'assetId': asset['id'], 'license': 'Verificar derechos de la música.'}
+            music_track = {'path': str(music), 'durationSeconds': duration(music, self.settings), 'volume': request.options.music_volume, 'credit': credit}
             args += ['-stream_loop', '-1', '-i', music, '-filter_complex', f'[1:a]volume=1[a];[2:a]volume={request.options.music_volume}[b];[a][b]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11[out]', '-map', '0:v', '-map', '[out]']
         else:
             args += ['-map', '0:v', '-map', '1:a', '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11']
@@ -224,8 +240,13 @@ class Pipeline:
         publication = {'title': request.production.packaging.title, 'description': request.production.description,
                        'pinnedComment': request.production.pinnedComment, 'checks': request.production.checks, 'privacyStatus': 'private'}
         manifest = {'engine': 'FFmpeg', 'engineVersion': ENGINE_VERSION, 'durationSeconds': actual, 'width': width, 'height': height, 'fps': FPS,
-                    'captionTiming': timing_source, 'blockTiming': 'measured-per-block' if request.options.tts == 'edge' else 'estimated-from-script', 'blocks': voice['blocks'], 'midRollDurationThresholdMet': actual >= 480,
-                    'credits': [m['credit'] for m in media], 'originalProjectTopic': request.production.topic}
+                    'captionTiming': timing_source, 'blockTiming': 'measured-per-block' if request.options.tts in {'edge', 'replicate'} else 'estimated-from-script', 'blocks': voice['blocks'], 'midRollDurationThresholdMet': actual >= 480,
+                    'credits': [m['credit'] for m in media] + ([music_track['credit']] if music_track else []) +
+                               [json.loads(p.read_text()) for p in sorted(folder.glob('voice-credit-*.json'))], 'originalProjectTopic': request.production.topic}
+        if request.options.tts == 'uploaded':
+            uploaded = self.store.asset(request.audio_id)
+            if uploaded.get('credit'):
+                manifest['credits'].append(uploaded['credit'])
         providers.atomic_json(folder / 'timeline.json', timeline); providers.atomic_json(folder / 'publication.json', publication)
         providers.atomic_json(folder / 'manifest.json', manifest)
         self.bundle(folder, media, width, height, timeline, voice, words, music_track)
@@ -233,6 +254,26 @@ class Pipeline:
             path.unlink(missing_ok=True)
         return {'durationSeconds': actual, 'width': width, 'height': height, 'captionTiming': timing_source,
                 'artifacts': sorted(ARTIFACTS), 'midRollDurationThresholdMet': actual >= 480, 'canClip': True}
+
+    def resource(self, ident, plan):
+        folder = self.store.directory(ident); cancelled = lambda: self.cancelled(ident)
+        self.step(ident, 'replicate ' + plan['kind'], 10)
+        path, credit = replicate_studio.generate(plan, folder, 'replicate-resource', self.settings, self.store, cancelled)
+        suffix = '.png' if plan['kind'] == 'image' else '.mp4' if plan['kind'] == 'video' else '.wav'
+        # Keep the true bytes; FFprobe identifies containers independent of the filename.
+        url_suffix = Path(urlparse(json.loads((folder / 'replicate-resource.json').read_text())['output_url']).path).suffix.lower()
+        allowed = {'.png', '.jpg', '.jpeg', '.webp'} if plan['kind'] == 'image' else {'.mp4', '.webm', '.mov'} if plan['kind'] == 'video' else {'.mp3', '.wav', '.m4a', '.ogg', '.flac'}
+        if url_suffix in allowed:
+            suffix = url_suffix
+        target = self.settings.root / 'assets' / (ident + suffix)
+        try:
+            asset = self.store.asset(ident)
+        except ValueError:
+            if self.settings.storage_used() + path.stat().st_size > self.settings.max_storage:
+                raise ValueError('No hay espacio para guardar el recurso generado.')
+            temporary = target.with_suffix(target.suffix + '.part'); shutil.copyfile(path, temporary); temporary.replace(target)
+            asset = self.store.add_asset(target, plan['kind'] + ' · ' + plan['model'], 'audio' if plan['kind'] in {'voice', 'music'} else plan['kind'], credit)
+        return {'assetId': asset['id'], 'resourceKind': plan['kind'], 'model': plan['model'], 'credit': credit, 'fileName': Path(asset['path']).name, 'artifacts': []}
 
     def bundle(self, folder, media, width, height, timeline, voice, words, music=None):
         unique = {m['path']: m for m in media}
