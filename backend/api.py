@@ -187,9 +187,9 @@ def create_app(settings=None, run_worker=True):
         return replicate_studio.CATALOG
 
     @app.get('/api/video/replicate/models/{owner}/{name}/schema', dependencies=auth)
-    def replicate_schema(owner: str, name: str):
+    def replicate_schema(owner: str, name: str, refresh: bool = False):
         try:
-            return replicate_studio.schema(owner + '/' + name, settings)
+            return replicate_studio.schema(owner + '/' + name, settings, refresh=refresh)
         except RuntimeError as error:
             raise HTTPException(502, str(error)) from None
 

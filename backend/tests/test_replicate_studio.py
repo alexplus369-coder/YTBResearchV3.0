@@ -231,7 +231,7 @@ def test_openapi_nullable_enums_limits_and_allof_files_are_validated(settings, m
     selected = choice('image'); selected.file_inputs = {'images': [asset['id']]}
     plan = studio.prepare(selected, settings, store)
     assert isinstance(plan['inputs']['images'], list) and plan['inputs']['strength'] == .5
-    assert plan['inputs']['optional'] is None and plan['inputs']['style'] is None and 'secret' not in plan['inputs']
+    assert 'optional' not in plan['inputs'] and 'style' not in plan['inputs'] and 'secret' not in plan['inputs']
     selected.inputs['strength'] = 0
     with pytest.raises(ValueError, match='exclusiveMinimum'):
         studio.prepare(selected, settings, store)

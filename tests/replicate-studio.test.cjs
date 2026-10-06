@@ -29,6 +29,8 @@ function setup(t) {
                 generate_audio: { type: 'boolean', default: false },
                 image: { type: 'string', format: 'uri' },
                 image_array: { type: 'array', items: { type: 'string', format: 'uri' } },
+                user_id: { type: 'string', nullable: true, default: null },
+                input_images: { type: 'array', nullable: true, default: null, items: { type: 'string', format: 'uri' } },
                 private_token: { type: 'string', 'x-cog-secret': true },
                 metadata: { type: 'object' }
             } } });
@@ -49,12 +51,12 @@ function setup(t) {
         ui.$('video-access').value = 'render-access-code'; ui.$('video-connect').click();
         await until(() => ui.$('video-connection').textContent.includes('Motor conectado'));
     }
-    async function select(kind) {
+    async function select(kind, model = ids[kind]) {
         if (ui.$('replicate-panel').classList.contains('hidden')) {
             ui.$('replicate-open').click(); await until(() => ui.$('replicate-model').options.length > 1);
             await until(() => !ui.$('replicate-model').disabled);
         }
-        ui.change('replicate-kind', kind); ui.change('replicate-model', ids[kind]);
+        ui.change('replicate-kind', kind); ui.change('replicate-model', model);
         await until(() => ui.$('replicate-schema-state').textContent.includes('versión'));
         await until(() => !ui.$('replicate-apply').disabled);
     }
@@ -121,6 +123,37 @@ test('image, voice and music models keep independent parameters and require an e
     assert.equal(options.paid_generation_confirmed, true);
     await until(() => ui.$('video-connection').textContent.includes('Trabajo bbbbbbbb'));
     ui.$('video-disconnect').click();
+});
+
+test('GPT Image form keeps strings typed and omits optional null defaults', async t => {
+    const ui = setup(t); await ui.connect(); await ui.select('image', 'openai/gpt-image-2');
+    ui.input('prompt', 'An original architectural cutaway'); ui.input('user_id', '15');
+    ui.input('output_format', '"png"');
+    ui.$('replicate-paid').checked = true; ui.$('replicate-paid').dispatchEvent(new ui.w.Event('change'));
+    ui.$('replicate-generate').click();
+    await until(() => ui.paidCalls().length === 1);
+    const payload = JSON.parse(ui.paidCalls()[0].options.body);
+    assert.equal(payload.selection.model, 'openai/gpt-image-2');
+    assert.equal(payload.selection.inputs.user_id, '15');
+    assert.equal(payload.selection.inputs.output_format, 'png');
+    assert.ok(!('input_images' in payload.selection.inputs));
+    assert.ok(!('private_token' in payload.selection.inputs));
+    await until(() => ui.$('video-connection').textContent.includes('en cola')); ui.$('video-disconnect').click();
+});
+
+test('reload requests a fresh provider schema, preserves the prompt and asks to review other options', async t => {
+    const ui = setup(t); await ui.connect(); await ui.select('image', 'openai/gpt-image-2');
+    ui.input('prompt', 'Keep this original prompt'); ui.input('steps', '7');
+    const count = ui.calls.filter(call => call.url.pathname.endsWith('/schema')).length;
+    ui.$('replicate-load').click();
+    await until(() => ui.$('video-connection').textContent.includes('Parámetros actualizados'));
+    const schemas = ui.calls.filter(call => call.url.pathname.endsWith('/schema'));
+    assert.equal(schemas.length, count + 1);
+    assert.equal(schemas.at(-1).url.searchParams.get('refresh'), 'true');
+    assert.equal(ui.$('replicate-fields').querySelector('[data-replicate-field="prompt"]').value, 'Keep this original prompt');
+    assert.equal(ui.$('replicate-fields').querySelector('[data-replicate-field="steps"]').value, '4');
+    assert.ok(ui.$('video-connection').textContent.includes('referencias'));
+    assert.equal(ui.paidCalls().length, 0); ui.$('video-disconnect').click();
 });
 
 for (const kind of ['image', 'video', 'music', 'voice']) {

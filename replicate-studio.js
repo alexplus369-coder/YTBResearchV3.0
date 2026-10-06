@@ -76,18 +76,21 @@
                 $('replicate-catalog-state').textContent = available.length + ' modelos de ' + labels[current].toLowerCase() + '. La disponibilidad se consulta al cargar parámetros; revisa los permisos comerciales de cada modelo. Figurar aquí no garantiza su funcionamiento.';
                 destinations(); fields();
             }
-            async function loadSchema() {
+            async function loadSchema(refresh = false) {
                 const s = state(), token = ++epoch, model = s.model;
+                const previousText = refresh ? { ...s.inputs } : null;
                 s.meta = null; s.inputs = {}; s.file_inputs = {}; fields();
                 if (!model) return;
-                const meta = await api.request('/replicate/models/' + model + '/schema');
+                const meta = await api.request('/replicate/models/' + model + '/schema' + (refresh ? '?refresh=true' : ''));
                 if (token !== epoch || s !== state() || s.model !== model) return;
                 s.meta = meta;
                 for (const [name, raw] of Object.entries(meta.input_schema.properties || {})) {
                     const f = fieldShape(raw);
-                    if (f.default !== undefined && !f['x-cog-secret']) s.inputs[name] = f.default;
+                    if (f.default !== undefined && f.default !== null && !f['x-cog-secret']) s.inputs[name] = f.default;
                 }
-                fields(); api.status('Parámetros cargados. Revisa opciones y permisos antes de generar.');
+                const name = textField(current, meta.input_schema.properties || {});
+                if (name && typeof previousText?.[name] === 'string') s.inputs[name] = previousText[name];
+                fields(); api.status(refresh ? 'Parámetros actualizados desde Replicate; prompt conservado. Revisa las demás opciones y referencias antes de generar.' : 'Parámetros cargados. Revisa opciones y permisos antes de generar.');
             }
             function selection(kind) {
                 const s = states[kind];
@@ -128,7 +131,7 @@
                 state().model = $('replicate-model').value;
                 api.work('Cargando parámetros de Replicate…', loadSchema);
             });
-            $('replicate-load').addEventListener('click', () => api.work('Cargando parámetros de Replicate…', loadSchema));
+            $('replicate-load').addEventListener('click', () => api.work('Actualizando parámetros desde Replicate…', () => loadSchema(true)));
             $('replicate-fields').addEventListener('input', event => {
                 const name = event.target.dataset.replicateField;
                 if (!name) return;
