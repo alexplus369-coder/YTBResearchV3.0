@@ -7,6 +7,7 @@
         create(api) {
             let catalog = [], caps = {}, epoch = 0, current = 'image', connected = false, busy = false;
             const states = {}, configured = { visual: null, music: false, voice: false };
+            const comparison = window.ReplicateValue?.mount(window.ReplicateCatalog, chooseModel);
             const state = () => states[current] || (states[current] = { model: '', meta: null, inputs: {}, file_inputs: {} });
             const properties = () => state().meta?.input_schema?.properties || {};
             const textField = (kind, fields) => (kind === 'voice' ? ['text', 'prompt', 'transcript'] : ['prompt']).find(k => fields[k]);
@@ -65,11 +66,11 @@
                     return '<div>' + title + control + '</div>';
                 }).join('');
                 const f = textField(current, props);
-                $('replicate-schema-state').textContent = s.meta ? Object.keys(props).length + ' parámetros · versión ' + s.meta.version.slice(0, 12) + (f ? ' · El modo automático reemplaza ' + f + ' con el guion/prompt de cada escena.' : ' · Este modelo requiere generación individual.') : 'Selecciona un modelo y carga sus parámetros.';
+                $('replicate-schema-state').textContent = s.meta ? Object.keys(props).length + ' parámetros · ' + (s.meta.api_mode === 'official' ? 'esquema ' : 'versión ') + s.meta.version.slice(0, 12) + (s.meta.api_mode === 'official' ? ' · versión gestionada por Replicate' : '') + (f ? ' · El modo automático reemplaza ' + f + ' con el guion/prompt de cada escena.' : ' · Este modelo requiere generación individual.') : 'Selecciona un modelo y carga sus parámetros.';
                 lock();
             }
             function models() {
-                const s = state(), available = catalog.filter(m => m.kind === current);
+                const s = state(), available = window.ReplicateValue ? window.ReplicateValue.rank(catalog, current) : catalog.filter(m => m.kind === current);
                 $('replicate-model').innerHTML = '<option value="">Seleccionar modelo</option>' + available.map(m => '<option value="' + h(m.id) + '">' + h(m.label + ' · ' + m.id + (m.operation === 'transform' ? ' · requiere referencias' : '')) + '</option>').join('');
                 $('replicate-model').value = s.model;
                 $('replicate-catalog-state').textContent = available.length + ' modelos de ' + labels[current].toLowerCase() + '. La disponibilidad se consulta al cargar parámetros; revisa los permisos comerciales de cada modelo. Figurar aquí no garantiza su funcionamiento.';
@@ -105,6 +106,21 @@
                     }
                     models(); api.status('Catálogo disponible. Elige un modelo; no se ha iniciado ninguna generación.');
                 });
+            }
+            async function chooseModel(id) {
+                if (!connected || busy || !caps.replicateCatalog) return;
+                const entry = window.ReplicateCatalog?.models.find(m => m.id === id);
+                if (!entry || !['image', 'video'].includes(entry.kind)) return;
+                $('creator-tab-studio')?.click();
+                current = entry.kind; $('replicate-kind').value = current;
+                $('replicate-panel').classList.remove('hidden');
+                await api.work('Cargando modelo del comparador…', async () => {
+                    if (!caps.replicate) throw new Error('Configura REPLICATE_API_TOKEN y reinicia el servidor.');
+                    if (!catalog.length) catalog = (await api.request('/replicate/models')).models;
+                    if (!connected) return;
+                    state().model = id; models(); await loadSchema();
+                });
+                $('replicate-panel').scrollIntoView({ block: 'start', behavior: 'smooth' });
             }
             $('replicate-open').addEventListener('click', () => open());
             $('replicate-kind').addEventListener('change', () => { epoch++; current = $('replicate-kind').value; models(); });
@@ -157,7 +173,7 @@
             }));
             return {
                 open,
-                lock(isConnected, isBusy) { connected = isConnected; busy = isBusy; lock(); $('replicate-open').disabled = !connected || busy; },
+                lock(isConnected, isBusy) { connected = isConnected; busy = isBusy; lock(); $('replicate-open').disabled = !connected || busy; comparison?.lock(connected && !!caps.replicateCatalog && !!caps.replicate, busy); },
                 connect(capabilities) { caps = capabilities; },
                 reset() { epoch++; catalog = []; for (const k of Object.keys(states)) delete states[k]; configured.visual = null; configured.music = configured.voice = false; caps = {}; $('replicate-paid').checked = false; fields(); },
                 assetsChanged() { if (state().meta) fields(); destinations(); },

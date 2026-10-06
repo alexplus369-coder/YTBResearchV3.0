@@ -42,7 +42,7 @@ def test_catalog_is_authenticated_and_requires_no_provider_calls(settings):
         assert client.get('/api/video/replicate/models').status_code == 401
         client.headers['Authorization'] = 'Bearer ' + settings.token
         result = client.get('/api/video/replicate/models').json()
-        assert len(result['models']) == 86 and len({m['id'] for m in result['models']}) == 86
+        assert len(result['models']) == 96 and len({m['id'] for m in result['models']}) == 96
         assert {m['kind'] for m in result['models']} >= {'image', 'video', 'music', 'voice', None}
         assert settings.token not in str(result)
         assert client.get('/api/video/replicate/models/not-an-owner/not-a-model/schema').status_code == 400

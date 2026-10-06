@@ -32,6 +32,41 @@
         .rtype-btn:hover { border-color: #ef4444; color: #ef4444; }
         .rtype-btn.rtype-active { background: #ef4444; border-color: #ef4444; color: #fff; box-shadow: 0 4px 10px rgba(239,68,68,.25); }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        /* Catalogue stays outside tab panels, with its own scrolling on every screen. */
+        .replicate-value-panel { position: fixed; right: 12px; top: 12px; bottom: 12px; width: 370px; z-index: 20; background: white; border: 1px solid #c7d2fe; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 5px 24px #0f172a12; font-size: 11px; }
+        .replicate-value-panel h2 { font-size: 16px; font-weight: 800; }
+        .replicate-value-controls { display: grid; grid-template-columns: 1fr 90px; gap: 8px; }
+        .replicate-value-panel input, .replicate-value-panel select { display: block; width: 100%; padding: 5px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; }
+        .value-section { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+        .value-section h3 { font-weight: 800; margin: 3px 0; }
+        .value-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .value-scroll table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+        .value-scroll th { position: sticky; top: 0; background: #eef2ff; z-index: 1; text-align: left; padding: 6px; }
+        .value-scroll td { padding: 7px 5px; border-bottom: 1px solid #e2e8f0; vertical-align: top; overflow-wrap: anywhere; }
+        .value-scroll th:first-child { width: 39%; } .value-scroll th:nth-child(2) { width: 36%; }
+        .value-scroll button { font-weight: 800; text-align: left; color: #4338ca; cursor: pointer; }
+        .value-scroll button:disabled { color: #334155; cursor: default; }
+        .value-scroll a { display: block; color: #4338ca; text-decoration: underline; margin-top: 3px; }
+        .value-operation, .value-condition { display: block; font-size: 10px; color: #64748b; margin-top: 3px; }
+        .value-yield { color: #047857; font-weight: 800; }
+        @media (min-width: 1280px) { body { padding-right: 394px; } }
+        @media (max-width: 1279px) {
+            html { scroll-padding-bottom: 330px; }
+            body { padding-bottom: 330px; }
+            .replicate-value-panel { top: auto; right: 0; left: 0; bottom: 0; width: auto; height: 310px; border-radius: 12px 12px 0 0; }
+            .replicate-value-panel h2 { font-size: 13px; }
+            .replicate-value-panel .value-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-height: 0; flex: 1; }
+            .replicate-value-panel .value-note { display: none; }
+        }
+        @media (min-width: 1280px) { .value-lists { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; } }
+        @media (max-width: 600px) {
+            html { scroll-padding-bottom: 356px; }
+            .replicate-value-panel { height: 340px; padding: 8px; gap: 4px; }
+            body { padding-bottom: 356px; }
+            .replicate-value-panel .value-lists { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+            .value-scroll td { padding: 4px; } .value-scroll th { padding: 3px; }
+            #replicate-value-status { font-size: 9px; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-800">
@@ -783,6 +818,22 @@
 
         </div>
     </div>
+
+    <aside id="replicate-value-panel" class="replicate-value-panel" aria-labelledby="replicate-value-title">
+        <h2 id="replicate-value-title">Replicate · rendimiento por dólar</h2>
+        <div class="replicate-value-controls">
+            <label>Buscar modelo<input id="replicate-value-search" type="search" maxlength="160" placeholder="Nombre o autor"></label>
+            <label>Simular US$<input id="replicate-value-budget" type="number" min="0.01" max="100000" step="0.01" value="1"></label>
+        </div>
+        <label>Función<select id="replicate-value-operation"><option value="">Todos: generación y edición</option><option value="generate">Generación</option><option value="transform">Edición / ampliación</option></select></label>
+        <p id="replicate-value-status" role="status"></p>
+        <div class="value-lists">
+            <section class="value-section" aria-labelledby="replicate-value-heading-image"><h3><span id="replicate-value-heading-image">Imágenes por US$1</span> · <span id="replicate-value-count-image"></span> modelos</h3><div class="value-scroll" tabindex="0" aria-label="Lista de modelos de imagen"><table><thead><tr><th scope="col">Modelo</th><th scope="col">US$/imagen · condición</th><th scope="col">Imágenes</th></tr></thead><tbody id="replicate-value-rows-image"></tbody></table></div></section>
+            <section class="value-section" aria-labelledby="replicate-value-heading-video"><h3><span id="replicate-value-heading-video">Video por US$1</span> · <span id="replicate-value-count-video"></span> modelos</h3><div class="value-scroll" tabindex="0" aria-label="Lista de modelos de video"><table><thead><tr><th scope="col">Modelo</th><th scope="col">US$/s · condición</th><th scope="col">Segundos</th></tr></thead><tbody id="replicate-value-rows-video"></tbody></table></div></section>
+        </div>
+        <p class="value-note">Es una comparación de coste, no de calidad. Los segundos son de salida, no tiempo de cómputo. Duraciones mínimas, imágenes de referencia, redondeos e impuestos pueden modificar el coste. Los precios no se actualizan en vivo.</p>
+        <p id="replicate-value-connect"></p>
+    </aside>
 
     <script src="research-core.js"></script>
     <script>
@@ -2966,6 +3017,8 @@ COMENTARIOS (JSON): ${JSON.stringify(fuente)}`;
     <script src="research-workspace.js"></script>
     <script src="creator-core.js"></script>
     <script src="creator-studio.js"></script>
+    <script src="replicate-catalog.js"></script>
+    <script src="replicate-value.js"></script>
     <script src="replicate-studio.js"></script>
     <script src="video-production.js"></script>
 </body>

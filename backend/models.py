@@ -71,7 +71,7 @@ class ReplicateSelection(Contract):
             size = len(json.dumps(self.inputs, allow_nan=False).encode())
         except (ValueError, TypeError):
             raise ValueError('Los parámetros deben ser JSON válido con números finitos.') from None
-        if size > 100000 or any(not 1 <= len(v) <= 8 for v in self.file_inputs.values()):
+        if size > 100000 or any(not 1 <= len(v) <= 30 for v in self.file_inputs.values()) or sum(map(len, self.file_inputs.values())) > 60:
             raise ValueError('Los parámetros o las referencias superan el límite permitido.')
         return self
 

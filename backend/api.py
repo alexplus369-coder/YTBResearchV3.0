@@ -26,7 +26,7 @@ from .uploader import upload
 from .worker import Worker
 
 ROOT = Path(__file__).resolve().parent.parent
-STATIC = {'index.html', 'research-core.js', 'research-workspace.js', 'creator-core.js', 'creator-studio.js', 'video-production.js', 'replicate-studio.js'}
+STATIC = {'index.html', 'research-core.js', 'research-workspace.js', 'creator-core.js', 'creator-studio.js', 'video-production.js', 'replicate-studio.js', 'replicate-catalog.js', 'replicate-value.js'}
 EXTENSIONS = {'.mp4', '.mov', '.webm', '.m4a', '.wav', '.mp3', '.png', '.jpg', '.jpeg', '.webp'}
 
 
@@ -218,6 +218,8 @@ def create_app(settings=None, run_worker=True):
             if ident in json.dumps(job['payload']):
                 raise ValueError('Un trabajo activo utiliza este recurso.')
         Path(asset['path']).unlink(missing_ok=True)
+        if asset.get('credit', {}).get('vectorOriginal'):
+            Path(asset['path']).with_suffix('.svg').unlink(missing_ok=True)
         with store.connect() as con:
             con.execute('DELETE FROM assets WHERE id=?', (ident,))
         return {'deleted': True}
@@ -226,6 +228,15 @@ def create_app(settings=None, run_worker=True):
     def asset_file(ident: str):
         asset = store.asset(ident)
         return FileResponse(asset['path'], filename=ident + Path(asset['path']).suffix)
+
+    @app.get('/api/video/assets/{ident}/original', dependencies=auth)
+    def asset_vector(ident: str):
+        asset = store.asset(ident)
+        path = Path(asset['path']).with_suffix('.svg')
+        if not asset.get('credit', {}).get('vectorOriginal') or not path.is_file():
+            raise HTTPException(404, 'SVG original no disponible.')
+        return FileResponse(path, filename=ident + '.svg', media_type='application/octet-stream',
+                            headers={'X-Content-Type-Options': 'nosniff'})
 
     @app.post('/api/video/jobs', dependencies=auth, status_code=202)
     def jobs(request: JobRequest):
