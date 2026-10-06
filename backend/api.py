@@ -32,6 +32,13 @@ STATIC = {'index.html', 'research-core.js', 'research-workspace.js', 'creator-co
 EXTENSIONS = {'.mp4', '.mov', '.webm', '.m4a', '.wav', '.mp3', '.png', '.jpg', '.jpeg', '.webp'}
 
 
+def valid_access(headers, token):
+    # Keep the explicit production credential independent of HTTP Basic in the browser.
+    if b'x-yt-render-token' in headers:
+        return secrets.compare_digest(headers[b'x-yt-render-token'], token.encode())
+    return secrets.compare_digest(headers.get(b'authorization', b''), ('Bearer ' + token).encode())
+
+
 class UploadRequest(Contract):
     access_token: SecretStr
     made_for_kids: bool = False
@@ -58,7 +65,7 @@ class AccessAndBodyLimit:
         if scope['type'] != 'http' or not scope['path'].startswith('/api/video/') or scope['method'] == 'OPTIONS':
             return await self.app(scope, receive, send)
         headers = dict(scope.get('headers', []))
-        if not secrets.compare_digest(headers.get(b'authorization', b''), ('Bearer ' + self.settings.token).encode()):
+        if not valid_access(headers, self.settings.token):
             return await JSONResponse({'detail': 'Código de acceso inválido.'}, status_code=401)(scope, receive, send)
         limit = self.settings.max_upload + 1024 * 1024 if scope['path'] == '/api/video/assets' else 2 * 1024 * 1024
         try:
@@ -100,7 +107,7 @@ def create_app(settings=None, run_worker=True):
     app = FastAPI(title='YT Research Video Production', version=ENGINE_VERSION, lifespan=lifespan)
     app.state.store, app.state.settings, app.state.worker = store, settings, worker
     app.add_middleware(AccessAndBodyLimit, settings=settings)
-    app.add_middleware(CORSMiddleware, allow_origins=settings.origins, allow_methods=['GET', 'POST', 'DELETE'], allow_headers=['Authorization', 'Content-Type'])
+    app.add_middleware(CORSMiddleware, allow_origins=settings.origins, allow_methods=['GET', 'POST', 'DELETE'], allow_headers=['Authorization', 'Content-Type', 'X-YT-Render-Token'])
     # Prevent browser DNS rebinding into a loopback service. Configure a reverse proxy explicitly for remote hosting.
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=['127.0.0.1', 'localhost', 'testserver'] + [urlparse(o).hostname for o in settings.origins if urlparse(o).hostname])
 
@@ -117,8 +124,7 @@ def create_app(settings=None, run_worker=True):
         return JSONResponse(status_code=404, content={'detail': 'Trabajo o recurso no encontrado.'})
 
     def authorized(request: Request):
-        received = request.headers.get('authorization', '')
-        if not secrets.compare_digest(received.encode(), ('Bearer ' + settings.token).encode()):
+        if not valid_access(dict(request.scope.get('headers', [])), settings.token):
             raise HTTPException(401, 'Código de acceso inválido.')
 
     auth = [Depends(authorized)]

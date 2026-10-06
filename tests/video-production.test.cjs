@@ -11,7 +11,7 @@ function setup(t) {
         const url = new URL(input);
         if (url.hostname !== '127.0.0.1' && url.origin !== ui.w.location.origin) return normalFetch(input, options);
         calls.push({ path: url.pathname, origin: url.origin, options });
-        assert.equal(options.headers.Authorization, 'Bearer session-render-token');
+        assert.equal(options.headers['X-YT-Render-Token'], 'session-render-token');
         const result = (data, status = 200) => ({ ok: status < 400, status, json: async () => data, blob: async () => new Blob(['MP4']) });
         if (controls.unauthorized) return result({ detail: 'Código de acceso inválido.' }, 401);
         if (url.pathname.endsWith('/health')) return result({ ready: true, worker: true, providers: { encoder: 'libx264', maxUploadMB: 200, telegram: false, replicate: true } });

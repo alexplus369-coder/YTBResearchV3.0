@@ -42,7 +42,10 @@ def test_private_site_password_gate_protects_html_catalog_and_docs_without_unloc
         assert client.get('/healthz').json() == {'status': 'ok'}
         assert client.get('/', headers={'Authorization': 'Basic !bad!'}).status_code == 401
         assert client.get('/api/video/jobs', headers=headers).status_code == 401
+        assert client.get('/api/video/jobs', headers={**headers, 'X-YT-Render-Token': settings.token}).status_code == 200
         assert client.get('/api/video/jobs', headers={'Authorization': 'Bearer ' + settings.token}).status_code == 200
+        assert client.get('/api/video/jobs', headers={'Authorization': 'Bearer ' + settings.token, 'X-YT-Render-Token': 'wrong-code'}).status_code == 401
+        assert client.post('/api/video/jobs', headers=headers, content=b'not-json').status_code == 401
 
 
 def test_public_probe_fails_when_ffmpeg_is_missing_and_exposes_no_provider_secrets(settings):
