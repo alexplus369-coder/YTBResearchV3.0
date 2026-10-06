@@ -25,6 +25,8 @@ class Store:
                     progress REAL DEFAULT 0, cancel INTEGER DEFAULT 0, error TEXT DEFAULT '', result TEXT DEFAULT '{}', attempts INTEGER DEFAULT 0, created TEXT, updated TEXT);
                 CREATE INDEX IF NOT EXISTS job_fingerprint ON jobs(fingerprint);
             ''')
+            if 'credit' not in {r['name'] for r in con.execute('PRAGMA table_info(assets)')}:
+                con.execute("ALTER TABLE assets ADD COLUMN credit TEXT DEFAULT '{}'")
 
     @contextmanager
     def connect(self):
@@ -36,10 +38,11 @@ class Store:
         finally:
             con.close()
 
-    def add_asset(self, path, name, kind):
+    def add_asset(self, path, name, kind, credit=None):
         ident = path.stem
         with self.connect() as con:
-            con.execute('INSERT INTO assets VALUES(?,?,?,?,?,?)', (ident, name[:200], str(path), kind, path.stat().st_size, now()))
+            con.execute('INSERT INTO assets(id,name,path,kind,size,created,credit) VALUES(?,?,?,?,?,?,?)',
+                        (ident, name[:200], str(path), kind, path.stat().st_size, now(), json.dumps(credit or {}, ensure_ascii=False)))
         return self.asset(ident)
 
     def asset(self, ident):
@@ -47,18 +50,20 @@ class Store:
             row = con.execute('SELECT * FROM assets WHERE id=?', (ident,)).fetchone()
         if not row or not Path(row['path']).is_file():
             raise ValueError('Recurso no encontrado; vuelve a subirlo.')
-        return dict(row)
+        item = dict(row); item['credit'] = json.loads(item['credit'] or '{}')
+        return item
 
     def assets(self):
         with self.connect() as con:
             return [dict(r) for r in con.execute('SELECT id,name,kind,size,created FROM assets ORDER BY created DESC LIMIT 100')]
 
-    def create(self, payload, signature=''):
+    def create(self, payload, signature='', reuse_failed=False):
         encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
         fingerprint = hashlib.sha256((signature + encoded).encode()).hexdigest()
         with self.connect() as con:
             con.execute('BEGIN IMMEDIATE')
-            row = con.execute("SELECT id FROM jobs WHERE fingerprint=? AND state IN ('queued','running','completed') ORDER BY created DESC LIMIT 1", (fingerprint,)).fetchone()
+            states = "('queued','running','completed','failed','cancelled')" if reuse_failed else "('queued','running','completed')"
+            row = con.execute('SELECT id FROM jobs WHERE fingerprint=? AND state IN ' + states + ' ORDER BY created DESC LIMIT 1', (fingerprint,)).fetchone()
             if row:
                 return self.get(row['id'])
             ident, stamp = uuid.uuid4().hex, now()
@@ -78,6 +83,9 @@ class Store:
             payload = json.loads(item['payload'])
             item['kind'] = payload.get('kind', 'render')
             item['title'] = payload.get('request', {}).get('production', {}).get('packaging', {}).get('title', 'Recorte de video')
+            if item['kind'] == 'resource':
+                selection = payload['request']['selection']
+                item['title'] = selection['kind'] + ' · ' + selection['model']
             item.pop('payload'); item.pop('fingerprint'); item.pop('cancel')
         return item
 

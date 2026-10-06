@@ -67,6 +67,8 @@ python -m backend
 
 Abre `http://127.0.0.1:8787`, conecta el motor con el código que aparece en la terminal y genera una producción en el estudio. **Tarjetas gráficas + narración propia** permite probar sin servicios de IA. Pixabay, Replicate, Whisper.cpp, avisos Telegram y subida privada con OAuth son opciones configurables. Replicate requiere activar explícitamente las generaciones de pago.
 
+**Replicate Studio** añade selectores de tipo y modelo basados en tu catálogo de [FrameShift](https://github.com/alexplus369-coder/frameshift): 23 modelos de imagen/restauración, 41 de video/postproducción/avatar, 5 de música y 6 de voz. Carga los parámetros reales del modelo (formato, resolución, duración, referencias, etc., si los admite), genera un recurso individual o configura modelos distintos para escenas, narración por bloque y música del MP4. La clave permanece en el backend. El catálogo es una instantánea, no una garantía de disponibilidad ni de licencia comercial; MusicGen muestra una advertencia no comercial. No se trasladan pesos, precios antiguos ni código de FrameShift.
+
 Consulta [instalación en Windows/Linux, Docker, proveedores, recuperación y Remotion](docs/video-production.md) y los [avisos de terceros](docs/third-party-notices.md). La automatización no garantiza monetización; revisa originalidad, fuentes, derechos y calidad del resultado antes de publicarlo.
 
 ### Monetización y auditoría

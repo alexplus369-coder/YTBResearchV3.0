@@ -1,5 +1,6 @@
 """Bounded render contracts accept only data, never commands or filesystem paths."""
 from typing import Annotated, Literal
+import json
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 AssetId = Annotated[str, Field(pattern=r'^[a-f0-9]{32}$')]
@@ -57,10 +58,39 @@ class Production(BaseModel):
         return self
 
 
+class ReplicateSelection(Contract):
+    model: str = Field(pattern=r'^[a-zA-Z0-9][a-zA-Z0-9._-]*/[a-zA-Z0-9][a-zA-Z0-9._-]*$', max_length=160)
+    kind: Literal['image', 'video', 'music', 'voice']
+    version: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
+    inputs: dict = Field(default_factory=dict, max_length=80)
+    file_inputs: dict[str, list[AssetId]] = Field(default_factory=dict, max_length=12)
+
+    @model_validator(mode='after')
+    def bounded(self):
+        try:
+            size = len(json.dumps(self.inputs, allow_nan=False).encode())
+        except (ValueError, TypeError):
+            raise ValueError('Los parámetros deben ser JSON válido con números finitos.') from None
+        if size > 100000 or any(not 1 <= len(v) <= 8 for v in self.file_inputs.values()):
+            raise ValueError('Los parámetros o las referencias superan el límite permitido.')
+        return self
+
+
+class ResourceRequest(Contract):
+    selection: ReplicateSelection
+    paid_generation_confirmed: bool = False
+
+    @model_validator(mode='after')
+    def confirmed(self):
+        if not self.paid_generation_confirmed:
+            raise ValueError('Confirma la generación de pago antes de crear el recurso.')
+        return self
+
+
 class Options(Contract):
     aspect: Literal['landscape', 'portrait', 'square'] = 'landscape'
     resolution: Literal[720, 1080] = 720
-    tts: Literal['edge', 'uploaded'] = 'edge'
+    tts: Literal['edge', 'uploaded', 'replicate'] = 'edge'
     voice: str = Field(default='es-MX-DaliaNeural', pattern=r'^[a-z]{2}-[A-Z]{2}-[A-Za-z0-9]+Neural$', max_length=80)
     subtitles: Literal['tts', 'estimated', 'whisper'] = 'tts'
     materials: Literal['own', 'cards', 'pixabay', 'pixabay_images', 'replicate'] = 'own'
@@ -69,6 +99,10 @@ class Options(Contract):
     music_volume: float = Field(default=.08, ge=0, le=.3)
     notify: bool = False
     paid_generation_confirmed: bool = False
+    replicate_visual: 'ReplicateSelection | None' = None
+    replicate_music: 'ReplicateSelection | None' = None
+    replicate_voice: 'ReplicateSelection | None' = None
+    music_source: Literal['uploaded', 'none', 'replicate'] = 'uploaded'
 
     @model_validator(mode='before')
     @classmethod
@@ -109,6 +143,16 @@ class JobRequest(Contract):
                 offset += len(block.scenes)
         if self.options.materials == 'replicate' and not self.options.paid_generation_confirmed:
             raise ValueError('La generación de pago debe activarse explícitamente.')
+        if self.options.tts == 'replicate' or self.options.music_source == 'replicate':
+            if not self.options.paid_generation_confirmed:
+                raise ValueError('Confirma la generación de pago de voz/música.')
+        for enabled, selection, kinds in [
+            (self.options.materials == 'replicate' and self.options.replicate_visual is not None, self.options.replicate_visual, {'image', 'video'}),
+            (self.options.tts == 'replicate', self.options.replicate_voice, {'voice'}),
+            (self.options.music_source == 'replicate', self.options.replicate_music, {'music'}),
+        ]:
+            if enabled and (selection is None or selection.kind not in kinds):
+                raise ValueError('Selecciona un modelo compatible para cada tarea de Replicate activada.')
         return self
 
 

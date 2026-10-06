@@ -5,6 +5,19 @@
     let server = '', access = '', connected = false, capabilities = {}, version = 0, working = false;
     let assets = [], jobs = [], sceneBindings = {}, selectedAssets = new Set(), clipJob = null, timer = null, previewUrl = null;
     let uploadToken = '', uploadExpires = 0, productionSignature = '', failures = 0;
+    const pendingResources = new Map();
+    const studio = ReplicateStudio.create({ request, post: (...args) => post(...args), work, project: () => project(), signature: () => productionSignature, assets: () => assets, status, error,
+        apply(kind) {
+            if (kind === 'image' || kind === 'video') $('video-materials').value = 'replicate';
+            else if (kind === 'music') $('video-music-source').value = 'replicate';
+            else $('video-tts').value = 'replicate';
+            lock();
+        },
+        async queued(job, destination) {
+            pendingResources.set(job.id, destination);
+            await refresh(); poll();
+        }
+    });
     const states = { queued: 'En cola', running: 'Produciendo', completed: 'Terminado', failed: 'Error', cancelled: 'Cancelado' };
     const project = () => window.getCreatorProduction?.();
     function error(value) { $('video-error').textContent = value.message || String(value); $('video-error').classList.remove('hidden'); }
@@ -16,9 +29,11 @@
         $('video-cut').disabled = working || !connected || !clipJob;
         $('video-notify').disabled = !connected || !capabilities.telegram;
         for (const button of document.querySelectorAll('[data-video-action]')) button.disabled = working || !connected;
-        $('video-paid-label').classList.toggle('hidden', $('video-materials').value !== 'replicate');
+        $('video-paid-label').classList.toggle('hidden', $('video-materials').value !== 'replicate' && $('video-tts').value !== 'replicate' && $('video-music-source').value !== 'replicate');
         $('video-voice').disabled = $('video-tts').value !== 'edge';
         $('video-audio').disabled = $('video-tts').value !== 'uploaded';
+        $('video-music').disabled = $('video-music-source').value !== 'uploaded';
+        studio.lock(connected, working);
     }
     async function request(path, options = {}, binary = false) {
         if (!server || !access) throw new Error('Conecta tu motor de producción.');
@@ -28,7 +43,7 @@
         if (captured !== version) throw new Error('La conexión cambió durante la solicitud.');
         if (!response.ok) {
             const body = await response.json().catch(() => ({}));
-            if (response.status === 401) { connected = false; access = ''; clearTimeout(timer); lock(); }
+            if (response.status === 401) { connected = false; access = ''; clearTimeout(timer); pendingResources.clear(); studio.reset(); lock(); }
             const detail = Array.isArray(body.detail) ? body.detail.map(d => d.msg).join(' ') : body.detail;
             throw new Error(detail || 'El motor respondió HTTP ' + response.status + '.');
         }
@@ -44,6 +59,7 @@
         finally { working = false; lock(); }
     }
     function actions(job) {
+        if (job.kind === 'resource' && job.state === 'completed') return '<button type="button" data-video-action="use-resource" data-job="' + h(job.id) + '" class="text-xs font-bold border rounded-lg px-3 py-2">Usar recurso</button><button type="button" data-video-action="download-resource" data-job="' + h(job.id) + '" class="text-xs font-bold border rounded-lg px-3 py-2">Descargar recurso</button><button type="button" data-video-action="delete" data-job="' + h(job.id) + '" class="text-xs border rounded-lg px-3 py-2">Borrar trabajo (conservar recurso)</button>';
         const button = (action, label) => '<button type="button" data-video-action="' + action + '" data-job="' + h(job.id) + '" class="text-xs font-bold border rounded-lg px-3 py-2">' + label + '</button>';
         if (job.state === 'completed') return button('preview', 'Ver MP4') + button('video.mp4', 'Descargar MP4') + button('subtitles.srt', 'SRT') + (job.result.artifacts.includes('project.zip') ? button('project.zip', 'Proyecto editable / Remotion') : '') + (job.result.canClip ? button('transcript', 'Transcripción / recortar') : '') + button('youtube', 'Subir privado a YouTube') + button('delete', 'Borrar render');
         if (job.state === 'queued' || job.state === 'running') return button('cancel', 'Cancelar');
@@ -58,6 +74,14 @@
     async function refresh() {
         if (!connected) return;
         jobs = await request('/jobs'); renderJobs(); failures = 0;
+        const ready = jobs.filter(j => j.kind === 'resource' && j.state === 'completed' && pendingResources.has(j.id));
+        if (ready.length) {
+            assets = await request('/assets'); renderAssets();
+            for (const job of ready) {
+                const pending = pendingResources.get(job.id); pendingResources.delete(job.id);
+                if (pending.signature === productionSignature) useResource(job, pending.destination);
+            }
+        }
         if (clipJob && !jobs.some(j => j.id === clipJob && j.state === 'completed')) { clipJob = null; $('video-transcript').innerHTML = ''; lock(); }
     }
     function poll() {
@@ -77,6 +101,7 @@
         $('video-assets').innerHTML = assets.map(a => '<div class="flex flex-col sm:flex-row gap-2 items-start sm:items-center text-xs"><label class="w-full min-w-0 break-words sm:flex-1"><input type="checkbox" data-use-asset="' + a.id + '"' + (selectedAssets.has(a.id) ? ' checked' : '') + (a.kind === 'audio' ? ' disabled' : '') + '> ' + h(a.name) + ' · ' + h(a.kind) + ' · ' + (a.size / 1024 / 1024).toFixed(1) + ' MB</label><button type="button" data-remove-asset="' + a.id + '" class="shrink-0 text-slate-500 underline">Eliminar recurso</button></div>').join('') || '<p class="text-xs text-slate-500">Todavía no has subido recursos.</p>';
         $('video-audio').innerHTML = audioOptions('Seleccionar narración'); $('video-music').innerHTML = audioOptions('Sin música');
         $('video-audio').value = audio; $('video-music').value = music; renderScenes(); lock();
+        studio.assetsChanged();
     }
     function renderScenes() {
         const p = project(); if (!p) { $('video-scenes').innerHTML = ''; return; }
@@ -94,6 +119,7 @@
             sceneBindings = {}; productionSignature = signature;
             $('video-blocks').innerHTML = p ? p.blocks.map(b => '<label><input type="checkbox" data-render-block="' + b.index + '" checked> ' + (b.index + 1) + '. ' + h(b.label) + '</label>').join('') : '';
             renderScenes();
+            studio.assetsChanged();
         }
         $('video-project-state').textContent = p ? 'Producción que se renderizará: ' + p.packaging.title + ' · guardada ' + new Date(p.createdAt).toLocaleString('es-MX') + '. La duración final se medirá a partir del audio.' : 'Primero genera o recupera una producción completa en el estudio.';
         lock();
@@ -102,21 +128,38 @@
         $('video-preview').pause(); $('video-preview').removeAttribute('src'); $('video-preview-wrap').classList.add('hidden');
         if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl = null;
     }
+    function useResource(job, destination) {
+        const id = job.result.assetId, kind = job.result.resourceKind;
+        if (!assets.some(a => a.id === id)) throw new Error('El recurso ya no está disponible. Revisa Mis recursos.');
+        if (kind === 'music') { $('video-music-source').value = 'uploaded'; $('video-music').value = id; }
+        else if (kind === 'voice') { $('video-tts').value = 'uploaded'; $('video-audio').value = id; }
+        else if (destination?.startsWith('scene:')) {
+            const index = destination.split(':')[1];
+            if (Number(index) >= (project()?.blocks.flatMap(b => b.scenes).length || 0)) throw new Error('La escena de destino cambió. Asigna el recurso manualmente.');
+            sceneBindings[index] = id; renderScenes();
+        } else if (destination !== 'thumbnail') {
+            selectedAssets.add(id); $('video-materials').value = 'own'; renderAssets();
+        }
+        lock();
+    }
     $('video-connect').addEventListener('click', () => work('Conectando con el motor…', async () => {
         connected = false; clearTimeout(timer); version++; resetPreview();
+        pendingResources.clear(); studio.reset(); $('video-paid').checked = false;
         const url = new URL($('video-server').value.trim());
         if (url.username || url.password || url.search || url.hash || (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(url.hostname)))) throw new Error('Usa HTTPS o la dirección local http://127.0.0.1:8787.');
         server = url.href.replace(/\/$/, ''); access = $('video-access').value.trim(); version++;
         const health = await request('/health');
         if (!health.ready) throw new Error('Instala FFmpeg y FFprobe en el servidor antes de renderizar.');
         if (!health.worker) throw new Error('Inicia el worker de producción antes de enviar videos a la cola.');
-        connected = true; capabilities = health.providers;
+        connected = true; capabilities = health.providers; studio.connect(capabilities);
         assets = await request('/assets'); await refresh(); renderAssets(); syncProduction(); poll();
         status('Motor conectado · ' + (health.worker ? 'cola activa' : 'worker detenido') + ' · ' + capabilities.encoder + '.');
     }));
     $('video-disconnect').addEventListener('click', () => {
         version++; connected = false; access = ''; uploadToken = ''; uploadExpires = 0; clearTimeout(timer); resetPreview();
         $('video-access').value = ''; $('video-youtube-state').textContent = 'Sin autorización de subida.'; status('Motor desconectado. Los trabajos enviados continúan en el servidor.'); lock();
+        pendingResources.clear(); studio.reset();
+        $('video-paid').checked = false;
     });
     $('video-upload').addEventListener('change', event => work('Subiendo recursos…', async () => {
         const files = [...event.target.files];
@@ -140,18 +183,23 @@
         const key = event.target.dataset.bindScene; if (key == null) return;
         if (event.target.value) sceneBindings[key] = event.target.value; else delete sceneBindings[key];
     });
-    for (const id of ['video-tts', 'video-materials']) $(id).addEventListener('change', lock);
+    for (const id of ['video-tts', 'video-materials', 'video-music-source']) $(id).addEventListener('change', () => {
+        lock();
+        if ($(id).value === 'replicate') studio.open(id === 'video-tts' ? 'voice' : id === 'video-music-source' ? 'music' : 'image');
+    });
     $('video-render-form').addEventListener('submit', event => {
         event.preventDefault(); work('Enviando producción a la cola…', async () => {
             const p = project(); if (!p) throw new Error('Genera o recupera una producción completa.');
             const blocks = [...document.querySelectorAll('[data-render-block]:checked')].map(el => Number(el.dataset.renderBlock));
             if (!blocks.length) throw new Error('Selecciona al menos un bloque.');
+            const replicateOptions = studio.options($('video-materials').value, $('video-tts').value, $('video-music-source').value);
             const result = await post('/jobs', { production: p, block_indexes: blocks, asset_ids: [...selectedAssets], scene_assets: sceneBindings,
-                audio_id: $('video-audio').value || null, music_id: $('video-music').value || null,
+                audio_id: $('video-tts').value === 'uploaded' ? $('video-audio').value || null : null,
+                music_id: $('video-music-source').value === 'uploaded' ? $('video-music').value || null : null,
                 options: { aspect: $('video-aspect').value, resolution: Number($('video-resolution').value), materials: $('video-materials').value,
                     tts: $('video-tts').value, voice: $('video-voice').value, subtitles: $('video-subtitles').value, clip_seconds: Number($('video-clip-seconds').value),
                     max_generated: Number($('video-max-generated').value), music_volume: Number($('video-music-volume').value),
-                    notify: $('video-notify').checked, paid_generation_confirmed: $('video-paid').checked } });
+                    notify: $('video-notify').checked, paid_generation_confirmed: $('video-paid').checked, ...replicateOptions } });
             await refresh(); poll(); status('Trabajo ' + result.id.slice(0, 8) + ' · ' + (states[result.state] || result.state) + '. Puedes seguir trabajando mientras se produce.');
         });
     });
@@ -160,8 +208,14 @@
         const el = event.target.closest('[data-video-action]'); if (!el) return;
         const id = el.dataset.job, action = el.dataset.videoAction;
         work('Procesando video ' + id.slice(0, 8) + '…', async () => {
+            if (action === 'use-resource') { assets = await request('/assets'); renderAssets(); useResource(jobs.find(j => j.id === id)); status('Recurso seleccionado. Revisa su contenido antes de producir el MP4.'); return; }
+            if (action === 'download-resource') {
+                const assetId = jobs.find(j => j.id === id).result.assetId;
+                const blob = await request('/assets/' + assetId + '/file', {}, true), url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = jobs.find(j => j.id === id).result.fileName || assetId.slice(0, 8) + '-recurso'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); status('Recurso descargado.'); return;
+            }
             if (action === 'cancel' || action === 'retry') { await post('/jobs/' + id + '/' + action, {}); await refresh(); poll(); status('Trabajo actualizado.'); return; }
-            if (action === 'delete') { await request('/jobs/' + id, { method: 'DELETE' }); await refresh(); resetPreview(); status('Render y archivos eliminados.'); return; }
+            if (action === 'delete') { const isResource = jobs.find(j => j.id === id)?.kind === 'resource'; await request('/jobs/' + id, { method: 'DELETE' }); pendingResources.delete(id); await refresh(); resetPreview(); status(isResource ? 'Trabajo eliminado. El recurso generado sigue en Mis recursos.' : 'Render y archivos eliminados.'); return; }
             if (action === 'youtube') {
                 if (!uploadToken || Date.now() >= uploadExpires) throw new Error('Autoriza la subida a YouTube antes de enviar el MP4.');
                 $('video-youtube-state').textContent = 'Subiendo como privado; conserva abierta esta página…';

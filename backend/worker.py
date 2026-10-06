@@ -39,8 +39,10 @@ class Worker:
             try:
                 if payload['kind'] == 'clip':
                     result = engine.clip(ident, payload['parent'], payload['request'])
+                elif payload['kind'] == 'resource':
+                    result = engine.resource(ident, payload['replicate_plans']['resource'])
                 else:
-                    result = engine.render(ident, payload['request'])
+                    result = engine.render(ident, payload['request'], payload.get('replicate_plans', {}))
                 self.store.update(ident, state='completed', stage='completed', progress=100, result=result, error='')
                 if payload.get('request', {}).get('options', {}).get('notify'):
                     notified = notify(self.settings, ident, 'Video terminado')

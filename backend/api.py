@@ -17,7 +17,8 @@ from pydantic import SecretStr
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .config import Settings
-from .models import Contract, JobRequest, ClipRequest
+from .models import Contract, JobRequest, ClipRequest, ResourceRequest
+from . import replicate_studio
 from .pipeline import ARTIFACTS, ENGINE_VERSION
 from .process import probe
 from .store import Store
@@ -25,7 +26,7 @@ from .uploader import upload
 from .worker import Worker
 
 ROOT = Path(__file__).resolve().parent.parent
-STATIC = {'index.html', 'research-core.js', 'research-workspace.js', 'creator-core.js', 'creator-studio.js', 'video-production.js'}
+STATIC = {'index.html', 'research-core.js', 'research-workspace.js', 'creator-core.js', 'creator-studio.js', 'video-production.js', 'replicate-studio.js'}
 EXTENSIONS = {'.mp4', '.mov', '.webm', '.m4a', '.wav', '.mp3', '.png', '.jpg', '.jpeg', '.webp'}
 
 
@@ -113,12 +114,20 @@ def create_app(settings=None, run_worker=True):
         if len(store.active()) >= 10:
             raise HTTPException(429, 'La cola tiene 10 trabajos activos. Espera o cancela alguno.')
 
+    def prepare_selection(selection, texts=None):
+        try:
+            return replicate_studio.prepare(selection, settings, store, texts)
+        except RuntimeError as error:
+            raise HTTPException(502, str(error)) from None
+
     def enqueue(request):
         available()
         if request.options.materials in {'pixabay', 'pixabay_images'} and not settings.pixabay_key:
             raise ValueError('Pixabay no está configurado en el servidor.')
-        if request.options.materials == 'replicate' and not (settings.replicate_token and settings.replicate_version):
-            raise ValueError('Replicate no está configurado en el servidor.')
+        if request.options.materials == 'replicate' and not settings.replicate_token:
+            raise ValueError('Configura REPLICATE_API_TOKEN en el servidor.')
+        if request.options.materials == 'replicate' and request.options.replicate_visual is None and not settings.replicate_version:
+            raise ValueError('Selecciona un modelo de imagen/video o configura la versión antigua del servidor.')
         if request.options.subtitles == 'whisper' and not (settings.whisper_cli and settings.whisper_model):
             raise ValueError('Whisper.cpp no está configurado en el servidor.')
         for ident in [*request.asset_ids, *request.scene_assets.values(), *([request.audio_id] if request.audio_id else []), *([request.music_id] if request.music_id else [])]:
@@ -127,8 +136,19 @@ def create_app(settings=None, run_worker=True):
                 raise ValueError('Los recursos de escena deben ser imágenes o videos.')
             if ident in {request.audio_id, request.music_id} and asset['kind'] not in {'audio', 'video'}:
                 raise ValueError('La narración y la música deben contener audio.')
+        plans = {}
+        blocks = [b for b in request.production.blocks if not request.block_indexes or b.index in request.block_indexes]
+        if request.options.materials == 'replicate' and request.options.replicate_visual:
+            selection = request.options.replicate_visual
+            texts = [(s.imagePrompt if selection.kind == 'image' else s.videoPrompt) or s.visual for b in blocks for s in b.scenes]
+            plans['visual'] = prepare_selection(selection, texts)
+        if request.options.tts == 'replicate':
+            plans['voice'] = prepare_selection(request.options.replicate_voice, [b.narration for b in blocks])
+        if request.options.music_source == 'replicate':
+            plans['music'] = prepare_selection(request.options.replicate_music)
         signature = ENGINE_VERSION + settings.encoder + settings.replicate_version + settings.replicate_input + settings.whisper_model
-        job = store.create({'kind': 'render', 'request': request.model_dump()}, signature)
+        job = store.create({'kind': 'render', 'request': request.model_dump(), 'replicate_plans': plans}, signature,
+                           reuse_failed=bool(plans) or request.options.materials == 'replicate')
         if worker:
             worker.wake.set()
         return job
@@ -136,6 +156,26 @@ def create_app(settings=None, run_worker=True):
     @app.get('/api/video/health', dependencies=auth)
     def health():
         return {'ready': bool(shutil.which(settings.ffmpeg) and shutil.which(settings.ffprobe)), 'version': ENGINE_VERSION, 'providers': settings.public(), 'worker': bool(worker)}
+
+    @app.get('/api/video/replicate/models', dependencies=auth)
+    def replicate_models():
+        return replicate_studio.CATALOG
+
+    @app.get('/api/video/replicate/models/{owner}/{name}/schema', dependencies=auth)
+    def replicate_schema(owner: str, name: str):
+        try:
+            return replicate_studio.schema(owner + '/' + name, settings)
+        except RuntimeError as error:
+            raise HTTPException(502, str(error)) from None
+
+    @app.post('/api/video/replicate/resources', dependencies=auth, status_code=202)
+    def replicate_resource(request: ResourceRequest):
+        available()
+        plan = prepare_selection(request.selection)
+        result = store.create({'kind': 'resource', 'request': request.model_dump(), 'replicate_plans': {'resource': plan}}, ENGINE_VERSION, reuse_failed=True)
+        if worker:
+            worker.wake.set()
+        return result
 
     @app.get('/api/video/assets', dependencies=auth)
     def assets():
@@ -181,6 +221,11 @@ def create_app(settings=None, run_worker=True):
         with store.connect() as con:
             con.execute('DELETE FROM assets WHERE id=?', (ident,))
         return {'deleted': True}
+
+    @app.get('/api/video/assets/{ident}/file', dependencies=auth)
+    def asset_file(ident: str):
+        asset = store.asset(ident)
+        return FileResponse(asset['path'], filename=ident + Path(asset['path']).suffix)
 
     @app.post('/api/video/jobs', dependencies=auth, status_code=202)
     def jobs(request: JobRequest):
@@ -244,7 +289,7 @@ def create_app(settings=None, run_worker=True):
     @app.post('/api/video/jobs/{ident}/youtube', dependencies=auth)
     async def youtube(ident: str, request: UploadRequest):
         item = store.get(ident)
-        if item['state'] != 'completed':
+        if item['state'] != 'completed' or item['kind'] == 'resource':
             raise ValueError('El MP4 debe estar terminado antes de subirlo.')
         token = request.access_token.get_secret_value()
         if not 20 <= len(token) <= 4096:
