@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const core = require('../creator-core.js');
-const { variants, block, completeProject } = require('./helpers/creator-fixtures.cjs');
+const { variants, block, completeProject, publishing } = require('./helpers/creator-fixtures.cjs');
 function signal(i, views, channelId = 'same-channel', days = 10, durationSec = 600) {
     return { video: { id: 'video' + String(i).padStart(6, '0'), snippet: { title: 'Software productividad ' + i, channelId, channelTitle: 'Canal', publishedAt: '2026-09-23T00:00:00Z', tags: ['productividad'] } },
         views, days, durationSec, vpd: views / days, opportunity: 60 };
@@ -103,6 +103,50 @@ test('production backups whitelist fields, reconstruct source URLs and export ev
     const md = core.productionMarkdown(clean);
     assert.match(md, /### 0:00–0:30/); assert.match(md, /Imagen \(EN\)/); assert.match(md, /Hoja de edición/); assert.match(md, /48–72/);
     assert.throws(() => core.validateProject({ ...dirty, version: 2 }), /incompatible/);
+});
+
+function draftFixture() {
+    const p = completeProject();
+    return { format: 'yt-creator-script-draft', version: 1, updatedAt: p.createdAt,
+        context: { profile: p.profile, topic: p.topic, angle: p.angle, sampleTopic: 'Software', sources: p.sources },
+        variants: p.variants, selected: 1, blocks: p.blocks, generatedParts: [0, 1], publishing: publishing() };
+}
+
+test('script checkpoints preserve accepted blocks and repairable invalid blocks without storing credentials or transcripts', () => {
+    const dirty = draftFixture(), slots = core.timeline(9);
+    dirty.apiKey = 'secret'; dirty.context.token = 'secret'; dirty.context.profile.apiKey = 'secret';
+    dirty.context.sources[0].url = 'javascript:alert(1)'; dirty.context.sources[0].transcript = true;
+    dirty.context.sources[0].transcriptText = 'private transcript'; dirty.context.sources[0].token = 'secret';
+    dirty.blocks[4].narration = Array(447).fill('ejemplo').join(' '); dirty.blocks[4].apiKey = 'secret';
+    dirty.blocks[4].scenes[0].token = 'secret'; dirty.publishing.token = 'secret';
+    const saved = core.scriptDraftBackup(dirty), encoded = JSON.stringify(saved);
+    assert.ok(!encoded.includes('secret')); assert.ok(!encoded.includes('private transcript')); assert.ok(!encoded.includes('javascript:'));
+    assert.equal(saved.context.sources[0].transcript, false);
+    assert.equal(saved.context.sources[0].url, 'https://www.youtube.com/watch?v=video000000');
+    assert.deepEqual(saved.blocks[4].sourceIds, ['video000000']);
+    assert.equal(core.words(saved.blocks[4].narration), 447);
+    for (const slot of slots.filter(s => s.index !== 4)) {
+        assert.deepEqual(core.validateBlocks({ blocks: [saved.blocks[slot.index]] }, [slot], ['video000000']),
+            core.validateBlocks({ blocks: [dirty.blocks[slot.index]] }, [slot], ['video000000']));
+    }
+    assert.throws(() => core.validateBlocks({ blocks: [saved.blocks[4]] }, [slots[4]], []), /447 palabras/);
+    assert.deepEqual(core.scriptDraftBackup(JSON.parse(encoded)), saved);
+});
+
+test('script checkpoints reject incompatible or ambiguous state and keep malformed scenes and publication repairable', () => {
+    for (const mutate of [
+        d => { d.version = 2; }, d => { d.updatedAt = 'invalid'; }, d => { d.selected = 3; },
+        d => { d.generatedParts = [0, 2]; }, d => { d.blocks[1].index = 0; }, d => { d.blocks[0] = null; },
+        d => { d.context.sources[0].id = 'invalid'; }, d => { d.context.topic = ''; }
+    ]) {
+        const dirty = draftFixture(); mutate(dirty); assert.throws(() => core.scriptDraftBackup(dirty));
+    }
+    const dirty = draftFixture();
+    dirty.blocks[4].scenes = Array.from({ length: 15 }, () => structuredClone(dirty.blocks[0].scenes[0]));
+    dirty.publishing.checks = Array(40).fill('Revisar');
+    const saved = core.scriptDraftBackup(dirty);
+    assert.equal(saved.blocks[4].scenes.length, 9); assert.equal(saved.publishing.checks.length, 29);
+    assert.throws(() => core.validateBlocks({ blocks: [saved.blocks[4]] }, [core.timeline(9)[4]], []), /Guion incompleto/);
 });
 
 test('revenue stacking is an explicit scenario with zero default conversions and finite caps', () => {

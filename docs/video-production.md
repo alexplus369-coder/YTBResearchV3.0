@@ -41,6 +41,14 @@ Abre **http://127.0.0.1:8787**. El servidor muestra un código temporal en la te
 
 La duración se calcula a partir del audio, no del presupuesto del guion. Una producción escrita para nueve minutos puede durar más o menos con tu voz. El resultado muestra la duración real y si alcanza ocho minutos; esto no confirma elegibilidad ni inserta anuncios.
 
+### Continuar un guion incompleto
+
+El botón **Continuar guion y producción** permanece visible debajo de los avisos del estudio. Se habilita cuando hay un borrador pendiente y muestra cuántos bloques pasaron la validación. Repara los bloques pendientes, conserva los aceptados y completa la publicación cuando sea lo único que falta. Por ejemplo, si el bloque 5 tiene 447 palabras y su máximo es 441, la continuación corrige ese bloque y mantiene los otros cinco.
+
+El avance se guarda después de cada respuesta en **este navegador y este origen**; recargar la página recupera el tema, empaquetado y bloques, sin llamar automáticamente a la IA. Debes volver a configurar Gemini o DeepSeek si su clave ya no está disponible y pulsar Continuar. El borrador es independiente de la última producción completa, que sigue disponible para exportar o renderizar. Al completar y guardar el nuevo guion, se elimina el borrador pendiente.
+
+Los respaldos del borrador solo incluyen campos editoriales admitidos: no guardan claves, tokens, informes privados ni texto de transcripciones. Las referencias recuperadas se indican como metadatos; verifica sus afirmaciones. Cambiar tema, perfil, muestra del Radar o propuesta de título descarta el borrador del contexto anterior y borra los avisos que ya no correspondan. Si el navegador no puede guardar, el panel indica que el avance solo permanece en esa página. No puede recuperar bloques perdidos al recargar una versión anterior que solo los conservaba en memoria. Abrir otro dispositivo u otro dominio tampoco transfiere el borrador.
+
 ### Actualizar una instalación ZIP en Windows
 
 Detén el servidor con **Ctrl+C** antes de cambiar archivos. Conserva tu JSON editorial y, para un respaldo completo, la carpeta `render-data`. No necesitas recrear `.venv` ni reinstalar FFmpeg. El script `scripts/update-replicate-studio.ps1` descarga todos los archivos de ejecución de **un commit exacto** antes de reemplazarlos, guarda copias en `update-backups` y restaura los archivos si falla la copia. Actualiza también las correcciones anteriores de guiones y Pixabay. No toca `render-data`, `.venv` ni `.env`, ni ejecuta generaciones o subidas.

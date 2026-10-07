@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { spawn, execFile } = require('node:child_process');
 const { promisify } = require('node:util');
-const { completeProject } = require('../tests/helpers/creator-fixtures.cjs');
+const { completeProject, block, publishing } = require('../tests/helpers/creator-fixtures.cjs');
 const core = require('../creator-core.js');
 
 const exec = promisify(execFile), root = path.resolve(__dirname, '..');
@@ -48,6 +48,44 @@ async function screenshot(name, selector) {
   await browser('screenshot', path.join(output, name));
 }
 
+async function verifyScriptContinuation() {
+  const previous = core.validateProject(completeProject()), slots = core.timeline(previous.profile.duration);
+  const pending = slots.map(block); pending[4].narration = Array(447).fill('ejemplo').join(' ');
+  const draft = core.scriptDraftBackup({format:'yt-creator-script-draft', version:1, updatedAt:new Date().toISOString(),
+    context:{profile:previous.profile, topic:'Continuar el guion pendiente', angle:previous.angle, sampleTopic:'Software', sources:previous.sources},
+    variants:previous.variants, selected:previous.selected, blocks:pending, generatedParts:[0, 1], publishing:publishing()});
+  assert.equal(await value('document.getElementById("creator-continue-btn").disabled'), true);
+  await value('localStorage.setItem("ytCreatorProductionV1", ' + JSON.stringify(JSON.stringify(previous)) + '); localStorage.setItem("ytCreatorScriptDraftV1", ' + JSON.stringify(JSON.stringify(draft)) + '); true');
+  await browser('reload');
+  await wait('typeof window.getCreatorProduction === "function" && !document.getElementById("creator-continue-btn").disabled');
+  assert.equal(await value('window.getCreatorProduction().topic'), previous.topic);
+  assert.match(await value('document.getElementById("creator-draft-status").textContent'), /5 de 6 bloques validados.*Guardado en este navegador/);
+  await screenshot('continue-script-desktop.png', '#creator-draft-panel');
+  const viewport = await value('[innerWidth, innerHeight]');
+  await browser('set', 'viewport', '390', '844');
+  await browser('scrollintoview', '#creator-continue-btn');
+  const layout = await value('(() => {const el = document.getElementById("creator-continue-btn"), r = el.getBoundingClientRect(); return {left:r.left, right:r.right, height:r.height, disabled:el.disabled, hidden:!!el.closest(".hidden")};})()');
+  assert.ok(layout.left >= 0 && layout.right <= 390 && layout.height >= 40 && !layout.disabled && !layout.hidden, JSON.stringify(layout));
+  await screenshot('continue-script-mobile.png', '#creator-draft-panel');
+  await browser('set', 'viewport', String(viewport[0]), String(viewport[1]));
+  const repaired = {blocks:[{index:4, narration:block(slots[4]).narration}]};
+  await value('window.scriptRepairCalls = []; document.getElementById("geminiApiKeyInput").value = "fake-offline-key"; window.smartFetchAI = async prompt => {window.scriptRepairCalls.push(prompt); return ' + JSON.stringify(repaired) + ';}; true');
+  await browser('click', '#creator-tab-daily');
+  await browser('click', '#creator-continue-btn');
+  await wait('!document.getElementById("creator-package-btn").disabled && localStorage.getItem("ytCreatorScriptDraftV1") === null');
+  const calls = await value('window.scriptRepairCalls');
+  assert.equal(calls.length, 1); assert.match(calls[0], /REPARACIÓN SELECTIVA DE GUION/);
+  const correction = JSON.parse(calls[0].match(/\nDevuelve solamente estos índices pendientes: ([^\n]+)/)[1]);
+  assert.deepEqual(correction.map(c => [c.index, c.wordsReceived]), [[4, 447]]);
+  const completed = await value('window.getCreatorProduction()');
+  assert.equal(completed.topic, draft.context.topic); assert.equal(completed.description, draft.publishing.description);
+  for (const slot of slots.filter(s => s.index !== 4)) assert.equal(completed.blocks[slot.index].narration, draft.blocks[slot.index].narration);
+  assert.equal(await value('document.getElementById("creator-panel-studio").classList.contains("hidden")'), false);
+  assert.equal(await value('document.getElementById("creator-continue-btn").disabled'), true);
+  await fs.writeFile(path.join(output, 'continue-script-report.json'), JSON.stringify({acceptedBefore:5, repairedIndices:correction.map(c => c.index), aiRequests:calls.length, mobile:layout}, null, 2));
+  console.log('Real browser script continuation passed: checkpoint restore, five preserved blocks, one selective repair, visible desktop/mobile button and no duplicate requests.');
+}
+
 async function main() {
   await fs.mkdir(output, {recursive: true});
   const fixture = path.join(output, 'fixture');
@@ -76,8 +114,7 @@ async function main() {
     await screenshot('model-comparison-desktop.png', '#replicate-value-panel');
     await fs.writeFile(path.join(output, 'page-snapshot.json'), JSON.stringify(await browser('snapshot', '-i'), null, 2));
     assert.equal(await value('!!document.querySelector("[data-nextjs-dialog], .vite-error-overlay")'), false);
-    await value('localStorage.setItem("ytCreatorProductionV1", ' + JSON.stringify(JSON.stringify(core.validateProject(completeProject()))) + ')');
-    await browser('reload');
+    await verifyScriptContinuation();
     await browser('click', '#creator-tab-studio');
     await browser('fill', '#video-access', token); await browser('click', '#video-connect');
     await wait('document.getElementById("video-connection").textContent.includes("Motor conectado")');

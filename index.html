@@ -374,6 +374,10 @@
             </div>
             <p id="creator-status" class="text-xs font-bold text-indigo-700 mb-3" role="status" aria-live="polite"></p>
             <p id="creator-error" class="hidden text-sm text-red-700 bg-red-50 p-3 rounded-lg mb-4" role="alert"></p>
+            <div id="creator-draft-panel" class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-3">
+                <p id="creator-draft-status" class="text-xs text-indigo-900 flex-1 min-w-48" role="status" aria-live="polite">Sin borrador pendiente.</p>
+                <button id="creator-continue-btn" type="button" disabled aria-describedby="creator-draft-status" class="bg-indigo-600 text-white text-sm font-bold rounded-lg px-4 py-3 disabled:opacity-40">Continuar guion y producción</button>
+            </div>
             <div id="creator-panel-highlights" role="tabpanel" aria-labelledby="creator-tab-highlights">
                 <div class="flex flex-wrap gap-3 items-center mb-3"><h3 class="text-lg font-bold">Videos atípicos y ángulos propios</h3><button id="creator-baselines" type="button" class="text-xs font-bold border rounded-lg px-3 py-2">Ampliar comparación de canales</button></div>
                 <p class="text-xs text-slate-500 mb-4">Atípico = al menos 2× la mediana de vistas/día de otros 3 videos del mismo canal y grupo de duración. Compara publicaciones de 2 a 365 días. Es una señal de esta muestra; usa la referencia para crear una demostración original.</p>

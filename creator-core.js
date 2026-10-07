@@ -209,6 +209,38 @@
             monetization: data.monetization.map(s => text(s, 1600)), checks: data.checks.map(s => text(s, 1600)),
             description: text(data.description, 5000), pinnedComment: text(data.pinnedComment, 1500) };
     }
+    function scriptDraftBackup(data) {
+        if (data?.format !== 'yt-creator-script-draft' || data.version !== 1 || !Number.isFinite(Date.parse(data.updatedAt))) throw new Error('Formato de borrador incompatible.');
+        const p = profile(data.context?.profile), ctx = data.context;
+        if (!p.niche || !text(ctx?.topic) || !Array.isArray(ctx?.sources) || ctx.sources.length > 8) throw new Error('Contexto de borrador incompleto.');
+        const sources = ctx.sources.map(s => {
+            if (!/^[\w-]{11}$/.test(s?.id) || !Number.isFinite(Date.parse(s.capturedAt))) throw new Error('Fuente de borrador inválida.');
+            return { id: s.id, title: text(s.title, 300), channel: text(s.channel, 160), url: 'https://www.youtube.com/watch?v=' + s.id,
+                views: number(s.views, 0), viewsPerDay: number(s.viewsPerDay, 0), publishedAt: text(s.publishedAt, 40),
+                capturedAt: new Date(s.capturedAt).toISOString(), transcript: false, description: text(s.description, 1600) };
+        });
+        if (!Number.isInteger(data.selected) || data.selected < 0 || data.selected > 2 || !Array.isArray(data.blocks) || data.blocks.length > 6 ||
+            !Array.isArray(data.generatedParts) || data.generatedParts.length > 2 || data.generatedParts.some(part => part !== 0 && part !== 1)) throw new Error('Estado de borrador inválido.');
+        const indices = new Set(), allowedIds = sources.map(s => s.id);
+        const blocks = data.blocks.map(b => {
+            if (!Number.isInteger(b?.index) || b.index < 0 || b.index > 5 || indices.has(b.index)) throw new Error('Índice de borrador inválido.');
+            indices.add(b.index);
+            // Keep incomplete/invalid blocks repairable. Nine scenes and 29 checks remain invalid.
+            return { index: b.index, narration: text(b.narration, 40000), hook: text(b.hook, 600), rehook: text(b.rehook, 1500),
+                openLoop: text(b.openLoop, 1500), editing: text(b.editing, 2200),
+                sourceIds: [...new Set((Array.isArray(b.sourceIds) ? b.sourceIds : []).filter(id => allowedIds.includes(id)))],
+                scenes: Array.isArray(b.scenes) ? b.scenes.slice(0, 9).map(s => ({ visual: text(s?.visual, 1600), imagePrompt: text(s?.imagePrompt, 3000),
+                    videoPrompt: text(s?.videoPrompt, 3000), stockQuery: text(s?.stockQuery, 120), negativePrompt: text(s?.negativePrompt, 1000) })) : [] };
+        });
+        const publication = data.publishing;
+        const result = { format: 'yt-creator-script-draft', version: 1, updatedAt: new Date(data.updatedAt).toISOString(),
+            context: { profile: p, rpmGuidance: rpmGuidance(p.niche), topic: text(ctx.topic, 200), angle: text(ctx.angle, 1800), sampleTopic: text(ctx.sampleTopic, 200), sources },
+            variants: validatePackaging({ variants: data.variants }), selected: data.selected, blocks,
+            generatedParts: [...new Set(data.generatedParts)], publishing: publication ? { description: text(publication.description, 5000),
+                pinnedComment: text(publication.pinnedComment, 1500), checks: Array.isArray(publication.checks) ? publication.checks.slice(0, 29).map(v => text(v, 1600)) : [] } : null };
+        if (JSON.stringify(result).length > 600000) throw new Error('El borrador supera el límite de 600 KB; descarga el trabajo disponible antes de cerrar la página.');
+        return result;
+    }
     function revenueScenario(input = {}) {
         const views = number(input.views, 10000);
         const ads = views / 1000 * number(input.rpm, 3.5, 0, 500);
@@ -257,5 +289,5 @@
         return lines.join('\n');
     }
     return { profile, dayKey, fingerprint, rpmGuidance, source, highlights, keywordSignals, dailyIdeas, validateIdeas, timeline, validatePackaging,
-        wordBudget, validateBlocks, validateProject, editingCues, revenueScenario, audit, productionMarkdown, time, words, shortTitle, hash };
+        wordBudget, validateBlocks, validateProject, scriptDraftBackup, editingCues, revenueScenario, audit, productionMarkdown, time, words, shortTitle, hash };
 });
