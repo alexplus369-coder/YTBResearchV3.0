@@ -35,6 +35,14 @@ async function value(code) {
   return data && Object.hasOwn(data, 'result') ? data.result : data;
 }
 async function wait(code) { await browser('wait', '--fn', code); }
+async function click(selector) {
+  // The native driver can leave partially visible buttons at the viewport edge.
+  // Centre the real control and verify its hit target before sending a pointer click.
+  const target = JSON.stringify(selector);
+  await value('document.querySelector(' + target + ').scrollIntoView({block:"center", inline:"nearest", behavior:"instant"}); true');
+  await wait('(() => {const el=document.querySelector(' + target + '); if(!el || el.disabled) return false; const r=el.getBoundingClientRect(), x=r.left+r.width/2, y=r.top+r.height/2; return r.width>0 && r.height>0 && r.top>=0 && r.bottom<=innerHeight && x>=0 && x<innerWidth && el.contains(document.elementFromPoint(x,y));})()');
+  await browser('click', selector);
+}
 async function api(endpoint) {
   const response = await fetch(base + '/api/video' + endpoint, {headers: {Authorization: 'Bearer ' + token}, signal: AbortSignal.timeout(5000)});
   assert.equal(response.ok, true, endpoint + ' HTTP ' + response.status);
@@ -95,7 +103,7 @@ async function verifyNichesAndTheme() {
     };
     return true;
   })()`);
-  await browser('click', '#niche-update');
+  await click('#niche-update');
   await wait('document.getElementById("niche-panel").getAttribute("aria-busy") === "false" && document.querySelectorAll(".niche-card").length === 10');
   const requests = await value('window.nicheTestCalls');
   assert.equal(requests.filter(p => p.endsWith('/search')).length, 20); assert.equal(requests.length, 60);
@@ -128,7 +136,7 @@ async function verifyNichesAndTheme() {
   assert.ok(layout.left >= 0 && layout.right <= 390 && layout.scrollWidth <= layout.width + 2, JSON.stringify(layout));
   assert.ok(layout.cards.every(card => card.scrollWidth <= card.width + 2), JSON.stringify(layout));
   assert.ok(layout.controls.every(height => height >= 44), JSON.stringify(layout));
-  await browser('click', '.niche-card:first-child [data-niche-action="script"]');
+  await click('.niche-card:first-child [data-niche-action="script"]');
   assert.match(await value('document.getElementById("creator-context").textContent'), /Top 10/);
   assert.equal(await value('window.nicheAiCalls'), 0);
   await browser('set', 'viewport', String(viewport[0]), String(viewport[1]));
@@ -162,8 +170,8 @@ async function verifyScriptContinuation() {
   await browser('set', 'viewport', String(viewport[0]), String(viewport[1]));
   const repaired = {blocks:[{index:4, narration:block(slots[4]).narration}]};
   await value('window.scriptRepairCalls = []; document.getElementById("geminiApiKeyInput").value = "fake-offline-key"; window.smartFetchAI = async prompt => {window.scriptRepairCalls.push(prompt); return ' + JSON.stringify(repaired) + ';}; true');
-  await browser('click', '#creator-tab-daily');
-  await browser('click', '#creator-continue-btn');
+  await click('#creator-tab-daily');
+  await click('#creator-continue-btn');
   await wait('!document.getElementById("creator-package-btn").disabled && localStorage.getItem("ytCreatorScriptDraftV1") === null');
   const calls = await value('window.scriptRepairCalls');
   assert.equal(calls.length, 1); assert.match(calls[0], /REPARACIÓN SELECTIVA DE GUION/);
@@ -208,15 +216,15 @@ async function main() {
     assert.equal(await value('!!document.querySelector("[data-nextjs-dialog], .vite-error-overlay")'), false);
     await verifyNichesAndTheme();
     await verifyScriptContinuation();
-    await browser('click', '#creator-tab-studio');
-    await browser('fill', '#video-access', token); await browser('click', '#video-connect');
+    await click('#creator-tab-studio');
+    await browser('fill', '#video-access', token); await click('#video-connect');
     await wait('document.getElementById("video-connection").textContent.includes("Motor conectado")');
     await wait('getComputedStyle(document.getElementById("video-factory")).borderTopWidth === "1px"');
     assert.equal((await api('/health')).worker, true);
     assert.equal((await api('/jobs')).length, 0);
     assert.ok((await fetch(base + '/docs/video-production.md', {headers: {Authorization: 'Basic ' + Buffer.from('alejandro:' + token).toString('base64')}})).ok);
 
-    await browser('click', '#video-render-form details summary');
+    await click('#video-render-form details summary');
     const assets = path.join(fixture, 'data', 'assets');
     const files = JSON.parse(await fs.readFile(path.join(fixture, 'fixture.json'), 'utf8')).assets;
     // The fixture uses opaque asset names; label their copies for the UI selectors.
@@ -230,25 +238,25 @@ async function main() {
     await browser('select', '#video-music', uploaded.find(a => a.name === 'music.wav').id);
     for (let i = 1; i < 6; i++) await browser('uncheck', '[data-render-block="' + i + '"]');
     await screenshot('factory-desktop.png', '#video-factory');
-    await browser('click', '#video-render');
+    await click('#video-render');
     await wait('document.querySelector("[data-video-action=preview]") !== null');
     const jobs = await api('/jobs'), original = jobs.find(j => j.kind === 'render');
     assert.equal(original.state, 'completed');
     assert.ok(Math.abs(original.result.durationSeconds - 6) < .2);
-    await browser('click', '[data-video-action="preview"]');
+    await click('[data-video-action="preview"]');
     await wait('document.getElementById("video-preview").readyState >= 1 && !document.getElementById("video-refresh").disabled');
     assert.ok(await value('document.getElementById("video-preview").videoWidth > 0 && !document.getElementById("video-preview").error'));
     await value('document.getElementById("video-preview").play().then(() => true)');
     await wait('document.getElementById("video-preview").currentTime > .25');
     await value('document.getElementById("video-preview").pause()');
     await screenshot('jobs-desktop.png', '#video-jobs');
-    await browser('click', '[data-video-action="transcript"]');
+    await click('[data-video-action="transcript"]');
     await wait('document.getElementById("video-transcript").querySelector("button") !== null');
     await value('document.getElementById("video-transcript").closest("details").open = true');
-    await browser('click', '#video-transcript button:first-child');
+    await click('#video-transcript button:first-child');
     await browser('fill', '#video-cut-start', '0');
     await browser('fill', '#video-cut-end', '1');
-    await browser('click', '#video-cut');
+    await click('#video-cut');
     await wait('document.querySelectorAll("[data-video-action=preview]").length === 2');
     const clipped = (await api('/jobs')).find(j => j.kind === 'clip');
     assert.equal(clipped.state, 'completed'); assert.equal(clipped.result.width, 720); assert.equal(clipped.result.height, 1280);
@@ -269,7 +277,7 @@ async function main() {
     await fs.writeFile(path.join(output, 'browser-report.json'), JSON.stringify({pageErrors, original: original.result, clip: clipped.result, mobileWidth: 390}, null, 2));
     await wait('!document.getElementById("video-clean-temp").disabled');
     await value('window.cleanupClicks = 0; window.cleanupConfirmations = 0; document.getElementById("video-clean-temp").addEventListener("click", () => window.cleanupClicks++); window.confirm = () => {window.cleanupConfirmations++; return true;}; true');
-    await browser('click', '#video-clean-temp');
+    await click('#video-clean-temp');
     await wait('document.getElementById("video-connection").textContent.includes("Temporales eliminados")');
     assert.equal(await value('window.cleanupClicks'), 1);
     assert.equal(await value('window.cleanupConfirmations'), 1);
