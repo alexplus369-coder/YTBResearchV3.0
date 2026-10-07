@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube SEO Pro Suite - Enterprise</title>
+    <title>YT Research Studio</title>
+    <style>html,body{background:#151b23;color:#dde5ef;color-scheme:dark}</style>
+    <script>
+        (function () {
+            let theme = 'graphite';
+            try { const saved = localStorage.getItem('ytStudioThemeV1'); if (['graphite', 'midnight', 'warm'].includes(saved)) theme = saved; } catch {}
+            document.documentElement.dataset.theme = theme;
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -68,28 +76,36 @@
             #replicate-value-status { font-size: 9px; }
         }
     </style>
+    <link rel="stylesheet" href="studio-theme.css">
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-800">
 
     <div class="max-w-7xl mx-auto p-4 sm:p-6">
         
         <!-- HEADER & CONFIG -->
-        <header class="mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <header class="studio-header mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
             <div class="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="flex items-center gap-4 text-center md:text-left">
                     <div class="bg-red-100 p-3 rounded-xl text-red-600 text-3xl"><i class="fa-brands fa-youtube"></i></div>
                     <div>
-                        <h1 class="text-2xl font-black text-slate-900 leading-tight">YT SEO Pro Suite <span class="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full ml-2 align-top">ENTERPRISE</span></h1>
+                        <p class="studio-eyebrow">Investiga · crea · produce</p><h1 class="text-2xl font-black text-slate-900 leading-tight">YT Research Studio <span class="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full ml-2 align-top">PERSONAL</span></h1>
                         <p class="text-slate-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2 flex-wrap mt-1">
                             Semántica, Vision AI, Content Gaps & Radar de Nicho
                             <span id="user-channel-badge" class="hidden bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md text-[10px] font-bold"></span>
                         </p>
                     </div>
                 </div>
+                <div class="studio-toolbar">
+                    <label class="studio-appearance" for="studio-theme">Apariencia
+                        <select id="studio-theme" aria-label="Elegir tema de la interfaz"><option value="graphite">Grafito suave</option><option value="midnight">Azul noche</option><option value="warm">Oscuro cálido</option></select>
+                    </label>
                 <button onclick="document.getElementById('api-config').classList.toggle('hidden')" class="text-slate-500 hover:text-slate-800 text-sm font-bold bg-slate-100 px-4 py-2 rounded-lg transition-colors">
                     <i class="fa-solid fa-gear mr-1"></i> Configuración APIs
                 </button>
+                </div>
             </div>
+
+            <nav class="studio-nav" aria-label="Secciones del estudio"><a href="#niche-panel">Top 10 de nichos</a><a href="#research-section">Radar</a><a href="#creator-suite">Guiones e ideas</a><a href="#video-factory">Producción</a></nav>
 
             <!-- API Configuration -->
             <div id="api-config" class="mt-6 pt-6 border-t border-slate-100">
@@ -126,6 +142,43 @@
                 <button type="button" id="youtube-clear-cache" class="text-[11px] font-bold text-slate-600 hover:text-red-600">Vaciar caché de sesión</button>
             </div>
         </header>
+
+        <section id="niche-panel" class="niche-panel" aria-labelledby="niche-title" aria-busy="false">
+            <div class="niche-heading">
+                <div><span class="niche-eyebrow">Tu próximo video empieza aquí</span><h2 id="niche-title">Top 10 · Radar de rentabilidad</h2><p>Compara demanda pública y margen simulado entre 20 nichos. Cada oportunidad incluye fuentes, amplitud de la muestra y supuestos editables.</p></div>
+                <span id="niche-count" class="niche-count">20 nichos por explorar</span>
+            </div>
+            <form id="niche-form">
+                <div class="niche-filters">
+                    <label for="niche-region">Disponible en<select id="niche-region"><option value="MX">México</option><option value="ES">España</option><option value="US">Estados Unidos</option><option value="CO">Colombia</option><option value="AR">Argentina</option><option value="BR">Brasil</option></select></label>
+                    <label for="niche-language">Idioma preferido<select id="niche-language"><option value="es">Español</option><option value="en">Inglés</option><option value="pt">Portugués</option></select></label>
+                    <label for="niche-days">Publicado en<select id="niche-days"><option value="7">Últimos 7 días</option><option value="30" selected>Últimos 30 días</option><option value="90">Últimos 90 días</option></select></label>
+                    <label for="niche-duration">Duración<select id="niche-duration"><option value="medium">4 a 20 minutos</option><option value="long">Más de 20 minutos</option><option value="short">Menos de 4 min (incluye Shorts)</option></select></label>
+                </div>
+                <div class="niche-controls"><button id="niche-update" class="studio-button" type="submit">Actualizar ranking</button><button id="niche-stop" class="studio-button studio-button-secondary" type="button" disabled>Detener</button><button id="niche-export" class="studio-button studio-button-secondary" type="button" disabled>Descargar informe</button></div>
+                <p class="niche-subtle" style="margin-top:10px">Solo al pulsar Actualizar: hasta 20 búsquedas y 40 consultas de detalles de YouTube. No genera recursos ni llama a una IA de pago.</p>
+            </form>
+            <details class="niche-scenarios"><summary>Supuestos de rentabilidad · ajustar sin nuevas consultas</summary>
+                <div class="niche-scenario-fields">
+                    <label for="niche-rpm">RPM general supuesto (USD)<input id="niche-rpm" type="number" min="0" max="500" step="0.1" value="3.5"></label>
+                    <label for="niche-cost">Coste por video supuesto (USD)<input id="niche-cost" type="number" min="0" max="100000" step="0.1" value="0"></label>
+                    <label for="niche-views">Vistas del escenario por video<input id="niche-views" type="number" min="0" max="10000000" step="1000" value="10000"></label>
+                    <label for="niche-small">Canal pequeño: hasta cuántos subs<input id="niche-small" type="number" min="0" max="10000000" step="1000" value="100000"></label>
+                    <label for="niche-order">Ordenar por<select id="niche-order"><option value="opportunity">Oportunidad combinada</option><option value="margin">Margen simulado</option><option value="demand">Demanda de la muestra</option></select></label>
+                </div>
+                <div class="niche-interest"><label for="niche-interests">Tus intereses o habilidades<input id="niche-interests" type="text" maxlength="400" placeholder="3D, Unreal, ArchViz, IA…"></label><button id="niche-use-profile" type="button" class="studio-button studio-button-secondary">Usar mi perfil</button><label class="niche-affinity"><input id="niche-affinity" type="checkbox"> Incluir afinidad</label></div>
+                <p class="niche-subtle" style="margin-top:12px">Incluye recursos, voz, edición y tu tiempo en el coste. Un coste de cero significa que no has presupuestado gastos. Afiliación, patrocinios y ventas se muestran como posibilidades por validar y no se suman a los ingresos.</p>
+                <details class="niche-override-table"><summary>RPM y coste específicos de cada nicho</summary><div class="niche-override-row" aria-hidden="true"><span>Nicho</span><span>RPM (USD)</span><span>Coste (USD)</span></div><div id="niche-overrides"></div></details>
+            </details>
+            <p id="niche-scenario-note" class="niche-subtle" style="margin-top:12px"></p>
+            <p class="niche-notice">Las vistas públicas no revelan ingresos ni el país de la audiencia. Disponible en indica el mercado de búsqueda. El top compara las muestras analizadas; los RPM son tus supuestos, no tarifas observadas de otros canales.</p>
+            <p id="niche-context-warning" class="niche-notice" hidden>Los filtros cambiaron. El ranking visible conserva la consulta anterior; actualiza para aplicar la nueva selección.</p>
+            <p id="niche-error" class="niche-notice niche-error" role="alert" hidden></p>
+            <p id="niche-updated" class="niche-updated"></p><p id="niche-status" class="niche-status" role="status" aria-live="polite"></p>
+            <progress id="niche-progress" class="niche-progress" max="20" value="0" aria-label="Nichos consultados" hidden></progress>
+            <div id="niche-results" class="niche-results"></div>
+            <details style="margin-top:16px"><summary>Cómo interpretar la comparación</summary><p class="niche-subtle" style="margin-top:10px">Una búsqueda relevante por nicho, hasta 20 videos por búsqueda. Se excluyen directos, videos de menos de un día, datos ausentes y resultados fuera del periodo o duración. Se usa la mediana de vistas por día desde publicación; no mide velocidad instantánea. Los suscriptores ocultos no se cuentan como cero. La tendencia compara dos intervalos de al menos tres días sobre los mismos videos; requiere seis días de historial. Amplia, limitada o escasa describe la cantidad y diversidad de la muestra de búsqueda, que no representa a todo el nicho. Los nichos pueden compartir referencias.</p><p class="niche-subtle" style="margin-top:8px">El margen es vistas del escenario ÷ 1.000 × RPM supuesto − coste supuesto. Revisa los supuestos antes de decidir. Guarda hasta 30 días de metadatos e historial en este navegador; no sincroniza dispositivos.</p><p class="niche-subtle" style="margin-top:8px"><a href="https://developers.google.com/youtube/v3/docs/search/list" target="_blank" rel="noopener noreferrer">Datos de búsqueda de YouTube</a> · <a href="https://developers.google.com/youtube/analytics/channel_reports" target="_blank" rel="noopener noreferrer">Acceso a informes de ingresos</a> · <a href="https://support.google.com/youtube/answer/9314357?hl=es" target="_blank" rel="noopener noreferrer">RPM y CPM</a></p></details>
+        </section>
 
         <!-- MAIN SEARCH BAR -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
@@ -3026,5 +3079,8 @@ COMENTARIOS (JSON): ${JSON.stringify(fuente)}`;
     <script src="replicate-value.js"></script>
     <script src="replicate-studio.js"></script>
     <script src="video-production.js"></script>
+    <script src="niche-core.js"></script>
+    <script src="niche-radar.js"></script>
+    <script src="studio-theme.js"></script>
 </body>
 </html>

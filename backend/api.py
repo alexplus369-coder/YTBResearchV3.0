@@ -28,7 +28,7 @@ from .uploader import upload
 from .worker import Worker
 
 ROOT = Path(__file__).resolve().parent.parent
-STATIC = {'index.html', 'research-core.js', 'research-workspace.js', 'creator-core.js', 'creator-studio.js', 'video-production.js', 'replicate-studio.js', 'replicate-catalog.js', 'replicate-value.js'}
+STATIC = {'index.html', 'research-core.js', 'research-workspace.js', 'creator-core.js', 'creator-studio.js', 'video-production.js', 'replicate-studio.js', 'replicate-catalog.js', 'replicate-value.js', 'niche-core.js', 'niche-radar.js', 'studio-theme.css', 'studio-theme.js'}
 EXTENSIONS = {'.mp4', '.mov', '.webm', '.m4a', '.wav', '.mp3', '.png', '.jpg', '.jpeg', '.webp'}
 
 

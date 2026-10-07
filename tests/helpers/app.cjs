@@ -7,7 +7,7 @@ const { JSDOM } = require('jsdom');
 const core = require('../../research-core.js');
 const root = path.resolve(__dirname, '../..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const inline = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].find(match => match[1].trim())[1];
+const inline = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(match => match[1]).filter(source => source.trim());
 const channelId = 'UC' + 'a'.repeat(22);
 const hiddenId = 'UC' + 'b'.repeat(22);
 const fixtureVideos = Array.from({ length: 6 }, (_, i) => ({
@@ -96,9 +96,9 @@ function app(t, initialStorage = {}) {
         throw new Error('Unexpected external call: ' + url.hostname);
     };
     for (const file of ['research-core.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
-    vm.runInContext(inline, context, { filename: 'index.html inline' });
+    inline.forEach((source, index) => vm.runInContext(source, context, { filename: 'index.html inline ' + index }));
     w.HTMLMediaElement.prototype.pause = function () {};
-    for (const file of ['research-workspace.js', 'creator-core.js', 'creator-studio.js', 'replicate-catalog.js', 'replicate-value.js', 'replicate-studio.js', 'video-production.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
+    for (const file of ['research-workspace.js', 'creator-core.js', 'creator-studio.js', 'replicate-catalog.js', 'replicate-value.js', 'replicate-studio.js', 'video-production.js', 'niche-core.js', 'niche-radar.js', 'studio-theme.js']) vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), context, { filename: file });
     const $ = id => w.document.getElementById(id);
     const change = (id, value) => { $(id).value = value; $(id).dispatchEvent(new w.Event('change', { bubbles: true })); };
     const submit = () => $('research-form').dispatchEvent(new w.Event('submit', { cancelable: true }));

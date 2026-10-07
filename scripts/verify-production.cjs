@@ -48,6 +48,96 @@ async function screenshot(name, selector) {
   await browser('screenshot', path.join(output, name));
 }
 
+async function verifyNichesAndTheme() {
+  await wait('typeof NicheCore === "object" && document.querySelectorAll("[data-niche-rpm]").length === 20');
+  assert.equal(await value('document.documentElement.dataset.theme'), 'graphite');
+  assert.equal(await value('document.querySelectorAll(".niche-card").length'), 0);
+  const viewport = await value('[innerWidth, innerHeight]');
+  const colours = await value(`(() => {
+    const ids = ['niche-panel','creator-suite','video-factory','replicate-value-panel','research-input'];
+    return ['body', ...ids.map(id => '#' + id)].map(selector => {
+      const style = getComputedStyle(document.querySelector(selector));
+      return {selector, background:style.backgroundColor, colour:style.color};
+    });
+  })()`);
+  const rgb = colour => colour.match(/[\d.]+/g).slice(0, 3).map(Number);
+  const luminance = colour => rgb(colour).map(n => n / 255).map(n => n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4)
+    .reduce((sum, n, i) => sum + n * [.2126,.7152,.0722][i], 0);
+  const contrast = (a,b) => (Math.max(luminance(a),luminance(b)) + .05) / (Math.min(luminance(a),luminance(b)) + .05);
+  for (const surface of colours) {
+    assert.ok(rgb(surface.background).every(n => n < 100), 'Surface must stay dark: ' + JSON.stringify(surface));
+    assert.ok(contrast(surface.colour, surface.background) >= 4.5, 'Insufficient text contrast: ' + JSON.stringify(surface));
+  }
+  for (const theme of ['midnight','warm','graphite']) {
+    await browser('select', '#studio-theme', theme); await browser('reload');
+    await wait('typeof NicheCore === "object" && document.getElementById("studio-theme").value === ' + JSON.stringify(theme));
+    assert.equal(await value('document.documentElement.dataset.theme'), theme);
+    await screenshot('studio-theme-' + theme + '.png', '.studio-header');
+  }
+  // Replace the public read client only. No real credentials, YouTube quota or cloud generation is used by CI.
+  await value(`(() => {
+    window.nicheRealFetch = youtubeClient.fetchJson; window.nicheTestCalls = []; window.nicheAiCalls = 0;
+    window.smartFetchAI = async () => {window.nicheAiCalls++; throw new Error('Unexpected AI generation');};
+    document.getElementById('ytApiKeyInput').value = 'offline-niche-test-key';
+    const videos = NicheCore.CATALOG.map((n, i) => ({id:'niche'+String(i).padStart(6,'0'),
+      snippet:{title:'Referencia original '+n.label, channelTitle:'Canal '+i, channelId:'UC'+String(i).padStart(22,'0'),
+        publishedAt:new Date(Date.now()-10*86400000).toISOString(),liveBroadcastContent:'none'},
+      statistics:{viewCount:String((i+1)*10000)},contentDetails:{duration:'PT10M'}}));
+    youtubeClient.fetchJson = async input => {
+      const url = new URL(input); window.nicheTestCalls.push(url.pathname);
+      const resource = url.pathname.split('/').pop();
+      if(resource==='search') {const index=NicheCore.CATALOG.findIndex(n => n.queries.es === url.searchParams.get('q'));
+        if(index<0) throw new Error('Unknown test query'); return {items:[{id:{videoId:videos[index].id}}]};}
+      const ids=(url.searchParams.get('id') || '').split(',');
+      if(resource==='videos') return {items:videos.filter(v=>ids.includes(v.id))};
+      if(resource==='channels') return {items:ids.map(id=>({id,statistics:{subscriberCount:'2000',hiddenSubscriberCount:false}}))};
+      throw new Error('Unexpected public read');
+    };
+    return true;
+  })()`);
+  await browser('click', '#niche-update');
+  await wait('document.getElementById("niche-panel").getAttribute("aria-busy") === "false" && document.querySelectorAll(".niche-card").length === 10');
+  const requests = await value('window.nicheTestCalls');
+  assert.equal(requests.filter(p => p.endsWith('/search')).length, 20); assert.equal(requests.length, 60);
+  assert.match(await value('document.getElementById("niche-results").textContent'), /Sin historial suficiente/);
+  assert.equal(await value('window.nicheAiCalls'), 0);
+  assert.equal(await value('localStorage.getItem("ytNicheRadarV1").includes("offline-niche-test-key")'), false);
+  await value(`(() => {
+    document.querySelector('.niche-scenarios').open=true;
+    document.getElementById('niche-order').value='margin'; document.getElementById('niche-order').dispatchEvent(new Event('change'));
+    const rpm=document.querySelector('[data-niche-rpm="archviz"]'); rpm.value='15'; rpm.dispatchEvent(new Event('change',{bubbles:true}));
+    return true;
+  })()`);
+  assert.equal(await value('document.querySelector(".niche-card [data-niche-id]").dataset.nicheId'), 'archviz');
+  assert.equal(await value('window.nicheTestCalls.length'), 60);
+  const muted = await value(`(() => {const el=document.querySelector('.niche-card-heading p'); return {colour:getComputedStyle(el).color,background:getComputedStyle(el.closest('.niche-card')).backgroundColor};})()`);
+  assert.ok(contrast(muted.colour, muted.background) >= 4.5);
+  await value('document.querySelector(".niche-scenarios").open=false; true');
+  await screenshot('niche-ranking-desktop.png', '#niche-panel');
+  await browser('set', 'viewport', '390', '844');
+  await screenshot('niche-ranking-mobile.png', '#niche-panel');
+  const layout = await value(`(() => {
+    const panel=document.getElementById('niche-panel');
+    const rect=panel.getBoundingClientRect();
+    return {left:rect.left,right:rect.right,width:panel.clientWidth,scrollWidth:panel.scrollWidth,
+      cards:[...panel.querySelectorAll('.niche-card')].map(el=>({width:el.clientWidth,scrollWidth:el.scrollWidth})),
+      controls:[...panel.querySelectorAll('.niche-controls button')].map(el=>el.getBoundingClientRect().height)};
+  })()`);
+  assert.ok(layout.left >= 0 && layout.right <= 390 && layout.scrollWidth <= layout.width + 2, JSON.stringify(layout));
+  assert.ok(layout.cards.every(card => card.scrollWidth <= card.width + 2), JSON.stringify(layout));
+  assert.ok(layout.controls.every(height => height >= 44), JSON.stringify(layout));
+  await browser('click', '.niche-card [data-niche-action="script"]');
+  assert.match(await value('document.getElementById("creator-context").textContent'), /Top 10/);
+  assert.equal(await value('window.nicheAiCalls'), 0);
+  await browser('set', 'viewport', String(viewport[0]), String(viewport[1]));
+  await value('youtubeClient.fetchJson=window.nicheRealFetch; document.getElementById("ytApiKeyInput").value=""; true');
+  await browser('reload');
+  await wait('document.querySelectorAll(".niche-card").length === 10 && typeof window.getCreatorProduction === "function"');
+  assert.equal(await value('document.querySelector(".niche-card [data-niche-id]").dataset.nicheId'), 'archviz');
+  await fs.writeFile(path.join(output,'niche-theme-report.json'),JSON.stringify({requests:requests.length,searches:20,aiCalls:0,colours,muted,mobile:layout},null,2));
+  console.log('Real browser niche and theme checks passed: bounded public reads, manual scenarios, source selection, reload, dark surfaces, text contrast and mobile layout.');
+}
+
 async function verifyScriptContinuation() {
   const previous = core.validateProject(completeProject()), slots = core.timeline(previous.profile.duration);
   const pending = slots.map(block); pending[4].narration = Array(447).fill('ejemplo').join(' ');
@@ -114,6 +204,7 @@ async function main() {
     await screenshot('model-comparison-desktop.png', '#replicate-value-panel');
     await fs.writeFile(path.join(output, 'page-snapshot.json'), JSON.stringify(await browser('snapshot', '-i'), null, 2));
     assert.equal(await value('!!document.querySelector("[data-nextjs-dialog], .vite-error-overlay")'), false);
+    await verifyNichesAndTheme();
     await verifyScriptContinuation();
     await browser('click', '#creator-tab-studio');
     await browser('fill', '#video-access', token); await browser('click', '#video-connect');

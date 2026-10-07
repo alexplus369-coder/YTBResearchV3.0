@@ -6,7 +6,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 for (const [i, match] of [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].entries()) {
     if (match[1].trim()) new vm.Script(match[1], { filename: `index.html script ${i}` });
 }
-for (const file of ['research-core.js', 'research-workspace.js', 'creator-core.js', 'creator-studio.js', 'replicate-catalog.js', 'replicate-value.js', 'replicate-studio.js', 'video-production.js']) {
+for (const file of ['research-core.js', 'research-workspace.js', 'creator-core.js', 'creator-studio.js', 'replicate-catalog.js', 'replicate-value.js', 'replicate-studio.js', 'video-production.js', 'niche-core.js', 'niche-radar.js', 'studio-theme.js']) {
     new vm.Script(fs.readFileSync(path.join(root, file), 'utf8'), { filename: file });
 }
 require('node:assert/strict').deepEqual(require('../replicate-catalog.js'), require('../backend/replicate_catalog.json'), 'Regenerate replicate-catalog.js from the backend catalog.');
