@@ -22,7 +22,16 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: backend/requirements*.txt
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - name: Install FFmpeg and fonts from the official Ubuntu archive
+        timeout-minutes: 5
+        run: |
+          # Avoid slow Azure archive routes observed on hosted runners; retain Ubuntu signing keys.
+          for source_file in /etc/apt/*mirrors*.txt /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+            [ -f "$source_file" ] || continue
+            sudo sed -E -i 's|https?://azure.archive.ubuntu.com/ubuntu/?|https://archive.ubuntu.com/ubuntu/|g' "$source_file"
+          done
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
       - run: python -m pip install -r backend/requirements-dev.txt
       - run: python -m pytest backend/tests -q
   windows-updater:
@@ -82,7 +91,7 @@ jobs:
       - name: Install FFmpeg and fonts from the official Ubuntu archive
         timeout-minutes: 5
         run: |
-          # Avoid slow Azure archive routes observed on production runners; retain Ubuntu signing keys.
+          # Avoid slow Azure archive routes observed on hosted runners; retain Ubuntu signing keys.
           for source_file in /etc/apt/*mirrors*.txt /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
             [ -f "$source_file" ] || continue
             sudo sed -E -i 's|https?://azure.archive.ubuntu.com/ubuntu/?|https://archive.ubuntu.com/ubuntu/|g' "$source_file"

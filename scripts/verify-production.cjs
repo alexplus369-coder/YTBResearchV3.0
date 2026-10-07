@@ -267,9 +267,12 @@ async function main() {
     await fs.writeFile(path.join(output, 'mobile-layout.json'), JSON.stringify(layout, null, 2));
     assert.ok(layout.scrollWidth <= layout.clientWidth + 2, 'Factory overflows on mobile: ' + JSON.stringify(layout));
     await fs.writeFile(path.join(output, 'browser-report.json'), JSON.stringify({pageErrors, original: original.result, clip: clipped.result, mobileWidth: 390}, null, 2));
-    await value('window.confirm = () => true; true');
+    await wait('!document.getElementById("video-clean-temp").disabled');
+    await value('window.cleanupClicks = 0; window.cleanupConfirmations = 0; document.getElementById("video-clean-temp").addEventListener("click", () => window.cleanupClicks++); window.confirm = () => {window.cleanupConfirmations++; return true;}; true');
     await browser('click', '#video-clean-temp');
     await wait('document.getElementById("video-connection").textContent.includes("Temporales eliminados")');
+    assert.equal(await value('window.cleanupClicks'), 1);
+    assert.equal(await value('window.cleanupConfirmations'), 1);
     assert.equal((await api('/jobs')).length, 0); assert.equal((await api('/assets')).length, 0);
     assert.equal((await fs.readdir(path.join(output, 'server-data', 'jobs'))).length, 0);
     assert.equal((await fs.readdir(path.join(output, 'server-data', 'assets'))).length, 0);
@@ -278,6 +281,9 @@ async function main() {
     console.log('Real browser check passed: private site, connect, upload, render, playable preview, transcript, portrait clip, mobile layout and temporary-file cleanup.');
   } catch (error) {
     await fs.writeFile(path.join(output, 'server.log'), serverLog);
+    const failure = await value('({status: document.getElementById("video-connection")?.textContent, error: document.getElementById("video-error")?.textContent, cleanDisabled: document.getElementById("video-clean-temp")?.disabled, cleanupClicks: window.cleanupClicks, cleanupConfirmations: window.cleanupConfirmations})').catch(() => null);
+    await fs.writeFile(path.join(output, 'failure-state.json'), JSON.stringify(failure, null, 2));
+    console.error('Browser failure state:', failure);
     await browser('screenshot', path.join(output, 'error.png')).catch(() => {});
     throw error;
   } finally {

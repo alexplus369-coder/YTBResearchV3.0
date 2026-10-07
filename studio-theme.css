@@ -33,7 +33,7 @@
     --studio-accent-ink: #302816; --studio-violet: #d1c1df; --studio-violet-bg: #403345;
     --studio-blue: #bfcfda; --studio-blue-bg: #303c43;
 }
-html { background: var(--studio-bg); scroll-behavior: smooth; scroll-padding-top: 18px; }
+html { background: var(--studio-bg); scroll-padding-top: 18px; }
 html[data-theme] body { background: var(--studio-bg); color: var(--studio-text); line-height: 1.6; }
 html[data-theme] body > .max-w-7xl { max-width: 1360px; }
 html[data-theme] :is(header, #research-section, #creator-suite, #video-factory, #niche-panel) { scroll-margin-top: 18px; }
