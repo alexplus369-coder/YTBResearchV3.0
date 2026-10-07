@@ -114,8 +114,10 @@ async function verifyNichesAndTheme() {
   assert.ok(contrast(muted.colour, muted.background) >= 4.5);
   await value('document.querySelector(".niche-scenarios").open=false; true');
   await screenshot('niche-ranking-desktop.png', '#niche-panel');
+  await screenshot('niche-cards-desktop.png', '.niche-results');
   await browser('set', 'viewport', '390', '844');
   await screenshot('niche-ranking-mobile.png', '#niche-panel');
+  await screenshot('niche-card-mobile.png', '.niche-card:first-child');
   const layout = await value(`(() => {
     const panel=document.getElementById('niche-panel');
     const rect=panel.getBoundingClientRect();
@@ -126,7 +128,7 @@ async function verifyNichesAndTheme() {
   assert.ok(layout.left >= 0 && layout.right <= 390 && layout.scrollWidth <= layout.width + 2, JSON.stringify(layout));
   assert.ok(layout.cards.every(card => card.scrollWidth <= card.width + 2), JSON.stringify(layout));
   assert.ok(layout.controls.every(height => height >= 44), JSON.stringify(layout));
-  await browser('click', '.niche-card [data-niche-action="script"]');
+  await browser('click', '.niche-card:first-child [data-niche-action="script"]');
   assert.match(await value('document.getElementById("creator-context").textContent'), /Top 10/);
   assert.equal(await value('window.nicheAiCalls'), 0);
   await browser('set', 'viewport', String(viewport[0]), String(viewport[1]));
