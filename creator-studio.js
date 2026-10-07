@@ -3,13 +3,13 @@
     'use strict';
     const $ = id => document.getElementById(id);
     const core = CreatorCore;
-    const KEY = { profile: 'ytCreatorProfileV1', daily: 'ytCreatorDailyV1', project: 'ytCreatorProductionV1' };
+    const KEY = { profile: 'ytCreatorProfileV1', daily: 'ytCreatorDailyV1', project: 'ytCreatorProductionV1', draft: 'ytCreatorScriptDraftV1' };
     const fields = { niche: 'niche', audience: 'audience', goal: 'goal', tone: 'tone', duration: 'duration', visualStyle: 'visual-style',
         ctrTarget: 'ctr-target', avpTarget: 'avp-target', timeZone: 'time-zone', sponsor: 'sponsor', sponsorFacts: 'sponsor-facts',
         affiliate: 'affiliate', affiliateUrl: 'affiliate-url', lead: 'lead', leadUrl: 'lead-url', ownFacts: 'own-facts' };
     let revision = 0, busy = '', baseline = [], suggestions = [], keywords = [], references = [], ideas = [];
     let variants = [], selected = 0, packageContext = null, project = null, lastRun = researchState.runId, auditRevision = 0;
-    let dailyCache = null, chosenIds = [], scriptDraft = null;
+    let dailyCache = null, chosenIds = [], scriptDraft = null, draftStored = false;
     window.getCreatorProduction = () => project ? core.validateProject(project) : null;
     const html = value => escHtml(String(value ?? ''));
     const button = (action, index, label) => '<button type="button" data-creator-action="' + action + '" data-index="' + index + '" class="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg">' + label + '</button>';
@@ -39,6 +39,11 @@
         document.querySelectorAll('[data-creator-action], #creator-packaging input').forEach(el => { el.disabled = disabled; });
         $('creator-script-btn').disabled = disabled || !packageContext || !variants.length;
         $('creator-script-btn').textContent = scriptDraft ? '2. Continuar guion y producción' : '2. Generar guion y producción';
+        $('creator-continue-btn').disabled = disabled || !scriptDraft;
+        $('creator-draft-status').textContent = scriptDraft ? 'Borrador: ' + scriptDraft.context.topic + ' · ' + scriptDraft.valid.size + ' de 6 bloques validados. ' +
+            (scriptDraft.valid.size === 6 && !validPublishing(scriptDraft.publishing) ? 'Falta completar la publicación. ' : '') +
+            (draftStored ? 'Guardado en este navegador; puedes continuar después de recargar.' : 'Conservado solo en esta página; el navegador no pudo guardarlo.') :
+            'Sin borrador pendiente. Crea títulos y miniaturas para empezar un guion nuevo.';
         $('creator-export-md').disabled = !project;
         $('creator-export-json').disabled = !project;
         $('creator-audit-fetch').disabled = busy === 'audit';
@@ -52,7 +57,9 @@
         catch (error) {
             if (current()) {
                 showError(error);
-                status(name === 'script' && scriptDraft ? 'No se completó la operación. Se conservan ' + scriptDraft.valid.size + ' de 6 bloques validados en esta página. Pulsa «Continuar guion y producción» para corregir lo pendiente.' : 'No se completó la operación. Puedes corregir el problema y reintentar.');
+                if (name === 'script' && scriptDraft) checkpointDraft();
+                status(name === 'script' && scriptDraft ? 'No se completó la operación. Se conservan ' + scriptDraft.valid.size + ' de 6 bloques validados ' +
+                    (draftStored ? 'en este navegador' : 'en esta página') + '. Pulsa «Continuar guion y producción» para corregir lo pendiente.' : 'No se completó la operación. Puedes corregir el problema y reintentar.');
             }
         }
         finally { busy = ''; lock(); }
@@ -68,8 +75,27 @@
         if (name === 'daily') refreshDaily();
     }
     function invalidatePackaging() {
-        revision++; packageContext = null; variants = []; selected = 0; scriptDraft = null;
+        const hadDraft = !!scriptDraft;
+        revision++; packageContext = null; variants = []; selected = 0; discardDraft(); clearError();
+        if (hadDraft) status('Los datos cambiaron: crea títulos y miniaturas para el nuevo contexto. Se conserva la última producción completa.');
         $('creator-packaging').innerHTML = ''; lock();
+    }
+    function discardDraft() {
+        scriptDraft = null; draftStored = false;
+        try { localStorage.removeItem(KEY.draft); } catch {}
+    }
+    function checkpointDraft() {
+        if (!scriptDraft) return;
+        try {
+            const saved = core.scriptDraftBackup({ format: 'yt-creator-script-draft', version: 1, updatedAt: new Date().toISOString(),
+                context: scriptDraft.context, variants, selected: scriptDraft.chosen, blocks: [...scriptDraft.raw.values()],
+                generatedParts: [...scriptDraft.generated], publishing: scriptDraft.publishing });
+            draftStored = persist(KEY.draft, saved);
+        } catch {
+            draftStored = false;
+            showToast('El borrador se conserva solo en esta página; no se pudo guardar en el navegador.', 'error');
+        }
+        lock();
     }
     function updateContext() {
         const p = profile();
@@ -178,7 +204,11 @@
     });
     for (const id of ['creator-topic', 'creator-angle', 'creator-use-transcripts']) $(id).addEventListener('change', invalidatePackaging);
     $('creator-packaging').addEventListener('change', event => {
-        if (event.target.name === 'creator-variant' && !busy) { selected = Number(event.target.value); scriptDraft = null; lock(); }
+        if (event.target.name === 'creator-variant' && !busy) {
+            if (selected === Number(event.target.value)) return;
+            selected = Number(event.target.value); discardDraft(); clearError();
+            status('Empaquetado cambiado. Genera el guion para esta nueva promesa.'); lock();
+        }
     });
     document.addEventListener('research-busy', event => {
         if (event.detail.busy) { invalidatePackaging(); baseline = []; suggestions = []; chosenIds = []; auditRevision++; clearPrivateAudit(); $('creator-audit-source').textContent = ''; status('Esperando la nueva muestra del Radar…'); }
@@ -275,7 +305,7 @@
                 if (!current()) return;
                 nextVariants = core.validatePackaging(result);
             }
-            variants = nextVariants; selected = 0; packageContext = ctx; scriptDraft = null; renderPackaging();
+            variants = nextVariants; selected = 0; packageContext = ctx; discardDraft(); renderPackaging();
             status('Elige el título y miniatura que mejor expresen la promesa. Después genera el guion completo.');
         });
     });
@@ -309,7 +339,7 @@
         return value && typeof value.description === 'string' && value.description.trim() && typeof value.pinnedComment === 'string' && value.pinnedComment.trim() &&
             Array.isArray(value.checks) && value.checks.length >= 5 && value.checks.length <= 28 && value.checks.every(check => typeof check === 'string' && check.trim());
     }
-    $('creator-script-btn').addEventListener('click', () => task('script', async current => {
+    const generateScript = () => task('script', async current => {
         requireAI();
         if (!packageContext || !variants.length) throw new Error('Crea y elige el empaquetado antes de escribir el guion.');
         const ctx = packageContext, chosen = selected, chosenVariants = variants;
@@ -317,6 +347,7 @@
             scriptDraft = { context: ctx, chosen, raw: new Map(), valid: new Map(), generated: new Set(), publishing: null };
         }
         const draft = scriptDraft, sourceIds = ctx.sources.map(s => s.id);
+        checkpointDraft();
         const slots = core.timeline(ctx.profile.duration), blocks = [];
         for (let part = 0; part < 2; part++) {
             if (!current()) return;
@@ -342,6 +373,7 @@
                 if (part === 1) draft.publishing = result?.publishing;
             }
             let failures = inspectScriptBlocks(draft, expected, sourceIds);
+            checkpointDraft();
             for (let attempt = 1; failures.length && attempt <= 2; attempt++) {
                 status('Corrigiendo solo los bloques ' + failures.map(f => f.slot.index + 1).join(', ') + ' · ajuste ' + attempt + ' de 2…');
                 const corrections = failures.map(({ slot, previous, error, textOnly }) => ({ index: slot.index, label: slot.label, ...core.wordBudget(slot),
@@ -359,6 +391,7 @@
                 if (!current()) return;
                 receiveScriptBlocks(draft, result, failures);
                 failures = inspectScriptBlocks(draft, expected, sourceIds);
+                checkpointDraft();
             }
             if (failures.length) throw new Error(failures.map(f => f.error.message).join('\n'));
             blocks.push(...expected.map(slot => draft.valid.get(slot.index)));
@@ -370,6 +403,7 @@
                 '\nCORRECCIÓN DE PUBLICACIÓN: devuelve solo JSON {publishing:{description,pinnedComment,checks:[]}}. No reescribas los bloques. Descripción y comentario fijado no vacíos, en español, sin URLs inventadas. Entre 5 y 28 verificaciones concretas no vacías de afirmaciones, demostraciones, originalidad/derechos de recursos, ofertas y promesa.', true);
             if (!current()) return;
             draft.publishing = result?.publishing;
+            checkpointDraft();
             if (!validPublishing(draft.publishing)) throw new Error('Falta el paquete de publicación y al menos cinco verificaciones. Se conservan los seis bloques para continuar.');
         }
         const publishing = draft.publishing;
@@ -390,9 +424,18 @@
             pinnedComment: links.join('\n') + (links.length ? '\n\n' : '') + cleanPublishing(publishing.pinnedComment), monetization,
             checks: ['Verificar cada afirmación y cifra; los títulos y descripciones no constituyen evidencia.', 'Ensayar la locución y ajustar pausas, demostraciones y duración antes de editar.', ...publishing.checks] });
         if (!current()) return;
-        project = next; scriptDraft = null; persist(KEY.project, project); renderProduction();
-        status('Producción completa guardada: guion, storyboard, prompts, edición, monetización y publicación. Revisa las verificaciones antes de grabar.');
-    }));
+        project = next;
+        const saved = persist(KEY.project, project);
+        if (saved) discardDraft(); else checkpointDraft();
+        renderProduction();
+        status(saved ? 'Producción completa guardada: guion, storyboard, prompts, edición, monetización y publicación. Revisa las verificaciones antes de grabar.' :
+            'Producción completa disponible en esta página. Descarga el respaldo JSON; no se pudo guardar en el navegador.');
+    });
+    $('creator-script-btn').addEventListener('click', generateScript);
+    $('creator-continue-btn').addEventListener('click', () => {
+        if (!scriptDraft || busy || researchState.busy) return;
+        selectTab('studio'); generateScript();
+    });
     $('creator-export-md').addEventListener('click', () => { if (project) download(core.productionMarkdown(project), 'produccion-youtube.md', 'text/markdown;charset=utf-8'); });
     $('creator-export-json').addEventListener('click', () => { if (project) download(JSON.stringify(core.validateProject(project), null, 2), 'produccion-youtube.json', 'application/json'); });
     $('creator-import-json').addEventListener('change', async event => {
@@ -502,4 +545,22 @@
     $('creator-audit-end').value = new Date().toISOString().slice(0, 10);
     document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy) refreshDaily(); });
     refreshSignals(); lock();
+    const storedDraft = read(KEY.draft);
+    if (storedDraft) {
+        try {
+            const saved = core.scriptDraftBackup(storedDraft), ctx = saved.context;
+            for (const [key, id] of Object.entries(fields)) $('creator-' + id).value = ctx.profile[key];
+            $('research-rpm').value = ctx.profile.rpm;
+            $('creator-topic').value = ctx.topic; $('creator-angle').value = ctx.angle;
+            packageContext = ctx; variants = saved.variants; selected = saved.selected;
+            scriptDraft = { context: ctx, chosen: selected, raw: new Map(saved.blocks.map(b => [b.index, b])), valid: new Map(),
+                generated: new Set(saved.generatedParts), publishing: saved.publishing };
+            inspectScriptBlocks(scriptDraft, core.timeline(ctx.profile.duration), ctx.sources.map(s => s.id));
+            draftStored = true; renderPackaging(); selectTab('studio'); updateContext(); renderScenario();
+            status('Borrador recuperado: ' + scriptDraft.valid.size + ' de 6 bloques validados. Pulsa «Continuar guion y producción» para retomar lo pendiente.');
+        } catch {
+            discardDraft(); lock();
+            showError(new Error('El borrador guardado está dañado y no se puede continuar. La producción completa anterior se conserva.'));
+        }
+    }
 })();

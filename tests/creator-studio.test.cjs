@@ -221,7 +221,7 @@ test('exhausted repairs preserve the completed production and Continue repairs o
     };
     a.$('creator-script-btn').click(); await until(() => !a.$('creator-package-btn').disabled);
     assert.equal(calls.length, 3); assert.match(a.$('creator-error').textContent, /42 palabras/);
-    assert.match(a.$('creator-status').textContent, /2 de 6 bloques validados en esta página/);
+    assert.match(a.$('creator-status').textContent, /2 de 6 bloques validados en este navegador/);
     assert.equal(a.$('creator-script-btn').textContent, '2. Continuar guion y producción');
     assert.equal(a.w.localStorage.getItem('ytCreatorProductionV1'), JSON.stringify(previous));
     a.w.smartFetchAI = async prompt => {
@@ -269,6 +269,138 @@ test('publishing gets one separate repair and can be resumed with all six accept
     assert.equal(calls.length, 4); assert.match(calls[3], /CORRECCIÓN DE PUBLICACIÓN/);
     assert.equal(a.$('creator-error').textContent, '');
     assert.equal(JSON.parse(a.w.localStorage.getItem('ytCreatorProductionV1')).blocks.length, 6);
+});
+
+test('the visible Continue button restores the reported five accepted blocks after reload and repairs only the 447-word block', async t => {
+    const previous = core.validateProject(completeProject());
+    const a = await scriptReady(t, { ytCreatorProductionV1: JSON.stringify(previous) }), slots = core.timeline(9), calls = [];
+    const second = slots.slice(3).map(block); second[1] = countedBlock(slots[4], 447);
+    a.w.smartFetchAI = async prompt => {
+        calls.push(prompt);
+        if (calls.length === 1) return { blocks: slots.slice(0, 3).map(block) };
+        if (calls.length === 2) return { blocks: structuredClone(second), publishing: publishing() };
+        return { blocks: [{ index: 4, narration: second[1].narration }] };
+    };
+    a.$('creator-script-btn').click(); await until(() => !a.$('creator-package-btn').disabled);
+    assert.equal(calls.length, 4); assert.match(a.$('creator-error').textContent, /Bloque 5: 447 palabras/);
+    assert.equal(a.$('creator-continue-btn').textContent, 'Continuar guion y producción');
+    assert.equal(a.$('creator-continue-btn').disabled, false);
+    assert.equal(a.$('creator-continue-btn').closest('[role="tabpanel"]'), null);
+    assert.match(a.$('creator-draft-status').textContent, /5 de 6 bloques validados.*Guardado en este navegador/);
+    const savedDraft = a.w.localStorage.getItem('ytCreatorScriptDraftV1');
+    assert.equal(a.w.localStorage.getItem('ytCreatorProductionV1'), JSON.stringify(previous));
+    assert.ok(!savedDraft.includes('fake-gemini-key'));
+    const b = app(t, { ytCreatorProductionV1: JSON.stringify(previous), ytCreatorScriptDraftV1: savedDraft });
+    assert.equal(b.requests.length, 0); assert.equal(b.$('creator-topic').value, 'Tema');
+    assert.equal(b.$('creator-packaging').querySelectorAll('input[type="radio"]').length, 3);
+    assert.equal(b.$('creator-continue-btn').disabled, false);
+    assert.match(b.$('creator-status').textContent, /Borrador recuperado: 5 de 6/);
+    assert.deepEqual(JSON.parse(JSON.stringify(b.w.getCreatorProduction())), previous);
+    b.$('geminiApiKeyInput').value = 'fake-gemini-key';
+    const repairs = [];
+    b.w.smartFetchAI = async prompt => {
+        repairs.push(prompt);
+        return { blocks: [{ index: 4, narration: block(slots[4]).narration }, { ...block(slots[3]), narration: 'No debe reemplazarse.' }] };
+    };
+    b.$('creator-tab-daily').click(); b.$('creator-continue-btn').click();
+    await until(() => !b.$('creator-package-btn').disabled);
+    assert.equal(repairs.length, 1); assert.deepEqual(corrections(repairs[0]).map(c => [c.index, c.wordsReceived]), [[4, 447]]);
+    assert.equal(b.$('creator-panel-studio').classList.contains('hidden'), false);
+    const completed = JSON.parse(b.w.localStorage.getItem('ytCreatorProductionV1')), pending = JSON.parse(savedDraft);
+    for (const slot of slots) {
+        if (slot.index !== 4) assert.equal(completed.blocks[slot.index].narration, pending.blocks.find(v => v.index === slot.index).narration);
+    }
+    assert.equal(completed.blocks[4].scenes[0].visual, pending.blocks.find(v => v.index === 4).scenes[0].visual);
+    assert.equal(completed.description, publishing().description); assert.equal(completed.topic, 'Tema');
+    assert.equal(b.w.localStorage.getItem('ytCreatorScriptDraftV1'), null);
+    assert.equal(b.$('creator-continue-btn').disabled, true); assert.equal(b.$('creator-error').textContent, '');
+    assert.deepEqual(a.errors, []); assert.deepEqual(b.errors, []);
+});
+
+test('a recovered publication-only draft makes no block-generation requests and requires an explicit click', async t => {
+    const a = await scriptReady(t), slots = core.timeline(9);
+    let calls = 0;
+    a.w.smartFetchAI = async () => {
+        calls++;
+        if (calls <= 2) return { blocks: slots.slice(calls === 1 ? 0 : 3, calls === 1 ? 3 : 6).map(block) };
+        return { publishing: { description: '', pinnedComment: '', checks: [] } };
+    };
+    a.$('creator-script-btn').click(); await until(() => !a.$('creator-package-btn').disabled);
+    const savedDraft = a.w.localStorage.getItem('ytCreatorScriptDraftV1');
+    const b = app(t, { ytCreatorScriptDraftV1: savedDraft });
+    assert.equal(b.requests.length, 0); assert.match(b.$('creator-draft-status').textContent, /6 de 6.*Falta completar la publicación/);
+    const resumed = ai(b);
+    b.w.smartFetchAI = async prompt => { resumed.push(prompt); return { publishing: publishing() }; };
+    assert.equal(resumed.length, 0); b.$('creator-continue-btn').click();
+    await until(() => !b.$('creator-export-md').disabled);
+    assert.equal(resumed.length, 1); assert.match(resumed[0], /CORRECCIÓN DE PUBLICACIÓN/);
+    assert.equal(b.w.localStorage.getItem('ytCreatorScriptDraftV1'), null); assert.deepEqual(b.errors, []);
+});
+
+test('Continue remains visible without a pending draft and cannot start a duplicate generation', async t => {
+    const a = await scriptReady(t), slots = core.timeline(9), calls = [];
+    assert.equal(a.$('creator-continue-btn').disabled, true);
+    a.$('creator-continue-btn').click(); assert.equal(a.w.localStorage.getItem('ytCreatorScriptDraftV1'), null);
+    let release;
+    a.w.smartFetchAI = async prompt => {
+        calls.push(prompt);
+        if (calls.length === 1) return new Promise(resolve => { release = resolve; });
+        return { blocks: slots.slice(3).map(block), publishing: publishing() };
+    };
+    a.$('creator-script-btn').click(); await until(() => !!release);
+    assert.equal(a.$('creator-continue-btn').disabled, true);
+    a.$('creator-continue-btn').click(); a.$('creator-script-btn').click(); assert.equal(calls.length, 1);
+    const checkpoint = JSON.parse(a.w.localStorage.getItem('ytCreatorScriptDraftV1'));
+    assert.deepEqual(checkpoint.generatedParts, []); assert.equal(checkpoint.blocks.length, 0);
+    release({ blocks: slots.slice(0, 3).map(block) }); await until(() => !a.$('creator-export-md').disabled);
+    assert.equal(calls.length, 2); assert.equal(a.$('creator-continue-btn').disabled, true); assert.deepEqual(a.errors, []);
+});
+
+test('changing topic clears a saved draft and its stale error while keeping the completed production', async t => {
+    const previous = core.validateProject(completeProject());
+    const a = await scriptReady(t, { ytCreatorProductionV1: JSON.stringify(previous) }), slots = core.timeline(9);
+    a.w.smartFetchAI = async () => ({ blocks: [countedBlock(slots[0], 42), block(slots[1]), block(slots[2])] });
+    a.$('creator-script-btn').click(); await until(() => !a.$('creator-package-btn').disabled);
+    const savedDraft = a.w.localStorage.getItem('ytCreatorScriptDraftV1');
+    const same = a.$('creator-packaging').querySelector('input[value="0"]');
+    same.dispatchEvent(new a.w.Event('change', { bubbles: true }));
+    assert.equal(a.w.localStorage.getItem('ytCreatorScriptDraftV1'), savedDraft); assert.equal(a.$('creator-continue-btn').disabled, false);
+    a.change('creator-topic', 'Tema distinto');
+    assert.equal(a.w.localStorage.getItem('ytCreatorScriptDraftV1'), null); assert.equal(a.$('creator-continue-btn').disabled, true);
+    assert.equal(a.$('creator-script-btn').disabled, true); assert.equal(a.$('creator-error').textContent, '');
+    assert.match(a.$('creator-status').textContent, /Los datos cambiaron/);
+    assert.doesNotMatch(a.$('creator-status').textContent, /Pulsa.*Continuar/);
+    assert.equal(a.w.localStorage.getItem('ytCreatorProductionV1'), JSON.stringify(previous)); assert.deepEqual(a.errors, []);
+});
+
+test('storage failures retain an actionable in-page draft without claiming it survives reload', async t => {
+    const a = await scriptReady(t), slots = core.timeline(9);
+    const setItem = a.w.Storage.prototype.setItem;
+    a.w.Storage.prototype.setItem = function (key, value) {
+        if (key === 'ytCreatorScriptDraftV1' || key === 'ytCreatorProductionV1') throw new Error('Quota exceeded');
+        return setItem.call(this, key, value);
+    };
+    a.w.smartFetchAI = async () => ({ blocks: [countedBlock(slots[0], 42), block(slots[1]), block(slots[2])] });
+    a.$('creator-script-btn').click(); await until(() => !a.$('creator-package-btn').disabled);
+    assert.match(a.$('creator-status').textContent, /2 de 6 bloques validados en esta página/);
+    assert.match(a.$('creator-draft-status').textContent, /Conservado solo en esta página/);
+    assert.equal(a.$('creator-continue-btn').disabled, false); assert.equal(a.w.localStorage.getItem('ytCreatorScriptDraftV1'), null);
+    a.w.smartFetchAI = async prompt => corrections(prompt)
+        ? { blocks: [{ index: 0, narration: block(slots[0]).narration }] }
+        : { blocks: slots.slice(3).map(block), publishing: publishing() };
+    a.$('creator-continue-btn').click(); await until(() => !a.$('creator-export-json').disabled);
+    assert.match(a.$('creator-status').textContent, /Producción completa disponible en esta página/);
+    assert.doesNotMatch(a.$('creator-status').textContent, /completa guardada/);
+    assert.equal(a.w.getCreatorProduction().blocks.length, 6); assert.deepEqual(a.errors, []);
+});
+
+test('incompatible saved drafts do not overwrite a completed production or make automatic requests', t => {
+    const previous = core.validateProject(completeProject());
+    const a = app(t, { ytCreatorProductionV1: JSON.stringify(previous), ytCreatorScriptDraftV1: JSON.stringify({ version: 2 }) });
+    assert.match(a.$('creator-error').textContent, /borrador guardado está dañado/);
+    assert.equal(a.$('creator-continue-btn').disabled, true); assert.equal(a.requests.length, 0);
+    assert.equal(a.w.localStorage.getItem('ytCreatorScriptDraftV1'), null);
+    assert.deepEqual(JSON.parse(JSON.stringify(a.w.getCreatorProduction())), previous); assert.deepEqual(a.errors, []);
 });
 
 test('late selective repairs are discarded after Radar changes the evidence', async t => {
