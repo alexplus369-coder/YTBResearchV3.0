@@ -83,9 +83,9 @@ jobs:
         timeout-minutes: 5
         run: |
           # Avoid slow Azure archive routes observed on production runners; retain Ubuntu signing keys.
-          for source_file in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+          for source_file in /etc/apt/*mirrors*.txt /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
             [ -f "$source_file" ] || continue
-            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source_file"
+            sudo sed -E -i 's|https?://azure.archive.ubuntu.com/ubuntu/?|https://archive.ubuntu.com/ubuntu/|g' "$source_file"
           done
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core
