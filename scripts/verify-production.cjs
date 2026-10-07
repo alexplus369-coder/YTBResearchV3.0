@@ -35,6 +35,14 @@ async function value(code) {
   return data && Object.hasOwn(data, 'result') ? data.result : data;
 }
 async function wait(code) { await browser('wait', '--fn', code); }
+async function click(selector) {
+  // The native driver can leave partially visible buttons at the viewport edge.
+  // Centre the real control and verify its hit target before sending a pointer click.
+  const target = JSON.stringify(selector);
+  await value('document.querySelector(' + target + ').scrollIntoView({block:"center", inline:"nearest", behavior:"instant"}); true');
+  await wait('(() => {const el=document.querySelector(' + target + '); if(!el || el.disabled) return false; const r=el.getBoundingClientRect(), x=r.left+r.width/2, y=r.top+r.height/2; return r.width>0 && r.height>0 && r.top>=0 && r.bottom<=innerHeight && x>=0 && x<innerWidth && el.contains(document.elementFromPoint(x,y));})()');
+  await browser('click', selector);
+}
 async function api(endpoint) {
   const response = await fetch(base + '/api/video' + endpoint, {headers: {Authorization: 'Bearer ' + token}, signal: AbortSignal.timeout(5000)});
   assert.equal(response.ok, true, endpoint + ' HTTP ' + response.status);
@@ -46,6 +54,98 @@ async function metadata(filename) {
 async function screenshot(name, selector) {
   await browser('scrollintoview', selector);
   await browser('screenshot', path.join(output, name));
+}
+
+async function verifyNichesAndTheme() {
+  await wait('typeof NicheCore === "object" && document.querySelectorAll("[data-niche-rpm]").length === 20');
+  assert.equal(await value('document.documentElement.dataset.theme'), 'graphite');
+  assert.equal(await value('document.querySelectorAll(".niche-card").length'), 0);
+  const viewport = await value('[innerWidth, innerHeight]');
+  const colours = await value(`(() => {
+    const ids = ['niche-panel','creator-suite','video-factory','replicate-value-panel','research-input'];
+    return ['body', ...ids.map(id => '#' + id)].map(selector => {
+      const style = getComputedStyle(document.querySelector(selector));
+      return {selector, background:style.backgroundColor, colour:style.color};
+    });
+  })()`);
+  const rgb = colour => colour.match(/[\d.]+/g).slice(0, 3).map(Number);
+  const luminance = colour => rgb(colour).map(n => n / 255).map(n => n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4)
+    .reduce((sum, n, i) => sum + n * [.2126,.7152,.0722][i], 0);
+  const contrast = (a,b) => (Math.max(luminance(a),luminance(b)) + .05) / (Math.min(luminance(a),luminance(b)) + .05);
+  for (const surface of colours) {
+    assert.ok(rgb(surface.background).every(n => n < 100), 'Surface must stay dark: ' + JSON.stringify(surface));
+    assert.ok(contrast(surface.colour, surface.background) >= 4.5, 'Insufficient text contrast: ' + JSON.stringify(surface));
+  }
+  for (const theme of ['midnight','warm','graphite']) {
+    await browser('select', '#studio-theme', theme); await browser('reload');
+    await wait('typeof NicheCore === "object" && document.getElementById("studio-theme").value === ' + JSON.stringify(theme));
+    assert.equal(await value('document.documentElement.dataset.theme'), theme);
+    await screenshot('studio-theme-' + theme + '.png', '.studio-header');
+  }
+  // Replace the public read client only. No real credentials, YouTube quota or cloud generation is used by CI.
+  await value(`(() => {
+    window.nicheRealFetch = youtubeClient.fetchJson; window.nicheTestCalls = []; window.nicheAiCalls = 0;
+    window.smartFetchAI = async () => {window.nicheAiCalls++; throw new Error('Unexpected AI generation');};
+    document.getElementById('ytApiKeyInput').value = 'offline-niche-test-key';
+    const videos = NicheCore.CATALOG.map((n, i) => ({id:'niche'+String(i).padStart(6,'0'),
+      snippet:{title:'Referencia original '+n.label, channelTitle:'Canal '+i, channelId:'UC'+String(i).padStart(22,'0'),
+        publishedAt:new Date(Date.now()-10*86400000).toISOString(),liveBroadcastContent:'none'},
+      statistics:{viewCount:String((i+1)*10000)},contentDetails:{duration:'PT10M'}}));
+    youtubeClient.fetchJson = async input => {
+      const url = new URL(input); window.nicheTestCalls.push(url.pathname);
+      const resource = url.pathname.split('/').pop();
+      if(resource==='search') {const index=NicheCore.CATALOG.findIndex(n => n.queries.es === url.searchParams.get('q'));
+        if(index<0) throw new Error('Unknown test query'); return {items:[{id:{videoId:videos[index].id}}]};}
+      const ids=(url.searchParams.get('id') || '').split(',');
+      if(resource==='videos') return {items:videos.filter(v=>ids.includes(v.id))};
+      if(resource==='channels') return {items:ids.map(id=>({id,statistics:{subscriberCount:'2000',hiddenSubscriberCount:false}}))};
+      throw new Error('Unexpected public read');
+    };
+    return true;
+  })()`);
+  await click('#niche-update');
+  await wait('document.getElementById("niche-panel").getAttribute("aria-busy") === "false" && document.querySelectorAll(".niche-card").length === 10');
+  const requests = await value('window.nicheTestCalls');
+  assert.equal(requests.filter(p => p.endsWith('/search')).length, 20); assert.equal(requests.length, 60);
+  assert.match(await value('document.getElementById("niche-results").textContent'), /Sin historial suficiente/);
+  assert.equal(await value('window.nicheAiCalls'), 0);
+  assert.equal(await value('localStorage.getItem("ytNicheRadarV1").includes("offline-niche-test-key")'), false);
+  await value(`(() => {
+    document.querySelector('.niche-scenarios').open=true;
+    document.getElementById('niche-order').value='margin'; document.getElementById('niche-order').dispatchEvent(new Event('change'));
+    const rpm=document.querySelector('[data-niche-rpm="archviz"]'); rpm.value='15'; rpm.dispatchEvent(new Event('change',{bubbles:true}));
+    return true;
+  })()`);
+  assert.equal(await value('document.querySelector(".niche-card [data-niche-id]").dataset.nicheId'), 'archviz');
+  assert.equal(await value('window.nicheTestCalls.length'), 60);
+  const muted = await value(`(() => {const el=document.querySelector('.niche-card-heading p'); return {colour:getComputedStyle(el).color,background:getComputedStyle(el.closest('.niche-card')).backgroundColor};})()`);
+  assert.ok(contrast(muted.colour, muted.background) >= 4.5);
+  await value('document.querySelector(".niche-scenarios").open=false; true');
+  await screenshot('niche-ranking-desktop.png', '#niche-panel');
+  await screenshot('niche-cards-desktop.png', '.niche-results');
+  await browser('set', 'viewport', '390', '844');
+  await screenshot('niche-ranking-mobile.png', '#niche-panel');
+  await screenshot('niche-card-mobile.png', '.niche-card:first-child');
+  const layout = await value(`(() => {
+    const panel=document.getElementById('niche-panel');
+    const rect=panel.getBoundingClientRect();
+    return {left:rect.left,right:rect.right,width:panel.clientWidth,scrollWidth:panel.scrollWidth,
+      cards:[...panel.querySelectorAll('.niche-card')].map(el=>({width:el.clientWidth,scrollWidth:el.scrollWidth})),
+      controls:[...panel.querySelectorAll('.niche-controls button')].map(el=>el.getBoundingClientRect().height)};
+  })()`);
+  assert.ok(layout.left >= 0 && layout.right <= 390 && layout.scrollWidth <= layout.width + 2, JSON.stringify(layout));
+  assert.ok(layout.cards.every(card => card.scrollWidth <= card.width + 2), JSON.stringify(layout));
+  assert.ok(layout.controls.every(height => height >= 44), JSON.stringify(layout));
+  await click('.niche-card:first-child [data-niche-action="script"]');
+  assert.match(await value('document.getElementById("creator-context").textContent'), /Top 10/);
+  assert.equal(await value('window.nicheAiCalls'), 0);
+  await browser('set', 'viewport', String(viewport[0]), String(viewport[1]));
+  await value('youtubeClient.fetchJson=window.nicheRealFetch; document.getElementById("ytApiKeyInput").value=""; true');
+  await browser('reload');
+  await wait('document.querySelectorAll(".niche-card").length === 10 && typeof window.getCreatorProduction === "function"');
+  assert.equal(await value('document.querySelector(".niche-card [data-niche-id]").dataset.nicheId'), 'archviz');
+  await fs.writeFile(path.join(output,'niche-theme-report.json'),JSON.stringify({requests:requests.length,searches:20,aiCalls:0,colours,muted,mobile:layout},null,2));
+  console.log('Real browser niche and theme checks passed: bounded public reads, manual scenarios, source selection, reload, dark surfaces, text contrast and mobile layout.');
 }
 
 async function verifyScriptContinuation() {
@@ -70,8 +170,8 @@ async function verifyScriptContinuation() {
   await browser('set', 'viewport', String(viewport[0]), String(viewport[1]));
   const repaired = {blocks:[{index:4, narration:block(slots[4]).narration}]};
   await value('window.scriptRepairCalls = []; document.getElementById("geminiApiKeyInput").value = "fake-offline-key"; window.smartFetchAI = async prompt => {window.scriptRepairCalls.push(prompt); return ' + JSON.stringify(repaired) + ';}; true');
-  await browser('click', '#creator-tab-daily');
-  await browser('click', '#creator-continue-btn');
+  await click('#creator-tab-daily');
+  await click('#creator-continue-btn');
   await wait('!document.getElementById("creator-package-btn").disabled && localStorage.getItem("ytCreatorScriptDraftV1") === null');
   const calls = await value('window.scriptRepairCalls');
   assert.equal(calls.length, 1); assert.match(calls[0], /REPARACIÓN SELECTIVA DE GUION/);
@@ -114,16 +214,17 @@ async function main() {
     await screenshot('model-comparison-desktop.png', '#replicate-value-panel');
     await fs.writeFile(path.join(output, 'page-snapshot.json'), JSON.stringify(await browser('snapshot', '-i'), null, 2));
     assert.equal(await value('!!document.querySelector("[data-nextjs-dialog], .vite-error-overlay")'), false);
+    await verifyNichesAndTheme();
     await verifyScriptContinuation();
-    await browser('click', '#creator-tab-studio');
-    await browser('fill', '#video-access', token); await browser('click', '#video-connect');
+    await click('#creator-tab-studio');
+    await browser('fill', '#video-access', token); await click('#video-connect');
     await wait('document.getElementById("video-connection").textContent.includes("Motor conectado")');
     await wait('getComputedStyle(document.getElementById("video-factory")).borderTopWidth === "1px"');
     assert.equal((await api('/health')).worker, true);
     assert.equal((await api('/jobs')).length, 0);
     assert.ok((await fetch(base + '/docs/video-production.md', {headers: {Authorization: 'Basic ' + Buffer.from('alejandro:' + token).toString('base64')}})).ok);
 
-    await browser('click', '#video-render-form details summary');
+    await click('#video-render-form details summary');
     const assets = path.join(fixture, 'data', 'assets');
     const files = JSON.parse(await fs.readFile(path.join(fixture, 'fixture.json'), 'utf8')).assets;
     // The fixture uses opaque asset names; label their copies for the UI selectors.
@@ -137,25 +238,25 @@ async function main() {
     await browser('select', '#video-music', uploaded.find(a => a.name === 'music.wav').id);
     for (let i = 1; i < 6; i++) await browser('uncheck', '[data-render-block="' + i + '"]');
     await screenshot('factory-desktop.png', '#video-factory');
-    await browser('click', '#video-render');
+    await click('#video-render');
     await wait('document.querySelector("[data-video-action=preview]") !== null');
     const jobs = await api('/jobs'), original = jobs.find(j => j.kind === 'render');
     assert.equal(original.state, 'completed');
     assert.ok(Math.abs(original.result.durationSeconds - 6) < .2);
-    await browser('click', '[data-video-action="preview"]');
+    await click('[data-video-action="preview"]');
     await wait('document.getElementById("video-preview").readyState >= 1 && !document.getElementById("video-refresh").disabled');
     assert.ok(await value('document.getElementById("video-preview").videoWidth > 0 && !document.getElementById("video-preview").error'));
     await value('document.getElementById("video-preview").play().then(() => true)');
     await wait('document.getElementById("video-preview").currentTime > .25');
     await value('document.getElementById("video-preview").pause()');
     await screenshot('jobs-desktop.png', '#video-jobs');
-    await browser('click', '[data-video-action="transcript"]');
+    await click('[data-video-action="transcript"]');
     await wait('document.getElementById("video-transcript").querySelector("button") !== null');
     await value('document.getElementById("video-transcript").closest("details").open = true');
-    await browser('click', '#video-transcript button:first-child');
+    await click('#video-transcript button:first-child');
     await browser('fill', '#video-cut-start', '0');
     await browser('fill', '#video-cut-end', '1');
-    await browser('click', '#video-cut');
+    await click('#video-cut');
     await wait('document.querySelectorAll("[data-video-action=preview]").length === 2');
     const clipped = (await api('/jobs')).find(j => j.kind === 'clip');
     assert.equal(clipped.state, 'completed'); assert.equal(clipped.result.width, 720); assert.equal(clipped.result.height, 1280);
@@ -174,9 +275,12 @@ async function main() {
     await fs.writeFile(path.join(output, 'mobile-layout.json'), JSON.stringify(layout, null, 2));
     assert.ok(layout.scrollWidth <= layout.clientWidth + 2, 'Factory overflows on mobile: ' + JSON.stringify(layout));
     await fs.writeFile(path.join(output, 'browser-report.json'), JSON.stringify({pageErrors, original: original.result, clip: clipped.result, mobileWidth: 390}, null, 2));
-    await value('window.confirm = () => true; true');
-    await browser('click', '#video-clean-temp');
+    await wait('!document.getElementById("video-clean-temp").disabled');
+    await value('window.cleanupClicks = 0; window.cleanupConfirmations = 0; document.getElementById("video-clean-temp").addEventListener("click", () => window.cleanupClicks++); window.confirm = () => {window.cleanupConfirmations++; return true;}; true');
+    await click('#video-clean-temp');
     await wait('document.getElementById("video-connection").textContent.includes("Temporales eliminados")');
+    assert.equal(await value('window.cleanupClicks'), 1);
+    assert.equal(await value('window.cleanupConfirmations'), 1);
     assert.equal((await api('/jobs')).length, 0); assert.equal((await api('/assets')).length, 0);
     assert.equal((await fs.readdir(path.join(output, 'server-data', 'jobs'))).length, 0);
     assert.equal((await fs.readdir(path.join(output, 'server-data', 'assets'))).length, 0);
@@ -185,6 +289,9 @@ async function main() {
     console.log('Real browser check passed: private site, connect, upload, render, playable preview, transcript, portrait clip, mobile layout and temporary-file cleanup.');
   } catch (error) {
     await fs.writeFile(path.join(output, 'server.log'), serverLog);
+    const failure = await value('({status: document.getElementById("video-connection")?.textContent, error: document.getElementById("video-error")?.textContent, cleanDisabled: document.getElementById("video-clean-temp")?.disabled, cleanupClicks: window.cleanupClicks, cleanupConfirmations: window.cleanupConfirmations})').catch(() => null);
+    await fs.writeFile(path.join(output, 'failure-state.json'), JSON.stringify(failure, null, 2));
+    console.error('Browser failure state:', failure);
     await browser('screenshot', path.join(output, 'error.png')).catch(() => {});
     throw error;
   } finally {
