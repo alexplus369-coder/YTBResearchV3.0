@@ -33,6 +33,9 @@ function Invoke-FailingUpdate($fixture) {
     Assert-Equal $failed $true 'Fixture should fail'
     Assert-Equal (Get-Content -LiteralPath (Join-Path $fixture 'index.html') -Raw).Trim() 'previous:index.html' 'Original index should remain'
     Assert-Equal (Test-Path -LiteralPath (Join-Path $fixture 'replicate-studio.js')) $false 'New files should not remain after failure'
+    foreach ($file in @('niche-core.js', 'niche-radar.js', 'studio-theme.css', 'studio-theme.js')) {
+        Assert-Equal (Test-Path -LiteralPath (Join-Path $fixture $file)) $false "New studio file should not remain after failure: $file"
+    }
     Assert-Preserved $fixture
 }
 
@@ -61,6 +64,9 @@ try {
     & $updateScript -Revision ('a' * 40) -ProjectPath $success
     Assert-Equal ((Get-Content -LiteralPath (Join-Path $success 'index.html') -Raw).StartsWith('downloaded:')) $true 'Index should be updated'
     Assert-Equal (Test-Path -LiteralPath (Join-Path $success 'backend\replicate_studio.py')) $true 'New module should be installed'
+    foreach ($file in @('niche-core.js', 'niche-radar.js', 'studio-theme.css', 'studio-theme.js')) {
+        Assert-Equal ((Get-Content -LiteralPath (Join-Path $success $file) -Raw).StartsWith('downloaded:')) $true "Studio file should be installed: $file"
+    }
     $previous = Get-ChildItem -LiteralPath (Join-Path $success 'update-backups') -Recurse -Filter 'index.html' |
         Where-Object { $_.FullName -match '[\\/]previous[\\/]' } | Select-Object -First 1
     Assert-Equal (Get-Content -LiteralPath $previous.FullName -Raw).Trim() 'previous:index.html' 'Backup should contain the original bytes'

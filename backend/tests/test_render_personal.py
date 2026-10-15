@@ -34,11 +34,15 @@ def test_private_site_password_gate_protects_html_catalog_and_docs_without_unloc
     credential = base64.b64encode((settings.site_user + ':' + settings.token).encode()).decode()
     headers = {'Authorization': 'Basic ' + credential}
     with TestClient(create_app(settings, run_worker=False)) as client:
-        for path in ['/', '/replicate-catalog.js', '/docs/render-personal.md']:
+        for path in ['/', '/replicate-catalog.js', '/docs/render-personal.md', '/niche-core.js', '/niche-radar.js', '/studio-theme.css', '/studio-theme.js']:
             response = client.get(path)
             assert response.status_code == 401 and 'Basic realm=' in response.headers['www-authenticate']
             assert settings.token not in response.text
             assert client.get(path, headers=headers).status_code == 200
+        css = client.get('/studio-theme.css', headers=headers)
+        assert css.headers['content-type'].startswith('text/css') and '--studio-bg' in css.text
+        javascript = client.get('/niche-core.js', headers=headers)
+        assert 'javascript' in javascript.headers['content-type'] and 'NicheCore' in javascript.text
         assert client.get('/healthz').json() == {'status': 'ok'}
         assert client.get('/', headers={'Authorization': 'Basic !bad!'}).status_code == 401
         assert client.get('/api/video/jobs', headers=headers).status_code == 401

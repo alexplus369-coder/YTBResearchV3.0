@@ -4,6 +4,14 @@ El estudio ahora puede producir un MP4 a partir de una producción guardada: gui
 
 La implementación toma como referencia el flujo de [MoneyPrinterTurbo](https://github.com/harry0703/MoneyPrinterTurbo/blob/main/README-en.md) y la edición por escenas de [ShortGPT](https://github.com/RayVentura/ShortGPT). Es código propio integrado con el formato editorial existente. No ejecuta esos repositorios ni exige sus dependencias completas.
 
+## Elegir un nicho y ajustar la apariencia
+
+El **Top 10 · Radar de rentabilidad** aparece al inicio. Configura tu YouTube API Key, elige periodo/formato/idioma y pulsa **Actualizar ranking**. Compara 20 categorías con fuentes públicas y muestra hasta diez con videos elegibles. No necesita conectar FFmpeg ni servicios de IA. Cada consulta admite hasta 20 búsquedas y 40 llamadas de detalles; puedes detenerla y se conserva la última muestra si falla la cuota.
+
+Abre **Supuestos financieros e intereses** para ajustar RPM, vistas previstas y coste por video, o valores propios por nicho. El margen es simulado: YouTube no publica ingresos de canales ajenos. La primera consulta no muestra crecimiento medido; requiere lecturas separadas durante al menos seis días. **Preparar guion** lleva el nicho y las referencias al estudio; define un tema específico, después crea los títulos y genera la producción. **Analizar nicho** amplía la investigación en el Radar. Consulta la [metodología y límites completos](../README.md#top-10-de-nichos-y-apariencia).
+
+El encabezado incluye **Apariencia**: Grafito suave, Azul noche y Oscuro cálido. Todo el panel utiliza fondos oscuros y controles legibles. La elección, el ranking y los supuestos se recuerdan en este navegador/origen; no se realizan consultas al abrirlo. Después de actualizar, usa **Ctrl+F5** para cargar el nuevo CSS. El actualizador de Windows instala los cuatro archivos nuevos junto con las rutas del backend, sin tocar tu entorno Python ni datos.
+
 ## Instalar y empezar
 
 Requisitos: Python **3.12**, FFmpeg/FFprobe en `PATH` y FFmpeg compilado con **libx264, AAC y libass**. Se recomiendan las fuentes DejaVu Sans. Node solo hace falta para las pruebas del frontend y la edición opcional con Remotion.

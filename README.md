@@ -1,20 +1,44 @@
-# YT SEO Pro Suite — Investigación y producción
+# YT Research Studio — Investigación y producción
 
 Aplicación estática en español para investigar temas de YouTube, descubrir oportunidades y preparar videos originales: empaquetado, guion completo, storyboard, prompts visuales, edición y publicación. La investigación y los guiones funcionan en el navegador. El motor opcional Python/FFmpeg convierte la producción en MP4 y guarda una cola en SQLite. YouTube proporciona datos públicos; Gemini y DeepSeek redactan los contenidos con IA cuando los configuras.
 
 ## Inicio rápido
 
-1. Conserva juntos `index.html`, `research-core.js`, `research-workspace.js`, `creator-core.js`, `creator-studio.js` y `video-production.js`. Puedes abrir `index.html` directamente; para almacenamiento consistente y OAuth, usa un servidor estático:
+1. Conserva `index.html` junto con todos los archivos `.js` y `.css` de la raíz, incluidos `niche-core.js`, `niche-radar.js`, `studio-theme.css` y `studio-theme.js`. Puedes abrir `index.html` directamente; para almacenamiento consistente y OAuth, usa un servidor estático:
 
    ```bash
    python -m http.server 8000
    ```
 
 2. Abre `http://localhost:8000` y coloca tu **YouTube Data API v3 Key** en **Configuración APIs**. **Guardar Configuración** verifica YouTube con una consulta de regiones, sin gastar una búsqueda. La configuración del canal acepta `@handle` o ID.
-3. Usa el **Radar de Temas & Canales**. No necesitas una clave de IA para buscar, puntuar, filtrar, guardar referencias o exportar planes.
+3. Pulsa **Actualizar ranking** en **Top 10 de nichos** o usa el **Radar de Temas & Canales**. No necesitas una clave de IA para buscar, puntuar, filtrar, guardar referencias o exportar planes.
 4. Define el nicho y audiencia en **Estudio de crecimiento y producción**. Tendrás referencias, palabras clave e ideas editoriales sin IA. Configura Gemini o DeepSeek para personalizar las ideas y generar títulos, miniaturas y guiones. Vision AI requiere Gemini.
 
 El frontend estático no necesita paquetes de Node. La fábrica de videos requiere el backend Python y FFmpeg; la edición alternativa con Remotion requiere Node. El diseño conserva Tailwind y Font Awesome desde sus CDN; necesitas conexión para cargar estos recursos y consultar APIs.
+
+## Top 10 de nichos y apariencia
+
+El panel compara **20 categorías candidatas** y muestra hasta diez con datos suficientes. Es un ranking de oportunidades dentro de una muestra de búsqueda y de tus supuestos de negocio. No es un censo de YouTube ni un ranking de ingresos observados: la API pública no proporciona el RPM ni las ganancias de otros canales.
+
+1. En **Configuración APIs**, introduce tu clave de YouTube. El ranking no necesita Gemini, DeepSeek, Replicate ni conectar el motor.
+2. Elige disponibilidad por país, idioma preferido, periodo de 7/30/90 días y duración. El país indica dónde puede verse el video; no identifica la ubicación de su audiencia. El idioma es una preferencia de búsqueda. Menos de 4 minutos puede incluir Shorts y otros videos cortos.
+3. Pulsa **Actualizar ranking**. Se realizan como máximo **20 búsquedas y 40 consultas de detalles**, sin paginación ni reintentos automáticos y con dos nichos en curso. Se reutiliza la caché pública existente. Puedes detener nuevas solicitudes; las ya enviadas pueden consumir cuota. Si se agota la cuota o no hay resultados elegibles, se conserva la última muestra. Los fallos aislados producen un ranking parcial identificado.
+4. Abre **Supuestos financieros e intereses**. Define RPM, coste de producción y vistas previstas **por video**, y opcionalmente RPM/coste distintos por nicho. Un campo vacío hereda el general; cero es válido. La fórmula es `margen simulado = vistas / 1.000 × RPM − coste`. El valor general inicial es un supuesto editable, no una tarifa verificada para ningún nicho. Afiliación, patrocinio y productos solo aparecen como ofertas por validar, sin sumar ganancias inventadas.
+5. Revisa **Fuentes y desglose**. **Analizar nicho** inicia una búsqueda explícita en el Radar. **Preparar guion** envía el nicho y hasta seis referencias con su fecha de consulta al estudio; completa audiencia y tema concreto y después crea títulos/miniaturas. Seleccionar el nicho no llama a la IA ni sustituye la última producción completa. **Descargar informe** exporta la comparación en Markdown.
+
+| Señal | Cálculo y límite |
+|---|---|
+| Demanda | Mediana de vistas por día desde publicación, para hasta 20 videos elegibles por categoría. Se descartan directos, resultados sin vistas/duración y videos de menos de un día o fuera del periodo/formato. Es un promedio histórico, no velocidad instantánea ni volumen de búsquedas. |
+| Canales pequeños | Proporción de videos con al menos 1.000 vistas y suscriptores visibles bajo el umbral elegido. Los suscriptores ocultos o ausentes se excluyen del denominador; sin datos, la puntuación es neutral. |
+| Margen | Escenario publicitario manual. Se compara por percentil entre las categorías con muestra; los empates reciben el punto medio. |
+| Historial | Hasta ocho lecturas por video en 30 días, separadas al menos 24 horas. La tendencia necesita dos intervalos de al menos tres días: con lecturas diarias, como mínimo seis días. Una corrección descendente de vistas invalida la tendencia. La primera consulta muestra **Sin historial suficiente**. |
+| Amplitud | **Amplia**, **limitada** o **escasa** según cantidad de videos, diversidad y concentración de canales. Describe la muestra; no mide certeza financiera. Los mismos videos pueden aparecer en varios nichos. |
+
+La puntuación relativa combina demanda 50%, resultados de canales pequeños 20% y margen simulado 30%. La demanda se compara con la precisión mostrada (vistas/día enteras), evitando diferencias artificiales entre lecturas casi idénticas. Si activas **Afinidad**, pasa a demanda 40%, canales pequeños 20%, margen 30% y coincidencia de palabras de tus intereses 10%. Puedes ordenar directamente por demanda o margen. No representa probabilidad de éxito. Cambiar supuestos reordena localmente; cambiar filtros marca la muestra anterior hasta que actualices.
+
+La fecha y el alcance de la consulta siempre se muestran. Pasadas 24 horas aparece un aviso; las lecturas de más de 30 días se descartan al cargar. Ranking, historial y supuestos se guardan en este navegador/origen, sin claves. Abrir la página no lanza búsquedas ni generaciones. Las cuotas del proyecto se consultan en Google Cloud y en la documentación vigente de [search.list](https://developers.google.com/youtube/v3/docs/search/list) y [cuotas](https://developers.google.com/youtube/v3/determine_quota_cost).
+
+La nueva apariencia usa **Grafito suave** por defecto, con fondos oscuros en formularios, tablas, estudio, fábrica y catálogo permanente de modelos. En el encabezado puedes elegir **Azul noche** u **Oscuro cálido**. La elección se recuerda en este navegador. Imágenes y videos mantienen sus colores originales; el diseño se adapta a tablet y móvil.
 
 ## Las cuatro herramientas de creación
 
@@ -43,7 +67,7 @@ Completa nicho, audiencia y resultado que quieres enseñar. El día se calcula c
 2. Define audiencia, objetivo, tono, duración, estilo visual y metas de CTR/retención. El RPM se toma del Radar. Los rangos de nichos de la metodología del creador son hipótesis orientativas etiquetadas, no mediciones financieras ni RPM aplicados automáticamente.
 3. Añade hechos y enlaces verificables propios. Configura solo las ofertas reales que quieras integrar: sponsor, sus prestaciones, afiliado, URL y recurso propio. Estos campos se guardan localmente como parte del trabajo editorial.
 4. **Crear títulos y miniaturas** solicita tres propuestas. Se validan títulos de menos de 50 caracteres, hasta tres elementos visuales y texto que no duplique el título. Los prompts son en inglés, con composición 16:9. Elige una propuesta.
-5. **Generar guion y producción** realiza normalmente dos solicitudes de IA (bloques 1–3 y 4–6), conservando la continuidad. Escribe locución completa, no solo un esquema. Se validan todos los bloques, su longitud respecto a un presupuesto de 145 palabras/min y los prompts de cada escena. Si algo falla, se permiten hasta dos reparaciones selectivas por tramo: se envían solo los bloques pendientes con su conteo real y su objetivo; los bloques validados se conservan. Si únicamente falla la extensión, se corrige la locución manteniendo edición y recursos. El paquete de publicación tiene una reparación separada. Si aún falla, **Continuar guion y producción** retoma lo pendiente sin repetir los bloques aceptados. El borrador se mantiene en esta página hasta completarlo, recargar, cambiar el perfil/tema/evidencia o elegir otro empaquetado. Una respuesta incompleta no sustituye la última producción válida. Se muestra la duración estimada de locución para ajustar pausas y demostraciones en el ensayo.
+5. **Generar guion y producción** realiza normalmente dos solicitudes de IA (bloques 1–3 y 4–6), conservando la continuidad. Escribe locución completa, no solo un esquema. Se validan todos los bloques, su longitud respecto a un presupuesto de 145 palabras/min y los prompts de cada escena. Si algo falla, se permiten hasta dos reparaciones selectivas por tramo: se envían solo los bloques pendientes con su conteo real y su objetivo; los bloques validados se conservan. Si únicamente falla la extensión, se corrige la locución manteniendo edición y recursos. El paquete de publicación tiene una reparación separada. Si aún falla, **Continuar guion y producción** retoma lo pendiente sin repetir los bloques aceptados. El borrador se guarda en este navegador y se recupera al recargar. Se descarta al completarlo, cambiar el perfil/tema/evidencia o elegir otro empaquetado. Una respuesta incompleta no sustituye la última producción válida. Se muestra la duración estimada de locución para ajustar pausas y demostraciones en el ensayo.
 6. Revisa y descarga Markdown o JSON. Markdown incluye la hoja de edición con cambios orientativos cada 5 s (3 s en el gancho), prompts de imagen y clips de video de 5 s, negativos, fuentes, monetización, descripción, comentario fijado y verificaciones. El JSON permite recuperar la producción; se valida y solo incluye campos editoriales autorizados.
 
 El esquema temporal mantiene gancho/re-hook en los primeros 30 s, victoria rápida, núcleo con integración comercial opcional, transición natural de 15 s, revelación y recurso/cierre invisible. En 10 minutos las transiciones principales son 0:30, 3:00, 5:30, 5:45 y 8:00; en 8 o 9 minutos se ajustan al total. El gancho debe iniciar la locución, durar aproximadamente cinco segundos y aparecer con el re-hook en el guion. El cierre rechaza despedidas directas y peticiones de suscripción.
@@ -189,7 +213,7 @@ Las transcripciones siguen siendo de mejor esfuerzo mediante Piped, Invidious y 
 
 Las API keys no se guardan en almacenamiento persistente ni se incluyen automáticamente en los respaldos. Se envían al proveedor correspondiente desde el navegador. El token de Analytics no entra en la caché pública.
 
-El tablero, historial, cohortes, perfil editorial, último lote diario de IA y última producción son locales. Los CDN de diseño, Google Identity Services, autocomplete y los servicios de transcripción también reciben las solicitudes que les corresponden. El perfil y las referencias seleccionadas se envían al proveedor de IA cuando pides una generación; las exportaciones no añaden claves ni tokens. El HTML y las respuestas de IA se escapan al renderizarlos en los módulos modificados.
+El tablero, historial, cohortes, ranking de nichos y sus supuestos, apariencia, perfil editorial, borrador pendiente, último lote diario de IA y última producción son locales. Los CDN de diseño, Google Identity Services, autocomplete y los servicios de transcripción también reciben las solicitudes que les corresponden. El perfil y las referencias seleccionadas se envían al proveedor de IA cuando pides una generación; las exportaciones no añaden claves ni tokens. El HTML y las respuestas de IA se escapan al renderizarlos en los módulos modificados.
 
 Código:
 
@@ -198,6 +222,8 @@ Código:
 - `research-workspace.js`: tablero editorial, historial y enlace de las herramientas con la interfaz.
 - `creator-core.js`: perfiles, evidencia de outliers/tendencias, ideas, presupuestos temporales, validación de guiones, escenarios y exportación.
 - `creator-studio.js`: cuatro herramientas, generación por etapas, persistencia y auditoría privada opcional.
+- `niche-core.js` y `niche-radar.js`: comparación de muestras públicas, escenarios manuales, fuentes, historial y selección de nichos.
+- `studio-theme.css` y `studio-theme.js`: tres apariencias oscuras y preferencia local.
 - `video-production.js`: conexión optativa con el motor, recursos, cola, vista previa, recortes y subida privada.
 - `backend/`: API FastAPI, cola SQLite, voz/recursos, FFmpeg, subtítulos y sesiones reanudables de YouTube.
 - `remotion/`: composición React opcional alimentada por el proyecto exportado.

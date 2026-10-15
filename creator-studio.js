@@ -9,7 +9,7 @@
         affiliate: 'affiliate', affiliateUrl: 'affiliate-url', lead: 'lead', leadUrl: 'lead-url', ownFacts: 'own-facts' };
     let revision = 0, busy = '', baseline = [], suggestions = [], keywords = [], references = [], ideas = [];
     let variants = [], selected = 0, packageContext = null, project = null, lastRun = researchState.runId, auditRevision = 0;
-    let dailyCache = null, chosenIds = [], scriptDraft = null, draftStored = false;
+    let dailyCache = null, chosenIds = [], scriptDraft = null, draftStored = false, nicheReferences = null;
     window.getCreatorProduction = () => project ? core.validateProject(project) : null;
     const html = value => escHtml(String(value ?? ''));
     const button = (action, index, label) => '<button type="button" data-creator-action="' + action + '" data-index="' + index + '" class="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-2 rounded-lg">' + label + '</button>';
@@ -51,6 +51,7 @@
     async function task(name, work) {
         if (busy || researchState.busy) return;
         busy = name; clearError(); lock();
+        document.dispatchEvent(new CustomEvent('creator-busy', { detail: { busy: true } }));
         const version = revision;
         const current = () => version === revision;
         try { await work(current); }
@@ -62,7 +63,7 @@
                     (draftStored ? 'en este navegador' : 'en esta página') + '. Pulsa «Continuar guion y producción» para corregir lo pendiente.' : 'No se completó la operación. Puedes corregir el problema y reintentar.');
             }
         }
-        finally { busy = ''; lock(); }
+        finally { busy = ''; lock(); document.dispatchEvent(new CustomEvent('creator-busy', { detail: { busy: false } })); }
     }
     function selectTab(name, focus = false) {
         document.querySelectorAll('[data-creator-tab]').forEach(el => {
@@ -99,7 +100,8 @@
     }
     function updateContext() {
         const p = profile();
-        const sample = researchState.topic ? 'Radar: ' + researchState.topic + ' · ' + researchState.signals.length + ' referencias visibles. ' : 'Todavía no hay una muestra del Radar. ';
+        const sample = nicheReferences ? 'Top 10: ' + p.niche + ' · ' + nicheReferences.length + ' referencias de la consulta seleccionada. ' :
+            researchState.topic ? 'Radar: ' + researchState.topic + ' · ' + researchState.signals.length + ' referencias visibles. ' : 'Todavía no hay una muestra del Radar. ';
         const guidance = core.rpmGuidance(p.niche);
         $('creator-context').textContent = sample + (p.channelContext ? p.channelContext + '. ' : '') + 'RPM: USD ' + p.rpm.toFixed(2) + ' (' + (p.rpmSource === 'analytics' ? 'calibrado con tu canal; su aplicación al próximo video es un supuesto' : 'supuesto manual') + '). ' + guidance.category + (guidance.referenceRange ? ' · referencia ' + guidance.referenceRange + '. ' : '. ') + guidance.note;
     }
@@ -138,7 +140,7 @@
         lock();
     }
     function chooseTopic(topic, angle, sourceIds = []) {
-        chosenIds = sourceIds;
+        chosenIds = sourceIds; nicheReferences = null;
         invalidatePackaging(); $('creator-topic').value = String(topic).slice(0, 200); $('creator-angle').value = String(angle || '').slice(0, 1800);
         selectTab('studio'); $('creator-topic').focus();
     }
@@ -148,8 +150,8 @@
         const topic = $('creator-topic').value.trim();
         if (!topic) throw new Error('Elige o escribe el tema del video.');
         const ordered = [...researchState.signals].sort((a, b) => Number(chosenIds.includes(b.video.id)) - Number(chosenIds.includes(a.video.id)));
-        const sources = ordered.slice(0, 6).map(s => ({ ...core.source(s), transcript: false }));
-        return { profile: p, rpmGuidance: core.rpmGuidance(p.niche), topic, angle: $('creator-angle').value.trim(), sampleTopic: researchState.topic, sources };
+        const sources = nicheReferences ? nicheReferences.map(s => ({ ...s })) : ordered.slice(0, 6).map(s => ({ ...core.source(s), transcript: false }));
+        return { profile: p, rpmGuidance: core.rpmGuidance(p.niche), topic, angle: $('creator-angle').value.trim(), sampleTopic: nicheReferences ? p.niche : researchState.topic, sources };
     }
     function groundedPrompt(ctx) {
         return 'Actúa como productor de YouTube. Escribe contenido original en español y prompts visuales en inglés. Objetivos de CTR, retención y RPM son metas y supuestos, nunca promesas ni métricas de competidores.\n' +
@@ -200,7 +202,18 @@
         } catch (error) { showError(error); }
     });
     for (const id of Object.values(fields)) $('creator-' + id).addEventListener('change', () => {
+        if (id === 'niche') nicheReferences = null;
         invalidatePackaging(); const p = profile(); persist(KEY.profile, p); refreshDaily(); updateContext(); renderScenario();
+    });
+    document.addEventListener('creator-niche-selected', event => {
+        if (busy || researchState.busy) return;
+        const data = event.detail;
+        if (!data || typeof data.niche !== 'string' || !data.niche.trim() || !Array.isArray(data.sources)) return;
+        const sources = data.sources.filter(s => /^[\w-]{11}$/.test(s?.id || '') && Number.isFinite(Date.parse(s.capturedAt))).slice(0, 6).map(s => ({
+            ...core.source({ video: { id: s.id, snippet: { title: s.title, channelTitle: s.channel, publishedAt: s.publishedAt } }, views: s.views, vpd: s.viewsPerDay }, Date.parse(s.capturedAt)), transcript: false }));
+        $('creator-niche').value = data.niche.slice(0, 160); $('creator-niche').dispatchEvent(new Event('change'));
+        chooseTopic(data.topic || data.niche, data.angle, sources.map(s => s.id)); nicheReferences = sources;
+        updateContext(); status('Nicho y referencias del Top 10 preparados. Define un tema concreto y crea títulos y miniaturas. La última producción completa se conserva.');
     });
     for (const id of ['creator-topic', 'creator-angle', 'creator-use-transcripts']) $(id).addEventListener('change', invalidatePackaging);
     $('creator-packaging').addEventListener('change', event => {
@@ -211,7 +224,7 @@
         }
     });
     document.addEventListener('research-busy', event => {
-        if (event.detail.busy) { invalidatePackaging(); baseline = []; suggestions = []; chosenIds = []; auditRevision++; clearPrivateAudit(); $('creator-audit-source').textContent = ''; status('Esperando la nueva muestra del Radar…'); }
+        if (event.detail.busy) { nicheReferences = null; invalidatePackaging(); baseline = []; suggestions = []; chosenIds = []; auditRevision++; clearPrivateAudit(); $('creator-audit-source').textContent = ''; status('Esperando la nueva muestra del Radar…'); }
         else { updateContext(); status(researchState.signals.length ? 'Herramientas actualizadas con las referencias visibles del Radar.' : 'Define tu nicho y escanea el Radar para comenzar.'); }
         lock();
     });
